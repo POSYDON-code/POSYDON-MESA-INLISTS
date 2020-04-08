@@ -512,6 +512,9 @@ contains
     type (star_info), pointer :: s
     ierr = 0
     call star_ptr(id, s, ierr)
+    !! save the profile when mesa reaches min_timestep_limit
+    !s% write_profiles_flag = .true.
+    !call save_profile(id, id_extra, 2, ierr)
     if (ierr /= 0) return
   end subroutine extras_after_evolve
 

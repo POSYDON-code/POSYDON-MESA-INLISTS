@@ -762,11 +762,21 @@
          end if
 
          if (extras_binary_finish_step == terminate) then
+               !write(*,*) "saving final profilesA"
+               !if (b% point_mass_i /= 1) then
+               !     call star_write_profile_info(b% s1% id, "LOGS1/final_profileA.data", b% s1% id, ierr)
+               !end if
+               !if (ierr /= 0) return ! failure in profile
+               !if (b% point_mass_i /= 2) then
+               !     call star_write_profile_info(b% s2% id, "LOGS2/final_profileA.data", b% s2% id, ierr)
+               !end if
+               !if (ierr /= 0) return ! failure in profile
+
             !call star_write_profile_info(b% s1% id, "LOGS1/prof_9FINAL.data", b% s1% id, ierr)
             !if (ierr /= 0) return ! failure in profile
             !call star_write_profile_info(b% s2% id, "LOGS2/prof_9FINAL.data", b% s2% id, ierr)
             !if (ierr /= 0) return ! failure in profile
-            b% s1% lxtra15 = .true.
+            !b% s1% lxtra15 = .true.
          else
             if (b% point_mass_i /= 1) then
                 if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! MANOS OCT19, changing from "contact" scheme to Kolb if one star reaches TAMS
@@ -787,11 +797,11 @@
             if (b% model_number == 1 ) then ! MANOS OCT19, saving initial_profile
                write(*,*) "saving initial profiles"
                if (b% point_mass_i /= 1) then
-                    call star_write_profile_info(b% s1% id, "LOGS1/ip1.data", b% s1% id, ierr)
+                    call star_write_profile_info(b% s1% id, "LOGS1/initial_profile.data", b% s1% id, ierr)
                end if
                if (ierr /= 0) return ! failure in profile
                if (b% point_mass_i /= 2) then
-                    call star_write_profile_info(b% s2% id, "LOGS2/ip2.data", b% s2% id, ierr)
+                    call star_write_profile_info(b% s2% id, "LOGS2/initial_profile.data", b% s2% id, ierr)
                end if
                if (ierr /= 0) return ! failure in profile
             end if
@@ -894,78 +904,27 @@
       end function eval_rlobe
 
       subroutine extras_binary_after_evolve(binary_id, ierr)
+         use run_star_support
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
+         type(star_Info), pointer :: s
          integer :: iounit
          call binary_ptr(binary_id, b, ierr)
-         if (ierr /= 0) then ! failure in  binary_ptr
-            return
-         end if
-         write(*,*) "Saving summary data"
-         iounit = alloc_iounit(ierr)
-         if (ierr /= 0) then ! failure in  binary_ptr
-            write(*,*) "Error allocating iounit"
-            return
-         end if
+         if (ierr /= 0) return
+          !if (b% point_mass_i /= 1) then
+                 call star_write_profile_info(b% s1% id, "LOGS1/final_profile.data", b% s1% id, ierr) !MANOS: this should be checking if s1 is a point mass, but in minimum timestep cases, it is behaving like becoming a point mass.. So for now it is assuming it it is not a point mass, not sure if it works in other case.
+          !end if 
+           !if (b% point_mass_i /= 1) then
+           !     write(*,*) "going in loop 2"
+           !     call save_profile(b% s1% id, b% s1% id, 2, ierr) !not working
+           ! end if
+            if (ierr /= 0) return ! failure in profile
 
-         open(unit=iounit, file=trim('summary.txt'), action='write', status='replace', iostat=ierr)
-         if (ierr /= 0) then
-            write(*,*) 'failed to open file summary.txt to write'
-            stop 1
-         end if
-
-         write(iounit,*) "Case A:", b% s1% ixtra1
-         write(iounit,*) "Case B:", b% s1% ixtra2
-         write(iounit,*) "Case C:", b% s1% ixtra3
-
-         if (b% s1% lxtra1) &
-            write(iounit,*) "Off-center Neon ignition for primary"
-         if (b% s1% lxtra16) &
-            write(iounit,*) "Off-center Neon ignition for secondary"
-         if (b% s1% lxtra2) &
-            write(iounit,*) "termination code: Primary depleted carbon"
-         if (b% s1% lxtra19) &
-            write(iounit,*) "Primary depleted helium with M>13 Msun"
-         if (b% s1% lxtra3) &
-            write(iounit,*) "Secondary depleted carbon"
-         if (b% s1% lxtra4) &
-            write(iounit,*) "Primary terminated last"
-         if (b% s1% lxtra5) &
-            write(iounit,*) "Secondary terminated last"
-         if (b% s1% lxtra6) &
-            write(iounit,*) "ZAMS L2 overflow"
-         if (b% s1% lxtra7) &
-            write(iounit,*) "ZAMS RLOF"
-         if (b% s1% lxtra8) &
-            write(iounit,*) "L2 overflow after ZAMS"
-         if (b% s1% lxtra9 .and. .not. b% s1% lxtra10) &
-            write(iounit,*) "Contact without inverse mass transfer"
-         if (b% s1% lxtra10) &
-            write(iounit,*) "Contact with inverse mass transfer"
-         if (b% s1% lxtra11) &
-            write(iounit,*) "System reached lower mdot limit"
-         if (b% s1% lxtra12) &
-            write(iounit,*) "System reached upper mdot limit"
-         if (b% s1% lxtra13) &
-            write(iounit,*) "Inverse mass transfer past secondary H depletion, primary in MS."
-         if (b% s1% lxtra18) &
-            write(iounit,*) "Inverse mass transfer past secondary H depletion, primary off MS."
-         if (b% s1% lxtra14) &
-            write(iounit,*) "Inverse mass transfer before secondary H depletion, primary off MS."
-         if (b% s1% lxtra17) &
-            write(iounit,*) "Terminated due to mass transfer in q_i<=0.25 system"
-         if (b% s1% lxtra20) &
-            write(iounit,*) "Terminated due to mass transfer rate reaching maximum"
-         if (b% s1% lxtra21) &
-            write(iounit,*) "Initial system is darwin unstable"
-         if (b% s1% lxtra15 .or. b% s1% lxtra17) then
-            write(iounit,*) "Normal termination"
-         else
-            write(iounit,*) "Abnormal termination"
-         end if
-
-         close(iounit)
+            if (b% point_mass_i /= 2) then
+                 call star_write_profile_info(b% s2% id, "LOGS2/final_profile.data", b% s2% id, ierr)
+            end if
+            if (ierr /= 0) return ! failure in profile
 
       end subroutine extras_binary_after_evolve
 

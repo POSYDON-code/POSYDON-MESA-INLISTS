@@ -508,6 +508,8 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
+    !write(*,*) "going in loop 3", id
+    !call star_write_profile_info(id, "LOGS_test/final_profileC.data", id, ierr)
   end subroutine extras_after_evolve
 
 

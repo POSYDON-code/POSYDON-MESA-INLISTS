@@ -7,15 +7,15 @@
       eosDT_use_linear_interp_for_X = .false.
       eosDT_use_linear_interp_to_HELM = .false.
 
-      write_profile_when_terminate = .true.
-      filename_for_profile_when_terminate = 'LOGS1/profile.data'
+!      write_profile_when_terminate = .true.
+!      filename_for_profile_when_terminate = 'LOGS1/profile.data'
 
-      save_model_when_terminate = .true.
-      save_model_filename = 'model1.mod'
+!      save_model_when_terminate = .true.
+!      save_model_filename = 'model1.mod'
 
-      !load the preMS star !MANOS MAR20
-      load_saved_model = .true.
-      saved_model_name = 'ZAMS_star1.mod'
+!      !load the preMS star !MANOS MAR20
+!      load_saved_model = .true.
+!      saved_model_name = 'ZAMS_star1.mod'
 
       ! set initial age and model number to 0 again
       set_initial_age = .true.
@@ -45,7 +45,7 @@
       !relax_initial_Y = .true.
       !new_Y = 0.2703d0 !MANOS MAR20
 
-      !SET INITIAL ABUNDANCES
+     !SET INITIAL ABUNDANCES
       !file_for_uniform_xa = 'input_initial_xa.data' !MANOS commented it out
       !set_uniform_initial_xa_from_file = .true.
 
@@ -76,7 +76,8 @@
 / ! end of star_job namelist
 
 &controls
-
+      zams_filename = '/home/zapartas/scratch/PSyLib/grid_params/r11701/inlists/psylib/v1.0.3/MS-MS/zams_z0.0142m2_y0.2703.data'
+      initial_z = 1.42d-2
       !initial_mass = 30d0
 
       warn_when_large_rel_run_E_err = 1d99

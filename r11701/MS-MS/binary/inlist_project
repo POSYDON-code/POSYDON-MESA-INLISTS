@@ -22,6 +22,8 @@
      mass_transfer_delta = 0d0      ! fraction of mass lost from circumbinary coplanar toroid
    ! limit_retention_by_mdot_edd = .true.     ! Use Eddington accretion rate !MANOS: important for projects with MT onto compact objects
 
+   history_interval = 1
+   terminal_interval = 10
    write_header_frequency = 100
 
    ! initial conditions specified in extra inlist
