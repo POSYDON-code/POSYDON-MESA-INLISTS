@@ -9,11 +9,11 @@
 
       !PMS !MANOS MAR20
       create_pre_main_sequence_model = .true.
-      pre_ms_T_c = 7d5
-      pre_ms_relax_num_steps = 10
+      pre_ms_T_c = 5d5  !Ying Mar12, to be consistent with MIST
+      pre_ms_relax_num_steps = 100
 
       save_model_when_terminate = .true.
-      save_model_filename = 'ZAMS_star2.mod'
+      save_model_filename = 'step1.mod'   !create a seed model
       required_termination_code_string = 'Started_ZAMS'
 
       !MISC. SETUP
@@ -71,7 +71,7 @@
 
 &controls
 
-      initial_mass = 25d0
+      initial_mass = 20d0  !mass for the seed model
 
       warn_when_large_rel_run_E_err = 1d99
       warn_when_stop_checking_residuals = .false.
@@ -82,8 +82,8 @@
       use_eosDT2 = false.
 
       !OUTPUT OPTIONS
-      photo_directory = 'photos2'
-      log_directory = 'LOGS2'
+      photo_directory = 'photos1'
+      log_directory = 'LOGS1'
       history_interval = 1
       terminal_interval = 10
       write_header_frequency = 100
