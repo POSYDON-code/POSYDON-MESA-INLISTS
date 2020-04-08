@@ -34,6 +34,7 @@ module run_star_extras
   logical :: late_AGB_check = .false.
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
+  real(dp) :: initial_center_h1
 
 contains
 
@@ -65,6 +66,8 @@ contains
 
 
   integer function extras_startup(id, restart, ierr)
+    use chem_def, only: ih1
+    integer :: h1
     integer, intent(in) :: id
     logical, intent(in) :: restart
     integer, intent(out) :: ierr
@@ -81,6 +84,10 @@ contains
     else
        call unpack_extra_info(s)
     end if
+
+    !MANOS MAR20 for preMS models
+    h1 = s% net_iso(ih1)
+    initial_center_h1 =  s% xa(h1, s% nz)
 
     if (.not. s% job% extras_lpar(1)) rot_set_check = .true.
 
@@ -345,7 +352,7 @@ contains
     integer, intent(in) :: id, id_extra
     integer :: ierr
     real(dp) :: envelope_mass_fraction, L_He, L_tot, min_center_h1_for_diff, &
-         critmass, feh, rot_full_off, rot_full_on, frac2
+         critmass, feh, rot_full_off, rot_full_on, frac2, Lnuc_fraction
     real(dp), parameter :: huge_dt_limit = 3.15d16 ! ~1 Gyr
     real(dp), parameter :: new_varcontrol_target = 1d-3
     real(dp), parameter :: Zsol = 0.0142
@@ -487,6 +494,15 @@ contains
        s% diffusion_dt_limit = original_diffusion_dt_limit
     end if
 
+    !MANOS MAR20 for preMS models
+    Lnuc_fraction = s% power_h_burn * Lsun / s% L(1)
+    !Lnuc_fraction = s% L_nuc_burn_total / s% L_phot
+    !write(*,*) "if condition boolean", (initial_center_h1 - s% center_h1) >0.001,     Lnuc_fraction>0.99
+    if (((initial_center_h1 - s% center_h1) > 0.001) .and. (Lnuc_fraction>0.99)) then
+      termination_code_str(t_xtra2) = 'Started_ZAMS'
+      s% termination_code = t_xtra2
+      extras_finish_step = terminate
+     end if
   end function extras_finish_step
 
 
@@ -613,7 +629,7 @@ contains
 
         nu_tsf=1d-30
         nu_tsf_t=1d-30
-        !Calculate smoothed shear, q= dlnOmega/dlnr
+        !Calculate smoothed shear, q= dlnmega/dlnr
         shearsmooth = s% omega_shear(k)/(2d0*nsmooth+1d0)
         do j=1,nsmooth
             shearsmooth = shearsmooth + (1d0/(2d0*nsmooth+1d0))*( s% omega_shear(k-j) + s% omega_shear(k+j) )

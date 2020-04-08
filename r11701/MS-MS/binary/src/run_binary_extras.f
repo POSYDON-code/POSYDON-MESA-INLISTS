@@ -586,7 +586,7 @@
 
          if (b% point_mass_i == 0) then
             !MANOS: check for simultaneous RLOF from both stars after TAMS of one star
-            if (b% s2% center_h1 < 1d-10 .or. b% s1% center_h1 < 1d-10) then
+            if (b% s2% center_h1 < 1d-6 .or. b% s1% center_h1 < 1d-6) then
                 if (b% rl_relative_gap(1) > 0.0 .and. b% rl_relative_gap(2) > 0.0) then
                   extras_binary_finish_step = terminate
                   write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and at least one of them is off MS"
@@ -623,9 +623,9 @@
 
          !check if mass transfer rate reached maximun, assume merger if it happens
          !if(abs(b% mtransfer_rate) >= b% max_implicit_abs_mdot*Msun/secyer) then
-          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 10.0d0) then            !stop when larger than 10 Msun/yr
+          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
             extras_binary_finish_step = terminate
-            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 10.0d0"
+            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
             b% s1% lxtra20 = .true.
          end if
 

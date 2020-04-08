@@ -388,7 +388,7 @@ contains
     !      rot_set_check = .false.
     !   end if
     !end if
-
+    
     ! TP-AGB
     if(TP_AGB_check .and. s% have_done_TP)then
        TP_AGB_check = .false.
@@ -487,6 +487,17 @@ contains
        s% diffusion_dt_limit = original_diffusion_dt_limit
     end if
 
+
+    !MANOS MAR20.
+    !FOR NOW WE DO NOT FOLLOW TPAGB AND WE STOP IT
+    
+    ! TP-AGB
+    if(s% have_done_TP) then
+       !termination_code_str(t_xtra2) = 'Reached TPAGB'
+       !s% termination_code = t_xtra2
+       extras_finish_step = terminate
+       write(*,'(g0)') 'termination code: Reached TPAGB'
+    end if
   end function extras_finish_step
 
 

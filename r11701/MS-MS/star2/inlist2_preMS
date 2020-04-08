@@ -7,21 +7,14 @@
       eosDT_use_linear_interp_for_X = .false.
       eosDT_use_linear_interp_to_HELM = .false.
 
-      write_profile_when_terminate = .true.
-      filename_for_profile_when_terminate = 'LOGS2/profile.data'
+      !PMS !MANOS MAR20
+      create_pre_main_sequence_model = .true.
+      pre_ms_T_c = 7d5
+      pre_ms_relax_num_steps = 10
 
       save_model_when_terminate = .true.
-      save_model_filename = 'model2.mod'
-
-      !load the preMS star !MANOS MAR20
-      load_saved_model = .true.
-      saved_model_name = 'ZAMS_star2.mod'
-
-      ! set initial age and model number to 0 again
-      set_initial_age = .true.
-      initial_age = 0.0
-      set_initial_model_number = .true.
-      initial_model_number = 0
+      save_model_filename = 'ZAMS_star2.mod'
+      required_termination_code_string = 'Started_ZAMS'
 
       !MISC. SETUP
       !history_columns_file = 'my_history_columns.list'
@@ -29,7 +22,7 @@
       !OPACITY, NETWORK, RATE, etc.
       !network
       change_net = .true.
-      new_net_name = 'approx21.net' !MANOS JAN20
+      new_net_name = 'approx21.net' !MANOS JAN20 !'mesa_49.net'
       show_net_species_info = .true.
 
 
@@ -41,10 +34,10 @@
       num_steps_to_relax_rotation = 50
 
       !MANOS
-      !relax_initial_Z = .true.
-      !new_Z = 0.0142d0 !0.0085d0  !MANOS MAR20 !Zsolar = 0.0142
-      !relax_initial_Y = .true.
-      !new_Y = 0.2703d0 !MANOS MAR20
+      relax_initial_Z = .true.
+      new_Z = 0.0142d0 !0.0085d0  !MANOS MAR20 !Zsolar = 0.0142
+      relax_initial_Y = .true.
+      new_Y = 0.2703d0 !MANOS MAR20
 
       !SET INITIAL ABUNDANCES
       !file_for_uniform_xa = 'input_initial_xa.data' !MANOS commented it out
@@ -78,7 +71,7 @@
 
 &controls
 
-      !initial_mass = 30d0
+      initial_mass = 25d0
 
       warn_when_large_rel_run_E_err = 1d99
       warn_when_stop_checking_residuals = .false.
@@ -183,9 +176,9 @@
       !MASS LOSS
       cool_wind_full_on_T = 1.0d0
       hot_wind_full_on_T = 2.0d0
-      hot_wind_scheme = 'Dutch'
-      cool_wind_RGB_scheme ='Dutch'
-      cool_wind_AGB_scheme = 'Dutch'
+      hot_wind_scheme = ''
+      cool_wind_RGB_scheme =''
+      cool_wind_AGB_scheme = ''
       Dutch_scaling_factor = 1.0d0
       max_wind = 1.0d-3
 
