@@ -7,15 +7,15 @@
       eosDT_use_linear_interp_for_X = .false.
       eosDT_use_linear_interp_to_HELM = .false.
 
-!      write_profile_when_terminate = .true.
-!      filename_for_profile_when_terminate = 'LOGS1/profile.data'
+      !write_profile_when_terminate = .true.
+      !filename_for_profile_when_terminate = 'LOGS1/profile.data'
 
-!      save_model_when_terminate = .true.
-!      save_model_filename = 'model1.mod'
+      save_model_when_terminate = .true.
+      save_model_filename = 'model1.mod'
 
-!      !load the preMS star !MANOS MAR20
-!      load_saved_model = .true.
-!      saved_model_name = 'ZAMS_star1.mod'
+      !load the preMS star !MANOS MAR20
+      !load_saved_model = .true.
+      !saved_model_name = 'ZAMS_star1.mod'
 
       ! set initial age and model number to 0 again
       set_initial_age = .true.
@@ -37,7 +37,7 @@
       change_rotation_flag = .true.
       set_initial_surface_rotation_v = .true.
       new_surface_rotation_v = 0
-      num_steps_to_relax_rotation = 10
+      num_steps_to_relax_rotation = 50
 
       !MANOS
       !relax_initial_Z = .true.
@@ -45,7 +45,7 @@
       !relax_initial_Y = .true.
       !new_Y = 0.2703d0 !MANOS MAR20
 
-     !SET INITIAL ABUNDANCES
+      !SET INITIAL ABUNDANCES
       !file_for_uniform_xa = 'input_initial_xa.data' !MANOS commented it out
       !set_uniform_initial_xa_from_file = .true.
 

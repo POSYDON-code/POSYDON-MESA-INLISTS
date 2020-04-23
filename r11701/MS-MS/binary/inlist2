@@ -7,15 +7,15 @@
       eosDT_use_linear_interp_for_X = .false.
       eosDT_use_linear_interp_to_HELM = .false.
 
-!      write_profile_when_terminate = .true.
-!      filename_for_profile_when_terminate = 'LOGS2/profile.data'
+      !write_profile_when_terminate = .true.
+      !filename_for_profile_when_terminate = 'LOGS2/profile.data'
 
-!      save_model_when_terminate = .true.
-!      save_model_filename = 'model2.mod'
+      save_model_when_terminate = .true.
+      save_model_filename = 'model2.mod'
 
-!      !load the preMS star !MANOS MAR20
-!      load_saved_model = .true.
-!      saved_model_name = 'ZAMS_star2.mod'
+      !load the preMS star !MANOS MAR20
+      !load_saved_model = .true.
+      !saved_model_name = 'ZAMS_star2.mod'
 
       ! set initial age and model number to 0 again
       set_initial_age = .true.
@@ -31,7 +31,6 @@
       change_net = .true.
       new_net_name = 'approx21.net' !MANOS JAN20
       show_net_species_info = .true.
-
 
       !MANOS
       new_rotation_flag = .true.
