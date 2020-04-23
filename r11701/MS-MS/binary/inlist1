@@ -76,9 +76,8 @@
 / ! end of star_job namelist
 
 &controls
-      zams_filename = '/home/zapartas/scratch/PSyLib/grid_params/r11701/inlists/psylib/v1.0.3/MS-MS/zams_z0.0142m2_y0.2703.data'
+      zams_filename = './zams_z0.0142m2_y0.2703.data' 
       initial_z = 1.42d-2
-      !initial_mass = 30d0
 
       warn_when_large_rel_run_E_err = 1d99
       warn_when_stop_checking_residuals = .false.
@@ -111,15 +110,21 @@
       !PHYSICS
       which_atm_option = 'simple_photosphere'
       which_atm_off_table_option = 'simple_photosphere'
-      mixing_length_alpha = 1.93d0
-      mlt_option = 'Mihalas'
-      mlt_use_rotation_correction = .true.
-      okay_to_reduce_gradT_excess = .true.
       Pextra_factor = 2.0d0
 
       !CONVECTION + MIXING
       do_conv_premix = .true.
       conv_premix_avoid_increase = .true.
+
+      mixing_length_alpha = 1.93d0
+      mlt_option = 'Mihalas'
+      mlt_use_rotation_correction = .true.
+      okay_to_reduce_gradT_excess = .true.
+
+      use_ledoux_criterion = .true.
+      alpha_semiconvection = 1d0
+      thermohaline_coeff = 1d0
+      mixing_D_limit_for_log = 1d-50
 
       !H core overshoot MIST+Brott11: implemented in run_star_extra.f
 
@@ -146,7 +151,7 @@
       rotational_mdot_kh_fac = 1d10 !DEF: 0.3d0
       mdot_revise_factor = 1.2 !DEF:1.1
       implicit_mdot_boost = 0.1 !DEF:0.1
-      max_mdot_jump_for_rotation = 1d99 ! this is to avoid odd behaviour when a star switches from accreting to mass losing
+      max_mdot_jump_for_rotation = 10 !1d99 ! this is to avoid odd behaviour when a star switches from accreting to mass losing
 
       !rotational mixing if applicable
       !MANOS commented
@@ -187,7 +192,7 @@
       cool_wind_RGB_scheme ='Dutch'
       cool_wind_AGB_scheme = 'Dutch'
       Dutch_scaling_factor = 1.0d0
-      max_wind = 1.0d-3
+      !max_wind = 1.0d-3
 
       !DIFFUSION
       do_element_diffusion = .false. !MANOS put it false

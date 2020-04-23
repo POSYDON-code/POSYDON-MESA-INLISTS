@@ -779,16 +779,18 @@
             !b% s1% lxtra15 = .true.
          else
             if (b% point_mass_i /= 1) then
-                if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! MANOS OCT19, changing from "contact" scheme to Kolb if one star reaches TAMS
+                if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! MANOS OCT19, changing from 'contact' scheme to Kolb if one star reaches TAMS
                    b% mdot_scheme = "Kolb"
-                   write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, " and Devina's L2 overflow check"
+                   write(*,*) "Primary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
+                             " and changing L2 overflow check according to Mishra et al. 2020"
                    b% terminate_if_L2_overflow = .false. !MANOS JAN20
                 end if
             end if
             if (b% point_mass_i /= 2) then
                 if (b% s2% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then
                    b% mdot_scheme = "Kolb"
-                   write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, " and Devina's L2 overflow check"
+                   write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
+                             " and changing L2 overflow check according to Mishra et al. 2020"
                    b% terminate_if_L2_overflow = .false.  !MANOS JAN20
                 end if
             end if
