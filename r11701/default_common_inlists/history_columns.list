@@ -69,25 +69,25 @@
       conv_mx1_bot
       conv_mx2_top
       conv_mx2_bot
-      mx1_top
-      mx1_bot
-      mx2_top
-      mx2_bot
+      !mx1_top
+      !mx1_bot
+      !mx2_top
+      !mx2_bot
       
       ! radius -- values are radii in Rsun units
       conv_mx1_top_r
       conv_mx1_bot_r
       conv_mx2_top_r
       conv_mx2_bot_r
-      mx1_top_r
-      mx1_bot_r
-      mx2_top_r
-      mx2_bot_r
+      !mx1_top_r
+      !mx1_bot_r
+      !mx2_top_r
+      !mx2_bot_r
       
       ! you might want to get a more complete list of mixing regions by using the following
       
       !mixing_regions <integer> ! note: this includes regions where the mixing type is no_mixing.
-      mixing_regions 20
+      !mixing_regions 20
       
          ! the <integer> is the number of regions to report
          ! there will be 2*<integer> columns for this in the log file, 2 for each region.
@@ -107,7 +107,7 @@
       
       !mix_relr_regions <integer> 
 
-      mix_relr_regions 20
+      !mix_relr_regions 20
          ! same as above, but locations given as r/rstar instead of m/mstar.
          ! the columns in the log file will have names like 'mix_relr_type_1' and 'mix_relr_top_1'
       
@@ -121,15 +121,15 @@
       ! end1 is mass of outer edge where first zone ends (i.e. eps_nuc < burn_min1)
       ! similar for the second zone
    
-      epsnuc_M_1 ! start1 for 1st zone
-      epsnuc_M_2 ! start2
-      epsnuc_M_3 ! end2
-      epsnuc_M_4 ! end1
+      !epsnuc_M_1 ! start1 for 1st zone
+      !epsnuc_M_2 ! start2
+      !epsnuc_M_3 ! end2
+      !epsnuc_M_4 ! end1
       
-      epsnuc_M_5 ! start1 for 2nd zone
-      epsnuc_M_6 ! start2
-      epsnuc_M_7 ! end2
-      epsnuc_M_8 ! end1
+      !epsnuc_M_5 ! start1 for 2nd zone
+      !epsnuc_M_6 ! start2
+      !epsnuc_M_7 ! end2
+      !epsnuc_M_8 ! end1
 
 
       ! you might want to get a more complete list of burning regions by using the following
@@ -250,8 +250,8 @@
       !o_core_omega
       !o_core_omega_div_omega_crit
    
-      si_core_mass
-      si_core_radius
+      !si_core_mass
+      !si_core_radius
       !si_core_lgT
       !si_core_lgRho
       !si_core_L
@@ -259,8 +259,8 @@
       !si_core_omega
       !si_core_omega_div_omega_crit
    
-      fe_core_mass
-      fe_core_radius
+      !fe_core_mass
+      !fe_core_radius
       !fe_core_lgT
       !fe_core_lgRho
       !fe_core_L
@@ -320,7 +320,7 @@
       !log_Lnuc_sub_log_L
       !extra_L ! integral of extra_heat in Lsun units
       !log_extra_L ! log10 extra_L
-      !log_Lneu ! log10 power emitted in neutrinos, nuclear and thermal (in Lsun units)
+      log_Lneu ! log10 power emitted in neutrinos, nuclear and thermal (in Lsun units)
       !mass_loc_of_max_eps_nuc ! (in Msun units)
       !mass_ext_to_max_eps_nuc ! (in Msun units)
       !eps_grav_integral ! (in Lsun units)
@@ -337,7 +337,7 @@
    
    ! conditions at or near the surface of the model (outer edge of outer cell)
    
-      luminosity ! luminosity in Lsun units
+      !luminosity ! luminosity in Lsun units
       log_L ! log10 luminosity in Lsun units
       log_R ! log10 radius in Rsun units
       !radius ! Rsun
@@ -345,7 +345,7 @@
       !log_R_cm
       
       log_g ! log10 gravity
-      gravity 
+      !gravity 
       !log_Ledd
       log_L_div_Ledd ! log10(L/Leddington)
       !lum_div_Ledd
@@ -394,7 +394,7 @@
       center_gamma ! plasma interaction parameter
       center_mu
       center_ye
-      center_abar
+      !center_abar
       
       !center_eps_grav
       !center_non_nuc_neu
@@ -416,10 +416,19 @@
    ! mass fractions near center
       
       center h1
+      center he3
       center he4
       center c12
       center n14
       center o16
+      center ne20
+      center mg24	
+      center si28
+      center s32
+      center ca40
+      center ti44
+      center fe56
+
       ! etc. -- do as many of these 'center' commands as desired
       
    ! log10 central mass fractions
@@ -430,16 +439,21 @@
 
       
    ! mass fractions near surface
-   
+
       surface h1
+      surface he3
       surface he4
-      surface li7
       surface c12
       surface n14
       surface o16
       surface ne20
-      surface mg24
-      surface al27
+      surface mg24	
+      surface si28
+      surface s32
+      surface ca40
+      surface ti44
+      surface fe56
+
       ! etc.
       
    ! log mass fractions near surface
@@ -597,16 +611,16 @@
       !max_T_eps_nuc ! (erg/g/s)
    
    ! asteroseismology
-      !delta_nu ! large frequency separation for p-modes (microHz)
+      delta_nu ! large frequency separation for p-modes (microHz)
          ! 1e6/(seconds for sound to cross diameter of star)
-      !delta_Pg ! g-mode period spacing for l=1 (seconds)
+      delta_Pg ! g-mode period spacing for l=1 (seconds)
          ! sqrt(2) pi^2/(integral of brunt_N/r dr)
       !log_delta_Pg
-      !nu_max ! estimate from scaling relation (microHz)
+      nu_max ! estimate from scaling relation (microHz)
          ! nu_max = nu_max_sun * M/Msun / ((R/Rsun)^3 (Teff/Teff_sun)^0.5)
          ! with nu_max_sun = 3100 microHz, Teff_sun = 5777
       !nu_max_3_4th_div_delta_nu ! nu_max^0.75/delta_nu
-      !acoustic_cutoff ! 0.5*g*sqrt(gamma1*rho/P) at surface
+      acoustic_cutoff ! 0.5*g*sqrt(gamma1*rho/P) at surface
       !acoustic_radius ! integral of dr/csound (seconds)
       !ng_for_nu_max ! = 1 / (nu_max*delta_Pg)
          ! period for g-mode with frequency nu_max = nu_max_ng*delta_Pg
@@ -632,15 +646,15 @@
       !v_surf_div_v_kh ! v_surf/(photosphere_r/kh_timescale)
       !surface_accel_div_grav ! (v - v_old)/dt divided by GM/R^2 at outermost grid point
       
-      !e_thermal ! sum over all zones of Cp*T*dm
+      e_thermal ! sum over all zones of Cp*T*dm
       
       num_retries ! total during the run
       num_backups ! total during the run
       !total_num_newton_iterations ! during the run
       !num_newton_iterations ! per step
       
-      !max_conv_vel_div_csound
-      !max_gradT_div_grada
+      max_conv_vel_div_csound
+      max_gradT_div_grada
       !max_gradT_sub_grada
       !min_log_mlt_Gamma
       
@@ -653,24 +667,24 @@
       
       !h1_czb_mass ! location (in Msun units) of base of 1st convection zone above he core 
       
-      !surf_c12_minus_o16 ! this is useful for seeing effects of dredge up on AGB
+      surf_c12_minus_o16 ! this is useful for seeing effects of dredge up on AGB
       
       !elapsed_time ! time since start of run (seconds)
       
       !min_t_eddy ! minimum value of scale_height/conv_velocity
       
-      !min_Pgas_div_P
+      min_Pgas_div_P
             
       !diffusion_solver_steps
       !diffusion_solver_iters
       
       !version_number ! mesa version from file mesa/data/version_number
 
-      k_below_const_q
-      q_below_const_q
+      !k_below_const_q
+      !q_below_const_q
       
-      k_const_mass 
-      q_const_mass 
+      !k_const_mass 
+      !q_const_mass 
       !logxq_const_mass 
       
       !k_below_just_added 
@@ -700,13 +714,11 @@
       total_internal_energy
       total_gravitational_energy
       !total_linear_kinetic_energy
-      total_radial_kinetic_energy !MANOS
+      total_radial_kinetic_energy ! new MESA definition
       total_rotational_kinetic_energy
       total_energy
       total_eps_grav
       
-
-      !MANOS, to check energy conservation
       !total_internal_energy_start
       !total_gravitational_energy_start
       !total_energy_start
