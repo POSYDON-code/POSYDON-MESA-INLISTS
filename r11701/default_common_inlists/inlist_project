@@ -31,15 +31,16 @@
    extra_binary_controls_inlist1_name = "inlist_extra"
 
    ! timestep controls
-   fr = 0.1
-   fr_limit = 1d-1
-   fr_dt_limit = 500
-   fm = 0.05
-   fm_limit = 0.1d0
-   varcontrol_case_a = 2d-1
-   varcontrol_case_b = 1d-1
-   varcontrol_ms = 1d-1
-   varcontrol_post_ms = 1d-1
+   fr = 1d-3 !DEF: 1d-1
+   fr_limit = 1d-2 !DEF: 1d-2
+   fr_dt_limit = 5d2 !1d1
+   fa = 5d-3 !DEF: 1d-2
+   fa_hard = 1d-2 !DEF: 2d-2
+   fm = 5d-3 !DEF: 1d-2
+   fj = 8d-3 !DEF: 1d-3
+   fj_hard = 1d-2 !DEF: 1d-2
+   varcontrol_case_a = 2d-4
+   varcontrol_case_b = 2d-4
    dt_softening_factor = 0.4
 
    limit_retention_by_mdot_edd = .false.
