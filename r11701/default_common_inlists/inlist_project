@@ -38,8 +38,8 @@
    fm_limit = 0.1d0
    !varcontrol_case_a = 2d-1
    !varcontrol_case_b = 1d-1
-   !varcontrol_ms = 1d-1
-   !varcontrol_post_ms = 1d-1
+   varcontrol_ms = 5d-3
+   varcontrol_post_ms = 5d-3
 
    !probably the final ones
    !fr = 1d-3 !DEF: 1d-1
