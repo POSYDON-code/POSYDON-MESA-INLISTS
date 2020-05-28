@@ -1,0 +1,34 @@
+
+! inlist_test_rlo
+
+
+
+&star_job
+
+      mesa_dir = ''
+      show_log_description_at_start = .false.
+
+
+/ ! end of star_job namelist
+
+
+
+&controls
+
+      extra_terminal_output_file = 'log2' 
+      photo_directory = 'photos2'
+      log_directory = 'LOGS2'
+
+      profile_interval = 50
+      history_interval = 1
+      terminal_cnt = 1
+      write_header_frequency = 10
+
+/ ! end of controls namelist
+
+
+&pgstar
+         
+
+
+/ ! end of pgstar namelist
