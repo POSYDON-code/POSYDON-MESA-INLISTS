@@ -642,27 +642,28 @@
                !   b% s1% lxtra4 = .true.
                !   write(*,'(g0)') "termination code: Terminate due to primary depleting carbon (inverse sn?)"
                !end if
-            !else
-            !   ! check if neon is by far greatest source of energy
-            !   is_ne_biggest = .true.
-            !   do i=1, num_categories
-            !      if(i /= i_burn_ne .and. b% s1% L_by_category(i_burn_ne) < 10*b% s1% L_by_category(i)) then
-            !         is_ne_biggest = .false.
-            !         exit
-            !      end if
-            !   end do
-            !   if (is_ne_biggest .and. b% s1% max_eps_z_m/b% s1% xmstar > 0.01) then
+            else
+               ! check if neon is by far greatest source of energy
+               is_ne_biggest = .true.
+               do i=1, num_categories
+                  if(i /= i_burn_ne .and. b% s1% L_by_category(i_burn_ne) < 10*b% s1% L_by_category(i)) then
+                     is_ne_biggest = .false.
+                     exit
+                  end if
+               end do
+               if (is_ne_biggest .and. b% s1% max_eps_z_m/b% s1% xmstar > 0.01) then
             !      b% s1% lxtra1 = .true.
             !      if (b% point_mass_i == 0) then
-            !         write(*,'(g0)') "offcenter neon ignition for primary at q=",  b% s1% max_eps_z_m/b% s1% xmstar, &
-            !            b% s1% max_eps_z_m
+                     write(*,'(g0)') "offcenter neon ignition for primary at q=",  b% s1% max_eps_z_m/b% s1% xmstar, &
+                        b% s1% max_eps_z_m
+                     write(*,'(g0)') "termination code: offcenter neon ignition for primary"
             !      else
             !         write(*,'(g0)') "termination code: Terminate due to offcenter neon ignition for primary (inverse sn?) at q=", &
             !         b% s1% max_eps_z_m/b% s1% xmstar, b% s1% max_eps_z_m
             !         extras_binary_finish_step = terminate
             !         b% s1% lxtra4 = .true.
             !      end if
-            !   end if
+               end if
             end if
             !if ((b% s1% lxtra2 .or. b% s1% lxtra1 .or. b% s1% lxtra19) .and. b% point_mass_i == 0) then
             !   b% point_mass_i = 1
@@ -701,27 +702,28 @@
                !   b% s1% lxtra5 = .true.
                !   write(*,'(g0)') "termination code: Secondary has depleted central carbon"
                !end if
-            !else
-            !   ! check if neon is by far greatest source of energy
-            !   is_ne_biggest = .true.
-            !   do i=1, num_categories
-            !      if(i /= i_burn_ne .and. b% s2% L_by_category(i_burn_ne) < 10*b% s2% L_by_category(i)) then
-            !         is_ne_biggest = .false.
-            !         exit
-            !      end if
-            !   end do
-            !   if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01) then
-            !      b% s1% lxtra16 = .true.
+            else
+               ! check if neon is by far greatest source of energy
+               is_ne_biggest = .true.
+               do i=1, num_categories
+                  if(i /= i_burn_ne .and. b% s2% L_by_category(i_burn_ne) < 10*b% s2% L_by_category(i)) then
+                     is_ne_biggest = .false.
+                     exit
+                  end if
+               end do
+               if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01) then
+            !      b% s1% lxtra1 = .true.
             !      if (b% point_mass_i == 0) then
-            !         write(*,*) "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
-            !            b% s2% max_eps_z_m
+                     write(*,'(g0)') "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
+                        b% s2% max_eps_z_m
+                     write(*,'(g0)') "termination code: offcenter neon ignition for secondary"
             !      else
-            !         write(*,*) "Terminate due to offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
-            !            b% s2% max_eps_z_m
+            !         write(*,'(g0)') "termination code: Terminate due to offcenter neon ignition for primary (inverse sn?) at q=", &
+            !         b% s1% max_eps_z_m/b% s1% xmstar, b% s1% max_eps_z_m
             !         extras_binary_finish_step = terminate
-            !         b% s1% lxtra5 = .true.
+            !         b% s1% lxtra4 = .true.
             !      end if
-            !   end if
+               end if
             end if
             !if ((b% s1% lxtra3 .or. b% s1% lxtra16) .and. b% point_mass_i == 0) then
             !   b% point_mass_i = 2
