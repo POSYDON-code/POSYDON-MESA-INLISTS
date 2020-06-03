@@ -212,7 +212,6 @@ contains
          endif
       enddo
       initial_m = s% initial_mass
-      initial_m = s% initial_mass
       extra_header_item_names(1) = 'initial_Z'
       extra_header_item_vals(1) = initial_Z
       extra_header_item_names(2) = 'initial_Y'
