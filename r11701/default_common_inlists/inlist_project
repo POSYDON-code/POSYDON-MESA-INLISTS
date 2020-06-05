@@ -50,8 +50,8 @@
    fm = 5d-3 !DEF: 1d-2
    fj = 8d-3 !DEF: 1d-3
    fj_hard = 1d-2 !DEF: 1d-2
-   !varcontrol_ms = 2d-3	
-   !varcontrol_post_ms = 2d-3
+   varcontrol_ms = 2d-3	
+   varcontrol_post_ms = 2d-3
    !varcontrol_case_a = 2d-4
    !varcontrol_case_b = 2d-4
    dt_softening_factor = 0.4
