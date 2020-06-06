@@ -1,0 +1,5 @@
+
+Heads up:
+1.we need to manually changed dm
+2.we need to change
+ max_mass_to_create = 30 in star/private/pre_ms_model.f90
