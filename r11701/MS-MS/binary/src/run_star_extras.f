@@ -88,18 +88,20 @@ contains
     if(s% initial_mass < 10.0d0 .and. s% initial_mass >= 0.6d0)then
        TP_AGB_check=.true.
     endif
-
+      
+     
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
-    vct30 = 1.0d-4
-    vct100 = 1.0d-3
+    !vct30 = 1.0d-4
+    !vct100 = 1.0d-3
 
-    if (s% initial_mass > 30.0d0) then
-       frac = (s% initial_mass-30.0d0)/(100.0d0-30.0d0)
-       frac = 0.5d0*(1.0d0 - cospi_cr(frac))
-       s% varcontrol_target = vct30 + (vct100-vct30)*frac
-    elseif (s% initial_mass > 100.0d0) then
-       s% varcontrol_target = vct100
-    endif
+    !if (s% initial_mass > 30.0d0) then
+    !   frac = (s% initial_mass-30.0d0)/(100.0d0-30.0d0)
+    !   frac = 0.5d0*(1.0d0 - cospi_cr(frac))
+    !   s% varcontrol_target = vct30 + (vct100-vct30)*frac
+    !elseif (s% initial_mass > 100.0d0) then
+    !   s% varcontrol_target = vct100
+    !endif
+      
 
 
     !now set f_ov_below_nonburn from [Fe/H] at extras_cpar(3)
@@ -184,7 +186,6 @@ contains
       character (len=*), pointer :: extra_header_item_names(:)
       real(dp), pointer :: extra_header_item_vals(:)
       type(star_info), pointer :: s
-      type(binary_info), pointer :: b
       integer, intent(out) :: ierr
       integer :: i
       real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
