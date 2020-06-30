@@ -656,6 +656,7 @@
             !      if (b% point_mass_i == 0) then
                      write(*,'(g0)') "offcenter neon ignition for primary at q=",  b% s1% max_eps_z_m/b% s1% xmstar, &
                         b% s1% max_eps_z_m
+                     extras_binary_finish_step = terminate
                      write(*,'(g0)') "termination code: offcenter neon ignition for primary"
             !      else
             !         write(*,'(g0)') "termination code: Terminate due to offcenter neon ignition for primary (inverse sn?) at q=", &
@@ -716,6 +717,7 @@
             !      if (b% point_mass_i == 0) then
                      write(*,'(g0)') "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
                         b% s2% max_eps_z_m
+                     extras_binary_finish_step = terminate
                      write(*,'(g0)') "termination code: offcenter neon ignition for secondary"
             !      else
             !         write(*,'(g0)') "termination code: Terminate due to offcenter neon ignition for primary (inverse sn?) at q=", &
