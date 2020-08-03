@@ -55,9 +55,10 @@ contains
     s% extras_after_evolve => extras_after_evolve
     s% how_many_extra_history_columns => how_many_extra_history_columns
     s% data_for_extra_history_columns => data_for_extra_history_columns
-    s% how_many_extra_profile_columns => how_many_extra_profile_columns
-    s% data_for_extra_profile_columns => data_for_extra_profile_columns
-
+    s% how_many_extra_history_header_items => how_many_extra_history_header_items
+    s% data_for_extra_history_header_items => data_for_extra_history_header_items
+  !  s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
+  !  s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
     s% job% warn_run_star_extras =.false.
 
     original_diffusion_dt_limit = s% diffusion_dt_limit
@@ -74,14 +75,11 @@ contains
     integer :: j, cid
     real(dp) :: frac, vct30, vct100
     character(len=256) :: photosphere_summary, tau100_summary
-
     ierr = 0
-
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
     call binary_ptr(s% binary_id, b, ierr)
     if (ierr /= 0) return
-
     extras_startup = 0
     if (.not. restart) then
        call alloc_extra_info(s)
@@ -91,9 +89,8 @@ contains
        call unpack_extra_info(s)
     end if
 
-    !SIMONE: turn on rotation when the HE-star ignited helium at the center
+    !SIMONE: turn on rotation when the He-star ignited helium at the center
     if (s% lxtra30) then
-       b% terminate_if_L2_overflow = .false.
        b% do_tidal_sync = .false.
        b% do_jdot_ls = .false.
        b% do_jdot_gr = .false.
@@ -101,16 +98,12 @@ contains
        s% cool_wind_RGB_scheme =''
        s% cool_wind_AGB_scheme = ''
     else
-       b% terminate_if_L2_overflow = .true.
        b% do_tidal_sync = .true.
        b% do_jdot_ls = .true.
        b% do_jdot_gr = .true.
        s% hot_wind_scheme = 'Dutch'
        s% cool_wind_RGB_scheme ='Dutch'
        s% cool_wind_AGB_scheme = 'Dutch'
-       ! s% max_mdot_redo_cnt = 100
-       ! s% scale_max_correction = 0.01d0
-       ! s% ignore_species_in_max_correction = .true.
     end if
 
     if (.not. s% job% extras_lpar(1)) rot_set_check = .true.
@@ -119,17 +112,19 @@ contains
        TP_AGB_check=.true.
     endif
 
-! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
-    vct30 = 1.0d-4
-    vct100 = 1.0d-3
 
-    if (s% initial_mass > 30.0d0) then
-       frac = (s% initial_mass-30.0d0)/(100.0d0-30.0d0)
-       frac = 0.5d0*(1.0d0 - cospi_cr(frac))
-       s% varcontrol_target = vct30 + (vct100-vct30)*frac
-    elseif (s% initial_mass > 100.0d0) then
-       s% varcontrol_target = vct100
-    endif
+! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
+    !vct30 = 1.0d-4
+    !vct100 = 1.0d-3
+
+    !if (s% initial_mass > 30.0d0) then
+    !   frac = (s% initial_mass-30.0d0)/(100.0d0-30.0d0)
+    !   frac = 0.5d0*(1.0d0 - cospi_cr(frac))
+    !   s% varcontrol_target = vct30 + (vct100-vct30)*frac
+    !elseif (s% initial_mass > 100.0d0) then
+    !   s% varcontrol_target = vct100
+    !endif
+
 
 
     !now set f_ov_below_nonburn from [Fe/H] at extras_cpar(3)
@@ -199,6 +194,53 @@ contains
     if (ierr /= 0) return
     extras_check_model = keep_going
   end function extras_check_model
+
+  subroutine how_many_extra_history_header_items(id, id_extra, num_cols)
+      integer, intent(in) :: id, id_extra
+      integer, intent(out) :: num_cols
+      num_cols=3
+  end subroutine how_many_extra_history_header_items
+
+  subroutine data_for_extra_history_header_items( &
+                  id, id_extra, num_extra_header_items, &
+                  extra_header_item_names, extra_header_item_vals, ierr)
+      use chem_def, only: chem_isos
+      integer, intent(in) :: id, id_extra, num_extra_header_items
+      character (len=*), pointer :: extra_header_item_names(:)
+      real(dp), pointer :: extra_header_item_vals(:)
+      type(star_info), pointer :: s
+      integer, intent(out) :: ierr
+      integer :: i
+      real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
+      ierr = 0
+      call star_ptr(id,s,ierr)
+      if(ierr/=0) return
+      !here is an example for adding an extra history header item
+      !set num_cols=1 in how_many_extra_history_header_items and then unccomment these lines
+      initial_X = 0._dp
+      initial_Y = 0._dp
+      initial_Z = 0._dp
+      initial_m = 0._dp
+      do i=1,s% species
+         !write(*,*) chem_isos% name(s% chem_id(i)), s% xa(i,1)
+         if( trim(chem_isos% name(s% chem_id(i))) == 'prot' .or. trim(chem_isos% name(s% chem_id(i))) == 'neut')then
+            continue ! don't count these
+         else if( trim(chem_isos% name(s% chem_id(i))) == 'h1' .or. trim(chem_isos% name(s% chem_id(i))) == 'h2' ) then
+            initial_X = initial_X + s% xa(i,1)
+         else if( trim(chem_isos% name(s% chem_id(i))) == 'he3' .or. trim(chem_isos% name(s% chem_id(i))) == 'he4' ) then
+            initial_Y = initial_Y + s% xa(i,1)
+         else
+            initial_Z = initial_Z + s% xa(i,1)
+         endif
+      enddo
+      initial_m = s% initial_mass
+      extra_header_item_names(1) = 'initial_Z'
+      extra_header_item_vals(1) = initial_Z
+      extra_header_item_names(2) = 'initial_Y'
+      extra_header_item_vals(2) =  initial_Y
+      extra_header_item_names(3) = 'initial_m'
+      extra_header_item_vals(3) =  initial_m
+  end subroutine data_for_extra_history_header_items
 
   integer function how_many_extra_history_columns(id, id_extra)
     integer, intent(in) :: id, id_extra
@@ -342,6 +384,53 @@ contains
 
   end subroutine data_for_extra_history_columns
 
+!  subroutine how_many_extra_profile_header_items(id, id_extra, num_cols)
+!      integer, intent(in) :: id, id_extra
+!      integer, intent(out) :: num_cols
+!      num_cols=3
+!  end subroutine how_many_extra_profile_header_items
+
+!  subroutine data_for_extra_profile_header_items( &
+!                  id, id_extra, num_extra_header_items, &
+!                  extra_header_item_names, extra_header_item_vals, ierr)
+!      use chem_def, only: chem_isos
+!      integer, intent(in) :: id, id_extra, num_extra_header_items
+!      character (len=*), pointer :: extra_header_item_names(:)
+!      real(dp), pointer :: extra_header_item_vals(:)
+!      type(star_info), pointer :: s
+!      integer, intent(out) :: ierr
+!      integer :: i
+!      real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
+!      ierr = 0
+!      call star_ptr(id,s,ierr)
+!      if(ierr/=0) return
+!      !here is an example for adding an extra history header item
+!      !set num_cols=1 in how_many_extra_history_header_items and then unccomment these lines
+!      initial_X = 0._dp
+!      initial_Y = 0._dp
+!      initial_Z = 0._dp
+!      initial_m = 0._dp
+!      do i=1,s% species
+!         !write(*,*) chem_isos% name(s% chem_id(i)), s% xa(i,1)
+!         if( trim(chem_isos% name(s% chem_id(i))) == 'prot' .or. trim(chem_isos% name(s% chem_id(i))) == 'neut')then
+!            continue ! don't count these
+!         else if( trim(chem_isos% name(s% chem_id(i))) == 'h1' .or. trim(chem_isos% name(s% chem_id(i))) == 'h2' ) then
+!            initial_X = initial_X + s% xa(i,1)
+!         else if( trim(chem_isos% name(s% chem_id(i))) == 'he3' .or. trim(chem_isos% name(s% chem_id(i))) == 'he4' ) then
+!            initial_Y = initial_Y + s% xa(i,1)
+!         else
+!            initial_Z = initial_Z + s% xa(i,1)
+!         endif
+!      enddo
+!      initial_m = s% initial_mass
+!      extra_header_item_names(1) = 'initial_Z'
+!      extra_header_item_vals(1) = initial_Z
+!      extra_header_item_names(2) = 'initial_Y'
+!      extra_header_item_vals(2) =  initial_Y
+!      extra_header_item_names(3) = 'initial_m'
+!      extra_header_item_vals(3) =  initial_m
+!  end subroutine data_for_extra_profile_header_items
+
   integer function how_many_extra_profile_columns(id, id_extra)
     use star_def, only: star_info
     integer, intent(in) :: id, id_extra
@@ -381,37 +470,14 @@ contains
     real(dp), parameter :: new_varcontrol_target = 1d-3
     real(dp), parameter :: Zsol = 0.0142
     type (star_info), pointer :: s
-    type (binary_info), pointer :: b
     logical :: diff_test1, diff_test2, diff_test3
     character (len=strlen) :: photoname, stuff
 
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    call binary_ptr(s% binary_id, b, ierr)
-    if (ierr /= 0) return
     extras_finish_step = keep_going
     call store_extra_info(s)
-
-    !SIMONE: check v div v crit
-    write(*,*) "check v div v crit", s% v_div_v_crit_avg_surf, s% w_div_w_crit_roche(1)
-    !if (s% model_number > 1 .and. s% dt/secyer > 1d-2) then
-    !   if( abs( s% xtra30_old - s% v_div_v_crit_avg_surf) > 0.2) then
-    !      write(*,*) "reducing dt due to large change in v_div_v_crit"
-    !      s% dt_next = min(s% dt_next, s% dt * s% min_timestep_factor)
-    !   end if
-    !end if
-    !SIMONE: reduce time step
-    ! if(.not. b% s1% lxtra30 .and. abs(s% xtra25_old - s% center_h1) > 0.002) then
-    !     s% dt_next = min(s% dt_next, s% dt * s% min_timestep_factor)
-    !     write(*,*) "reducing dt due to large change in central hydrogen"
-    !  else if(.not. b% s1% lxtra30 .and. abs(s% xtra26_old - s% center_he4) > 0.002) then
-    !     s% dt_next = min(s% dt_next, s% dt * s% min_timestep_factor)
-    !     write(*,*) "reducing dt due to large change in central helium"
-    !  else if(.not. b% s1% lxtra30 .and. abs(s% xtra27_old - s% center_c12) > 0.002) then
-    !     s% dt_next = min(s% dt_next, s% dt * s% min_timestep_factor)
-    !     write(*,*) "reducing dt due to large change in central carbon"
-    ! end if
 
     ! set ROTATION: extra param are set in inlist: star_job
     ! rot_full_off = s% job% extras_rpar(1) !1.2 !commented by MANOS
@@ -541,6 +607,17 @@ contains
        s% diffusion_dt_limit = original_diffusion_dt_limit
     end if
 
+
+    !MANOS MAR20.
+    !FOR NOW WE DO NOT FOLLOW TPAGB AND WE STOP IT
+
+    ! TP-AGB
+    if(s% have_done_TP) then
+       !termination_code_str(t_xtra2) = 'Reached TPAGB'
+       !s% termination_code = t_xtra2
+       extras_finish_step = terminate
+       write(*,'(g0)') 'termination code: Reached TPAGB'
+    end if
   end function extras_finish_step
 
 
@@ -551,6 +628,8 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
+    !write(*,*) "going in loop 3", id
+    !call star_write_profile_info(id, "LOGS_test/final_profileC.data", id, ierr)
   end subroutine extras_after_evolve
 
 

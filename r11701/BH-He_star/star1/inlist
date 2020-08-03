@@ -20,10 +20,6 @@
 
       ! generate a pure He-star
 
-      ! MLT++ is needed in order to have a HeZAMS that will relax to LTE at
-      ! the beginnig of the binary simulation
-      mlt_use_rotation_correction = .true.
-
       ! set target uniform composition for relax_initial_to_xaccrete
       num_accretion_species = 1
       accretion_species_id(1) = 'he4'
@@ -41,8 +37,8 @@
       ! initial_mass = 25d0
 
       ! This will be relaxed at the beginning of the binary simulation
-      !initial_z = 0.02d0
-      !Zbase = 0.02d0
+      ! initial_z = 0.02d0
+      ! Zbase = 0.02d0
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

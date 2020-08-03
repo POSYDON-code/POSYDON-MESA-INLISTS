@@ -431,39 +431,38 @@
             return
          end if
 
-         if (.not. restart) then
-            ! ixtra values are used as counters for mass transfer events (cases A,B,C)
-            b% s1% ixtra1 = 0
-            b% s1% ixtra2 = 0
-            b% s1% ixtra3 = 0
-            ! lxtra are used to register events
-            b% s1% lxtra1 = .false. ! OC Ne ignition for primary.
-            b% s1% lxtra16 = .false. ! OC Ne ignition for secondary.
-            b% s1% lxtra2 = .false. ! Primary depleted carbon.
-            b% s1% lxtra19 = .false. ! Primary depleted helium with mass > 14msun.
-            b% s1% lxtra3 = .false. ! Secondary depleted carbon.
-            b% s1% lxtra4 = .false. ! Primary terminated last.
-            b% s1% lxtra5 = .false. ! Secondary terminated last.
-            b% s1% lxtra6 = .false. ! ZAMS L2 overflow.
-            b% s1% lxtra7 = .false. ! ZAMS RLOF.
-            b% s1% lxtra8 = .false. ! L2OF after ZAMS.
-            b% s1% lxtra9 = .false. ! Contact.
-            b% s1% lxtra10 = .false. ! Contact with inverse mass transfer.
-            b% s1% lxtra11 = .false. ! Reached lower mdot limit.
-            b% s1% lxtra12 = .false. ! Reached upper mdot limit.
-            b% s1% lxtra13 = .false. ! Inverse mass transfer past secondary H depletion, primary in MS.
-            b% s1% lxtra18 = .false. ! Inverse mass transfer past secondary H depletion, primary off MS.
-            b% s1% lxtra14 = .false. ! Inverse mass transfer before secondary H depletion, primary off MS.
-            b% s1% lxtra17 = .false. ! Terminated due to mass transfer in q<=0.25 system
-            b% s1% lxtra20 = .false. ! Reached maximum mass transfer rate, assume merger
-            b% s1% lxtra21 = .false. ! System is Darwin unstable
-            b% s1% lxtra15 = .false. ! Normal termination
-            !SIMONE: lxtra30 is true while the system is considered to be relaxing into ZAMS
-         end if
+         !if (.not. restart) then
+         !   ! ixtra values are used as counters for mass transfer events (cases A,B,C)
+         !   b% s1% ixtra1 = 0
+         !   b% s1% ixtra2 = 0
+         !   b% s1% ixtra3 = 0
+         !   ! lxtra are used to register events
+         !   b% s1% lxtra1 = .false. ! OC Ne ignition for primary.
+         !   b% s1% lxtra16 = .false. ! OC Ne ignition for secondary.
+         !   b% s1% lxtra2 = .false. ! Primary depleted carbon.
+         !   b% s1% lxtra19 = .false. ! Primary depleted helium with mass > 14msun.
+         !   b% s1% lxtra3 = .false. ! Secondary depleted carbon.
+         !   b% s1% lxtra4 = .false. ! Primary terminated last.
+         !   b% s1% lxtra5 = .false. ! Secondary terminated last.
+         !   b% s1% lxtra6 = .false. ! ZAMS L2 overflow.
+         !   b% s1% lxtra7 = .false. ! ZAMS RLOF.
+         !   b% s1% lxtra8 = .false. ! L2OF after ZAMS.
+         !   b% s1% lxtra9 = .false. ! Contact.
+         !   b% s1% lxtra10 = .false. ! Contact with inverse mass transfer.
+         !   b% s1% lxtra11 = .false. ! Reached lower mdot limit.
+         !   b% s1% lxtra12 = .false. ! Reached upper mdot limit.
+         !   b% s1% lxtra13 = .false. ! Inverse mass transfer past secondary H depletion, primary in MS.
+         !   b% s1% lxtra18 = .false. ! Inverse mass transfer past secondary H depletion, primary off MS.
+         !   b% s1% lxtra14 = .false. ! Inverse mass transfer before secondary H depletion, primary off MS.
+         !   b% s1% lxtra17 = .false. ! Terminated due to mass transfer in q<=0.25 system
+         !   b% s1% lxtra20 = .false. ! Reached maximum mass transfer rate, assume merger
+         !   b% s1% lxtra21 = .false. ! System is Darwin unstable
+         !   b% s1% lxtra15 = .false. ! Normal termination
+         !SIMONE: lxtra30 is true while the system is considered to be relaxing into ZAMS
+         !end if
 
          extras_binary_startup = keep_going
       end function  extras_binary_startup
-
 
       !SIMONE: check for large jumps in the HR diagram
       integer function extras_binary_start_step(binary_id,ierr)
@@ -496,7 +495,6 @@
 
       end function  extras_binary_start_step
 
-
       !Return either rety,backup,keep_going or terminate
       integer function extras_binary_check_model(binary_id)
          type (binary_info), pointer :: b
@@ -517,6 +515,11 @@
        ! customize the messages that will be printed upon exit by
        ! setting the corresponding termination_code_str value.
        ! termination_code_str(t_xtra1) = 'my termination condition'
+
+       ! SIMONE: check L2 overflow only after the star reached HeZAMS
+       if (b% s1% lxtra30) then
+         return
+       end if
 
        if (b% point_mass_i /= 1) then !MANOS JAN20 calculate the possibility of L2 overflow for primary when not in MS
           if (b% s1% center_h1 < 1d-6) then !MANOS DEC19: Devina's L2 check starts only after TAMS of one of the two stars. Before we use Pablo's L2 check implemented already in MESA
@@ -605,10 +608,10 @@
       integer function extras_binary_finish_step(binary_id)
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
-         integer :: ierr, star_id, i, k
+         integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23, rl2_1, gamma1_integral_1, gamma1_integral_2, integral_norm
+            rl23,rl2_1
          logical :: is_ne_biggest
 
          extras_binary_finish_step = keep_going
@@ -618,65 +621,99 @@
             return
          end if
 
-         !SIMONE: check that the HE-star reached ZAMS. i.e. he-ignition
-         !if not than keep period fix, no winds and no tidal syncroization
+         ! SIMONE: check that the He-star reached HeZAMS
+         ! if not than keep period fix, no winds and no tidal syncroization
          if (b% s1% lxtra30 .and. &
             abs(log10(abs(b% s1% L_nuc_burn_total * Lsun / b% s1% L(1)))) < 0.005 .and. &
             b% s1% star_age > 1d2) then
-
             ! if here, primary reached thermal equilibrium (reached ZAMS), so activate RLOF
             ! this is the amount of overflow of a q=1 system at L2, anything more than this
             ! is too much
-            if (b% rl_relative_gap(1) > 0.320819224) then
+            ! if (b% rl_relative_gap(1) > 0.320819224) then
+            !    extras_binary_finish_step = terminate
+            !    write(*,'(g0)') "Terminate due to overflow of L2 at ZAMS"
+            !    return
+            !rl2_1 is the radius of the volume L_2.
+            !rl23 is the distance between the donor and L_2
+            if (b% m(1) .gt. b% m(2)) then !m1>m2 q<1
+              q = b% m(2) / b% m(1)
+              rl23 = b% rl(1) * (3.33359031 * q ** 0.51425845*exp(-0.05165805*q) + 1.30836299)
+              rl2_1 = b% rl(1) * (0.78431515 * q ** 1.05223716*exp(-0.1878612*q) + 1.00379895 )
+              !Condition to stop when star overflows L2
+              if (b% r(1) .ge. rl2_1) then
+                 extras_binary_finish_step = terminate
+                 write(*,'(g0)') 'termination code: overflow from L2 surface for q<1 at HeZAMS'
+                 return
+               elseif ( b% r(1) .ge. rl23 ) then
+                  extras_binary_finish_step = terminate
+                  write(*,'(g0)') 'termination code: overflow from L2 point for q<1 at HeZAMS'
+                  return
+              end if
+            else !m2>m1Condition to stop when mass loss from L2 (previously it was L3) q>1
+              q = b% m(2) / b% m(1)
+              rl23 = b% rl(1) * (-0.04004255 * q ** 0.86637504*exp(-0.04096986*q) + 1.88298057)
+              rl2_1 = b% rl(1) * (0.2900307 * q ** 0.82926817*exp(-0.01586053*q) + 1.36247285)
+              if ((b% r(1) .ge. rl23)) then
+                 extras_binary_finish_step = terminate
+                 write(*,'(g0)') 'termination code: overflow from L2 point for q>1 at HeZAMS'
+                 return
+              elseif ( b% r(1) .ge. rl2_1 ) then
+                 extras_binary_finish_step = terminate
+                 write(*,'(g0)') 'termination code: overflow from L2 surface for q>1 at HeZAMS'
+                 return
+              end if
+            end if
+            ! if here the He-star reached thermal equilibrium (HeZAMS)
+            ! check RLOF at L1. If it is overflowing at L1, then stop.
+            if (b% rl_relative_gap(1) > 0d0) then
                extras_binary_finish_step = terminate
-               write(*,*) "termination code: overflow of L2 at ZAMS"
+               write(*,'(g0)') 'termination code: overflow from L1 at HeZAMS'
                return
-            else if (b% rl_relative_gap(1) > 0d0) then
-               write(*,*) "termination code: overflowing at ZAMS"
                ! initially overflowing system will evolve rapidly to q=1, limit mdot
                ! for contact system to work and remove hard limit on mdot change
-               b% max_implicit_abs_mdot = 1d-3
-               b% s1% delta_mdot_limit = -1
-               b% s1% delta_mdot_hard_limit = -1
-               if (.not. b% model_twins_flag) then
-                  b% s2% delta_mdot_limit = -1
-                  b% s2% delta_mdot_hard_limit = -1
-               end if
+               ! b% max_implicit_abs_mdot = 1d-3
+               ! b% s1% delta_mdot_limit = -1
+               ! b% s1% delta_mdot_hard_limit = -1
+               ! if (.not. b% model_twins_flag) then
+               !    b% s2% delta_mdot_limit = -1
+               !    b% s2% delta_mdot_hard_limit = -1
+               ! end if
             else
-               write(*,*) "the model is not overflowing at ZAMS"
+               write(*,'(g0)') "model is not overflowing at HeZAMS"
             end if
             b% s1% lxtra30 = .false.
-            b% terminate_if_L2_overflow = .true.
+            !b% terminate_if_L2_overflow = .true. ! We check this with Misra et al. 2020 routine
+            b% ignore_rlof_flag = .false. ! In case of RLOF we do MT
             b% do_tidal_sync = .true.
             b% do_jdot_ls = .true.
             b% do_jdot_gr = .true.
             b% s1% hot_wind_scheme = 'Dutch'
             b% s1% cool_wind_RGB_scheme ='Dutch'
             b% s1% cool_wind_AGB_scheme = 'Dutch'
-            ! b% s1% max_mdot_redo_cnt = 100
-            ! b% s1% scale_max_correction = 0.02d0
-            ! b% s1% ignore_species_in_max_correction = .true.
-            !My secondary is a point mass BH
+            !b% s1% max_mdot_redo_cnt = 100
+            !b% s1% scale_max_correction = 0.02d0
+            !b% s1% ignore_species_in_max_correction = .true.
+            !My secondary is a point mass
             !if (.not. b% model_twins_flag) then
             !   b% ignore_rlof_flag = .false.
             !   b% s2% max_mdot_redo_cnt = 100
             !   b% s2% scale_max_correction = 0.02d0
             !   b% s2% ignore_species_in_max_correction = .true.
             !end if
-            write(*,*) "Engage RLOF!"
+            write(*,'(g0)') "Engage RLOF!"
          else if (b% s1% lxtra30 .and. &
             (abs(log10(abs(b% s1% L_nuc_burn_total * Lsun / b% s1% L(1)))) > 0.005 .or. &
             b% s1% star_age < 1d2)) then
-            ! if here, still not in ZAMS, keep period fixed
+            ! if here, still not in HeZAMS, keep period fixed
             b% period = b% initial_period_in_days*(24d0*60d0*60d0)
             b% separation = &
                pow_cr((b% s1% cgrav(1)*(b% m(1)+b% m(2)))*(b% period/(2*pi))**2,1d0/3d0)
             b% angular_momentum_j = b% m(1) * b% m(2) * sqrt( b% s1% cgrav(1) *&
                b% separation / (b% m(1) + b% m(2)) )
             b% rl(1) = eval_rlobe(b% m(1), b% m(2), b% separation)
-            b% rl(2) = eval_rlobe(b% m(2), b% m(1), b% separation)
+            !b% rl(2) = eval_rlobe(b% m(2), b% m(1), b% separation)
             b% rl_relative_gap(1) = (b% r(1) - b% rl(1)) / b% rl(1) ! gap < 0 means out of contact
-            b% rl_relative_gap(2) = (b% r(2) - b% rl(2)) / b% rl(2) ! gap < 0 means out of contact
+            !b% rl_relative_gap(2) = (b% r(2) - b% rl(2)) / b% rl(2) ! gap < 0 means out of contact
             !keep stars synchronized
             ! if (b% point_mass_i /= 1) then
             !    call star_set_uniform_omega(b% s1% id, 2*pi/b% period, ierr)
@@ -686,16 +723,17 @@
             ! end if
          end if
 
-         if (b% point_mass_i == 0) then
-            !MANOS: check for simultaneous RLOF from both stars after TAMS of one star
-            if (b% s2% center_h1 < 1d-10 .or. b% s1% center_h1 < 1d-10) then
-                if (b% rl_relative_gap(1) > 0.0 .and. b% rl_relative_gap(2) > 0.0) then
-                  extras_binary_finish_step = terminate
-                  write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and at least one of them is off MS"
-                  !b% s1% lxtra13 = .true.
-                end if
-            end if
-         end if
+         ! SIMONE I turned this is off, I do the RLOF check
+         ! if (b% point_mass_i == 0) then
+         !    !MANOS: check for simultaneous RLOF from both stars after TAMS of one star
+         !    if (b% s2% center_h1 < 1d-6 .or. b% s1% center_h1 < 1d-6) then
+         !        if (b% rl_relative_gap(1) > 0.0 .and. b% rl_relative_gap(2) > 0.0) then
+         !          extras_binary_finish_step = terminate
+         !          write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and at least one of them is off MS"
+         !          !b% s1% lxtra13 = .true.
+         !        end if
+         !    end if
+         ! end if
          !   ! check for inverse mass transfer at late stages
          !   if (b% s2% center_h1 < 1d-10 .and. b% d_i == 2 .and. b% rl_relative_gap(2) > -1d-2) then
          !      if (b% s1% center_h1 > 1d-10) then
@@ -725,51 +763,25 @@
 
          !check if mass transfer rate reached maximun, assume merger if it happens
          !if(abs(b% mtransfer_rate) >= b% max_implicit_abs_mdot*Msun/secyer) then
-          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 10.0d0) then            !stop when larger than 10 Msun/yr
+          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
             extras_binary_finish_step = terminate
-            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 10.0d0"
-            b% s1% lxtra20 = .true.
-         end if
-
-         !SIMONE: gamma integral for star 1 to check pair-instability
-         if (b% point_mass_i /= 1) then
-            integral_norm = 0d0
-            gamma1_integral_1 = 0d0
-            do k=1, b% s1% nz
-               integral_norm = integral_norm + b% s1% P(k)*b% s1% dm(k)/b% s1% rho(k)
-               gamma1_integral_1 = gamma1_integral_1 + &
-                  (b% s1% gamma1(k)-4.d0/3.d0)*b% s1% P(k)*b% s1% dm(k)/b% s1% rho(k)
-            end do
-            gamma1_integral_1 = gamma1_integral_1/max(1d-99,integral_norm)
-            write(*,*) "check gamma1_integral_1", gamma1_integral_1
-         end if
-
-         !SIMONE: gamma integral for star 1 to check pair-instability
-         if (b% point_mass_i /= 2) then
-            integral_norm = 0d0
-            gamma1_integral_2 = 0d0
-            do k=1,b% s2% nz
-               integral_norm = integral_norm + b% s2% P(k)*b% s2% dm(k)/b% s2% rho(k)
-               gamma1_integral_2 = gamma1_integral_2 + &
-                  (b% s2% gamma1(k)-4.d0/3.d0)*b% s2% P(k)*b% s2% dm(k)/b% s2% rho(k)
-            end do
-            gamma1_integral_2 = gamma1_integral_2/max(1d-99,integral_norm)
-            write(*,*) "check gamma1_integral_2", gamma1_integral_2
+            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
+            !b% s1% lxtra20 = .true.
          end if
 
          ! check for termination due to carbon depletion or off center neon ignition for primary
          if (b% point_mass_i /= 1) then
             if (b% s1% center_c12 < 1d-2 .and. b% s1% center_he4 < 1d-6) then
-               b% s1% lxtra2 = .true.
-               if (b% point_mass_i == 0) then
+               !b% s1% lxtra2 = .true.
+               !if (b% point_mass_i == 0) then
                   write(*,'(g0)') "termination code: Primary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
-               else
-                  extras_binary_finish_step = terminate
-                  b% s1% lxtra4 = .true.
-                  write(*,'(g0)') "termination code: Terminate due to primary depleting carbon (inverse sn?)"
-               end if
+               !else
+               !   extras_binary_finish_step = terminate
+               !   b% s1% lxtra4 = .true.
+               !   write(*,'(g0)') "termination code: Terminate due to primary depleting carbon (inverse sn?)"
+               !end if
             else
                ! check if neon is by far greatest source of energy
                is_ne_biggest = .true.
@@ -780,61 +792,57 @@
                   end if
                end do
                if (is_ne_biggest .and. b% s1% max_eps_z_m/b% s1% xmstar > 0.01) then
-                  b% s1% lxtra1 = .true.
-                  if (b% point_mass_i == 0) then
+            !      b% s1% lxtra1 = .true.
+            !      if (b% point_mass_i == 0) then
                      write(*,'(g0)') "offcenter neon ignition for primary at q=",  b% s1% max_eps_z_m/b% s1% xmstar, &
                         b% s1% max_eps_z_m
-                  else
-                     write(*,'(g0)') "termination code: Terminate due to offcenter neon ignition for primary (inverse sn?) at q=", &
-                     b% s1% max_eps_z_m/b% s1% xmstar, b% s1% max_eps_z_m
-                     extras_binary_finish_step = terminate
-                     b% s1% lxtra4 = .true.
-                  end if
-               end if
-               !SIMONE: check for pair-instability
-               if (b% s1% center_he4 < 1d-3 .and. gamma1_integral_1 < 5d-3) then
-                  extras_binary_finish_step = terminate
-                  write(*,*) "termination coode: terminate due to onset of pair-instability"
-                  return
+                        extras_binary_finish_step = terminate
+                     write(*,'(g0)') "termination code: offcenter neon ignition for primary"
+            !      else
+            !         write(*,'(g0)') "termination code: Terminate due to offcenter neon ignition for primary (inverse sn?) at q=", &
+            !         b% s1% max_eps_z_m/b% s1% xmstar, b% s1% max_eps_z_m
+            !         extras_binary_finish_step = terminate
+            !         b% s1% lxtra4 = .true.
+            !      end if
                end if
             end if
-            if ((b% s1% lxtra2 .or. b% s1% lxtra1 .or. b% s1% lxtra19) .and. b% point_mass_i == 0) then
-               b% point_mass_i = 1
-               b% d_i = 2
-               b% a_i = 1
-               b% s_donor => b% s2
-               b% s_accretor => b% s1
-               b% period = 1d99
-               b% mtransfer_rate = 0d0
-               b% separation = &
-                  pow_cr((b% s1% cgrav(1)*(b% m(1)+b% m(2)))*(b% period/(2*pi))**2,1d0/3d0)
-               b% angular_momentum_j = b% m(1) * b% m(2) * sqrt( b% s1% cgrav(1) *&
-                  b% separation / (b% m(1) + b% m(2)) )
-               b% rl(1) = eval_rlobe(b% m(1), b% m(2), b% separation)
-               b% rl(2) = eval_rlobe(b% m(2), b% m(1), b% separation)
-               b% rl_relative_gap(1) = (b% r(1) - b% rl(1)) / b% rl(1) ! gap < 0 means out of contact
-               b% rl_relative_gap(2) = (b% r(2) - b% rl(2)) / b% rl(2) ! gap < 0 means out of contact
-               b% mdot_scheme = "roche_lobe"
-               ! turn off outer_xa smooth and premix_omega in secondary
-               ! se these can cause trouble at late phases
-               b% s2% smooth_outer_xa_big = -1d0
-               b% s2% smooth_outer_xa_small = -1d0
-            end if
+            !if ((b% s1% lxtra2 .or. b% s1% lxtra1 .or. b% s1% lxtra19) .and. b% point_mass_i == 0) then
+            !   b% point_mass_i = 1
+            !   b% d_i = 2
+            !   b% a_i = 1
+            !   b% s_donor => b% s2
+            !   b% s_accretor => b% s1
+            !   b% period = 1d99
+            !   b% mtransfer_rate = 0d0
+            !   b% separation = &
+            !      pow_cr((b% s1% cgrav(1)*(b% m(1)+b% m(2)))*(b% period/(2*pi))**2,1d0/3d0)
+            !   b% angular_momentum_j = b% m(1) * b% m(2) * sqrt( b% s1% cgrav(1) *&
+            !      b% separation / (b% m(1) + b% m(2)) )
+            !   b% rl(1) = eval_rlobe(b% m(1), b% m(2), b% separation)
+            !   b% rl(2) = eval_rlobe(b% m(2), b% m(1), b% separation)
+            !   b% rl_relative_gap(1) = (b% r(1) - b% rl(1)) / b% rl(1) ! gap < 0 means out of contact
+            !   b% rl_relative_gap(2) = (b% r(2) - b% rl(2)) / b% rl(2) ! gap < 0 means out of contact
+            !   b% mdot_scheme = "roche_lobe"
+            !   ! turn off outer_xa smooth and premix_omega in secondary
+            !   ! se these can cause trouble at late phases
+            !   b% s2% smooth_outer_xa_big = -1d0
+            !   b% s2% smooth_outer_xa_small = -1d0
+            !end if
          end if
 
          ! check for termination due to carbon depletion or off center neon ignition for secondary
          if (b% point_mass_i /= 2) then
             if (b% s2% center_c12 < 1d-2 .and. b% s2% center_he4 < 1d-6) then
-               b% s1% lxtra3 = .true.
-               if (b% point_mass_i == 0) then
+               !b% s1% lxtra3 = .true.
+               !if (b% point_mass_i == 0) then
                   write(*,'(g0)') "termination code: Secondary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
-               else
-                  extras_binary_finish_step = terminate
-                  b% s1% lxtra5 = .true.
-                  write(*,'(g0)') "termination code: Secondary has depleted central carbon"
-               end if
+               !else
+               !   extras_binary_finish_step = terminate
+               !   b% s1% lxtra5 = .true.
+               !   write(*,'(g0)') "termination code: Secondary has depleted central carbon"
+               !end if
             else
                ! check if neon is by far greatest source of energy
                is_ne_biggest = .true.
@@ -845,42 +853,38 @@
                   end if
                end do
                if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01) then
-                  b% s1% lxtra16 = .true.
-                  if (b% point_mass_i == 0) then
-                     write(*,*) "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
+            !      b% s1% lxtra1 = .true.
+            !      if (b% point_mass_i == 0) then
+                     write(*,'(g0)') "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
                         b% s2% max_eps_z_m
-                  else
-                     write(*,*) "Terminate due to offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
-                        b% s2% max_eps_z_m
-                     extras_binary_finish_step = terminate
-                     b% s1% lxtra5 = .true.
-                  end if
-               end if
-               !SIMONE: check for pair-instability
-               if (b% s2% center_he4 < 1d-3 .and. gamma1_integral_2 < 5d-3) then
-                  extras_binary_finish_step = terminate
-                  write(*,*) "Terminate due to onset of pair-instability"
-                  return
+                        extras_binary_finish_step = terminate
+                     write(*,'(g0)') "termination code: offcenter neon ignition for secondary"
+            !      else
+            !         write(*,'(g0)') "termination code: Terminate due to offcenter neon ignition for primary (inverse sn?) at q=", &
+            !         b% s1% max_eps_z_m/b% s1% xmstar, b% s1% max_eps_z_m
+            !         extras_binary_finish_step = terminate
+            !         b% s1% lxtra4 = .true.
+            !      end if
                end if
             end if
-            if ((b% s1% lxtra3 .or. b% s1% lxtra16) .and. b% point_mass_i == 0) then
-               b% point_mass_i = 2
-               b% d_i = 1
-               b% a_i = 2
-               b% s_donor => b% s1
-               b% s_accretor => b% s2
-               b% period = 1d99
-               b% mtransfer_rate = 0d0
-               b% separation = &
-                  pow_cr((b% s1% cgrav(1)*(b% m(1)+b% m(2)))*(b% period/(2*pi))**2,1d0/3d0)
-               b% angular_momentum_j = b% m(1) * b% m(2) * sqrt( b% s1% cgrav(1) *&
-                  b% separation / (b% m(1) + b% m(2)) )
-               b% rl(1) = eval_rlobe(b% m(1), b% m(2), b% separation)
-               b% rl(2) = eval_rlobe(b% m(2), b% m(1), b% separation)
-               b% rl_relative_gap(1) = (b% r(1) - b% rl(1)) / b% rl(1) ! gap < 0 means out of contact
-               b% rl_relative_gap(2) = (b% r(2) - b% rl(2)) / b% rl(2) ! gap < 0 means out of contact
-               b% mdot_scheme = "roche_lobe"
-            end if
+            !if ((b% s1% lxtra3 .or. b% s1% lxtra16) .and. b% point_mass_i == 0) then
+            !   b% point_mass_i = 2
+            !   b% d_i = 1
+            !   b% a_i = 2
+            !   b% s_donor => b% s1
+            !   b% s_accretor => b% s2
+            !   b% period = 1d99
+            !   b% mtransfer_rate = 0d0
+            !   b% separation = &
+            !      pow_cr((b% s1% cgrav(1)*(b% m(1)+b% m(2)))*(b% period/(2*pi))**2,1d0/3d0)
+            !   b% angular_momentum_j = b% m(1) * b% m(2) * sqrt( b% s1% cgrav(1) *&
+            !      b% separation / (b% m(1) + b% m(2)) )
+            !   b% rl(1) = eval_rlobe(b% m(1), b% m(2), b% separation)
+            !   b% rl(2) = eval_rlobe(b% m(2), b% m(1), b% separation)
+            !   b% rl_relative_gap(1) = (b% r(1) - b% rl(1)) / b% rl(1) ! gap < 0 means out of contact
+            !   b% rl_relative_gap(2) = (b% r(2) - b% rl(2)) / b% rl(2) ! gap < 0 means out of contact
+            !   b% mdot_scheme = "roche_lobe"
+            !end if
          end if
 
          ! check for L2 overflow after ZAMS, but before TAMS
@@ -895,30 +899,40 @@
                end if
                if (b% rl_relative_gap(star_id) > 0.29858997d0*atan_cr(1.83530121d0*pow_cr(q,0.39661426d0))) then
                  write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A" !MANOS DEC19
-                 b% s1% lxtra8 = .true.
+                 !b% s1% lxtra8 = .true.
                  extras_binary_finish_step = terminate
                end if
             end if
          end if
 
          if (extras_binary_finish_step == terminate) then
+               !write(*,*) "saving final profilesA"
+               !if (b% point_mass_i /= 1) then
+               !     call star_write_profile_info(b% s1% id, "LOGS1/final_profileA.data", b% s1% id, ierr)
+               !end if
+               !if (ierr /= 0) return ! failure in profile
+               !if (b% point_mass_i /= 2) then
+               !     call star_write_profile_info(b% s2% id, "LOGS2/final_profileA.data", b% s2% id, ierr)
+               !end if
+               !if (ierr /= 0) return ! failure in profile
+
             !call star_write_profile_info(b% s1% id, "LOGS1/prof_9FINAL.data", b% s1% id, ierr)
             !if (ierr /= 0) return ! failure in profile
             !call star_write_profile_info(b% s2% id, "LOGS2/prof_9FINAL.data", b% s2% id, ierr)
             !if (ierr /= 0) return ! failure in profile
-            b% s1% lxtra15 = .true.
+            !b% s1% lxtra15 = .true.
          else
             if (b% point_mass_i /= 1) then
-                if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! MANOS OCT19, changing from "contact" scheme to Kolb if one star reaches TAMS
+                if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! MANOS OCT19, changing from 'contact' scheme to Kolb if one star reaches TAMS
                    b% mdot_scheme = "Kolb"
-                   write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, " and Devina's L2 overflow check"
+                   write(*,*) "Primary reached TAMS, changing mdot_scheme to", b% mdot_scheme
                    b% terminate_if_L2_overflow = .false. !MANOS JAN20
                 end if
             end if
             if (b% point_mass_i /= 2) then
                 if (b% s2% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then
                    b% mdot_scheme = "Kolb"
-                   write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, " and Devina's L2 overflow check"
+                   write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme
                    b% terminate_if_L2_overflow = .false.  !MANOS JAN20
                 end if
             end if
@@ -927,11 +941,11 @@
             if (b% model_number == 1 ) then ! MANOS OCT19, saving initial_profile
                write(*,*) "saving initial profiles"
                if (b% point_mass_i /= 1) then
-                    call star_write_profile_info(b% s1% id, "LOGS1/ip1.data", b% s1% id, ierr)
+                    call star_write_profile_info(b% s1% id, "LOGS1/initial_profile.data", b% s1% id, ierr)
                end if
                if (ierr /= 0) return ! failure in profile
                if (b% point_mass_i /= 2) then
-                    call star_write_profile_info(b% s2% id, "LOGS2/ip2.data", b% s2% id, ierr)
+                    call star_write_profile_info(b% s2% id, "LOGS2/initial_profile.data", b% s2% id, ierr)
                end if
                if (ierr /= 0) return ! failure in profile
             end if
@@ -970,17 +984,17 @@
 
 
             ! check for beginning of mass transfer phases
-            if (b% point_mass_i == 0 .and. abs(b% mtransfer_rate) > abs(b% mtransfer_rate_older) &
-               .and. log10_cr(abs(b% mtransfer_rate_older)) < -90) then
-               ! a mass transfer phase started
-               if (center_h1 > 1d-6) then
-                  b% s1% ixtra1 = b% s1% ixtra1 + 1
-               else if (center_he4 > 1d-6) then
-                  b% s1% ixtra2 = b% s1% ixtra2 + 1
-               else
-                  b% s1% ixtra3 = b% s1% ixtra3 + 1
-               end if
-            end if
+            !if (b% point_mass_i == 0 .and. abs(b% mtransfer_rate) > abs(b% mtransfer_rate_older) &
+            !   .and. log10_cr(abs(b% mtransfer_rate_older)) < -90) then
+            !   ! a mass transfer phase started
+            !   if (center_h1 > 1d-6) then
+            !      b% s1% ixtra1 = b% s1% ixtra1 + 1
+            !   else if (center_he4 > 1d-6) then
+            !      b% s1% ixtra2 = b% s1% ixtra2 + 1
+            !   else
+            !      b% s1% ixtra3 = b% s1% ixtra3 + 1
+            !   end if
+            !end if
 
             !! check for contact phases
             !if (b% point_mass_i == 0 .and. log10_cr(abs(b% mtransfer_rate_older)) > -90 &
@@ -1034,78 +1048,27 @@
       end function eval_rlobe
 
       subroutine extras_binary_after_evolve(binary_id, ierr)
+         use run_star_support
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
+         type(star_Info), pointer :: s
          integer :: iounit
          call binary_ptr(binary_id, b, ierr)
-         if (ierr /= 0) then ! failure in  binary_ptr
-            return
-         end if
-         write(*,*) "Saving summary data"
-         iounit = alloc_iounit(ierr)
-         if (ierr /= 0) then ! failure in  binary_ptr
-            write(*,*) "Error allocating iounit"
-            return
-         end if
+         if (ierr /= 0) return
+          !if (b% point_mass_i /= 1) then
+                 call star_write_profile_info(b% s1% id, "LOGS1/final_profile.data", b% s1% id, ierr) !MANOS: this should be checking if s1 is a point mass, but in minimum timestep cases, it is behaving like becoming a point mass.. So for now it is assuming it it is not a point mass, not sure if it works in other case.
+          !end if
+           !if (b% point_mass_i /= 1) then
+           !     write(*,*) "going in loop 2"
+           !     call save_profile(b% s1% id, b% s1% id, 2, ierr) !not working
+           ! end if
+            if (ierr /= 0) return ! failure in profile
 
-         open(unit=iounit, file=trim('summary.txt'), action='write', status='replace', iostat=ierr)
-         if (ierr /= 0) then
-            write(*,*) 'failed to open file summary.txt to write'
-            stop 1
-         end if
-
-         write(iounit,*) "Case A:", b% s1% ixtra1
-         write(iounit,*) "Case B:", b% s1% ixtra2
-         write(iounit,*) "Case C:", b% s1% ixtra3
-
-         if (b% s1% lxtra1) &
-            write(iounit,*) "Off-center Neon ignition for primary"
-         if (b% s1% lxtra16) &
-            write(iounit,*) "Off-center Neon ignition for secondary"
-         if (b% s1% lxtra2) &
-            write(iounit,*) "termination code: Primary depleted carbon"
-         if (b% s1% lxtra19) &
-            write(iounit,*) "Primary depleted helium with M>13 Msun"
-         if (b% s1% lxtra3) &
-            write(iounit,*) "Secondary depleted carbon"
-         if (b% s1% lxtra4) &
-            write(iounit,*) "Primary terminated last"
-         if (b% s1% lxtra5) &
-            write(iounit,*) "Secondary terminated last"
-         if (b% s1% lxtra6) &
-            write(iounit,*) "ZAMS L2 overflow"
-         if (b% s1% lxtra7) &
-            write(iounit,*) "ZAMS RLOF"
-         if (b% s1% lxtra8) &
-            write(iounit,*) "L2 overflow after ZAMS"
-         if (b% s1% lxtra9 .and. .not. b% s1% lxtra10) &
-            write(iounit,*) "Contact without inverse mass transfer"
-         if (b% s1% lxtra10) &
-            write(iounit,*) "Contact with inverse mass transfer"
-         if (b% s1% lxtra11) &
-            write(iounit,*) "System reached lower mdot limit"
-         if (b% s1% lxtra12) &
-            write(iounit,*) "System reached upper mdot limit"
-         if (b% s1% lxtra13) &
-            write(iounit,*) "Inverse mass transfer past secondary H depletion, primary in MS."
-         if (b% s1% lxtra18) &
-            write(iounit,*) "Inverse mass transfer past secondary H depletion, primary off MS."
-         if (b% s1% lxtra14) &
-            write(iounit,*) "Inverse mass transfer before secondary H depletion, primary off MS."
-         if (b% s1% lxtra17) &
-            write(iounit,*) "Terminated due to mass transfer in q_i<=0.25 system"
-         if (b% s1% lxtra20) &
-            write(iounit,*) "Terminated due to mass transfer rate reaching maximum"
-         if (b% s1% lxtra21) &
-            write(iounit,*) "Initial system is darwin unstable"
-         if (b% s1% lxtra15 .or. b% s1% lxtra17) then
-            write(iounit,*) "Normal termination"
-         else
-            write(iounit,*) "Abnormal termination"
-         end if
-
-         close(iounit)
+            if (b% point_mass_i /= 2) then
+                 call star_write_profile_info(b% s2% id, "LOGS2/final_profile.data", b% s2% id, ierr)
+            end if
+            if (ierr /= 0) return ! failure in profile
 
       end subroutine extras_binary_after_evolve
 
