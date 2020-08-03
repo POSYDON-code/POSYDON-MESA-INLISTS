@@ -22,7 +22,7 @@
       !OPACITY, NETWORK, RATE, etc.
       !network
       change_net = .true.
-      new_net_name = 'approx21.net' 
+      new_net_name = 'approx21.net'
       show_net_species_info = .true.
 
       new_rotation_flag = .true.
@@ -46,7 +46,7 @@
 / ! end of star_job namelist
 
 &controls
-      zams_filename = './zams_z0.0142m2_y0.2703.data' 
+      zams_filename = './zams_z0.0142m2_y0.2703.data'
       initial_z = 1.42d-2
 
       warn_when_large_rel_run_E_err = 1d99
@@ -55,7 +55,7 @@
       use_gold_tolerances = .false.
       use_dedt_form_of_energy_eqn = .false.
       use_eosELM = .false.
-      use_eosDT2 = false.
+      use_eosDT2 = .false.
 
       !OUTPUT OPTIONS
       photo_directory = 'photos1'
@@ -220,7 +220,7 @@
       dX_nuc_drop_limit = 2.0d-3        !  1.0d-4  default = 5.0d-2
       dX_nuc_drop_limit_at_high_T = -1  ! default = -1 = same as dX_nuc_drop_limit
       dX_nuc_drop_min_X_limit = 1.0d-3  ! 1.0d-3  default = 1.0d-4
-      dX_nuc_drop_max_A_limit = 52   
+      dX_nuc_drop_max_A_limit = 52
 
 ! limit changes in the timestep
      min_timestep_factor         = 0.8d0
