@@ -506,10 +506,10 @@
        ! setting the corresponding termination_code_str value.
        ! termination_code_str(t_xtra1) = 'my termination condition'
 
-       ! SIMONE: check L2 overflow only after the star reached HeZAMS
-       if (b% s1% lxtra30) then
-         return
-       end if
+   !    ! SIMONE: check L2 overflow only after the star reached HeZAMS
+   !    if (b% s1% lxtra30) then
+   !      return
+   !    end if
 
        if (b% point_mass_i /= 1) then !MANOS JAN20 calculate the possibility of L2 overflow for primary when not in MS
           if (b% s1% center_h1 < 1d-6) then !MANOS DEC19: Devina's L2 check starts only after TAMS of one of the two stars. Before we use Pablo's L2 check implemented already in MESA
@@ -648,16 +648,16 @@
          else
            write(*,'(g0)') "model is not overflowing at HeZAMS"
          end if
-         b% s1% lxtra30 = .false.
-         !b% terminate_if_L2_overflow = .true. ! We check this with Misra et al. 2020 routine
-         b% ignore_rlof_flag = .false. ! In case of RLOF we do MT
-         b% do_tidal_sync = .true.
-         b% do_jdot_ls = .true.
-         b% do_jdot_gr = .true.
-         b% s1% hot_wind_scheme = 'Dutch'
-         b% s1% cool_wind_RGB_scheme ='Dutch'
-         b% s1% cool_wind_AGB_scheme = 'Dutch'
-         write(*,'(g0)') "Engage RLOF!"
+    !     b% s1% lxtra30 = .false.
+    !     !b% terminate_if_L2_overflow = .true. ! We check this with Misra et al. 2020 routine
+    !     b% ignore_rlof_flag = .false. ! In case of RLOF we do MT
+    !     b% do_tidal_sync = .true.
+    !     b% do_jdot_ls = .true.
+    !     b% do_jdot_gr = .true.
+    !     b% s1% hot_wind_scheme = 'Dutch'
+    !     b% s1% cool_wind_RGB_scheme ='Dutch'
+    !     b% s1% cool_wind_AGB_scheme = 'Dutch'
+    !     write(*,'(g0)') "Engage RLOF!"
 
          !remove gradL_composition term after MS, it can cause the convective helium core to recede
          if (b% s1% center_h1 < 1d-6) then
