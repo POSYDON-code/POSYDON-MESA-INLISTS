@@ -640,14 +640,14 @@
            end if
          end if
 
-         !! L1 RLOF checking
-         if (b% rl_relative_gap(1) > 0d0) then
-            extras_binary_finish_step = terminate
-            write(*,'(g0)') 'termination code: overflow from L1 at HeZAMS'
-            return
-         else
-           write(*,'(g0)') "model is not overflowing at HeZAMS"
-         end if
+         !! L1 RLOF checkina, this is hard-coded in mesag
+    !     if (b% rl_relative_gap(1) > 0d0) then
+    !        extras_binary_finish_step = terminate
+    !        write(*,'(g0)') 'termination code: overflow from L1 at HeZAMS'
+    !        return
+    !     else
+    !       write(*,'(g0)') "model is not overflowing at HeZAMS"
+    !     end if
     !     b% s1% lxtra30 = .false.
     !     !b% terminate_if_L2_overflow = .true. ! We check this with Misra et al. 2020 routine
     !     b% ignore_rlof_flag = .false. ! In case of RLOF we do MT
