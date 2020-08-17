@@ -1,36 +1,14 @@
 
 &binary_job
 
-   inlist_names(1) = 'inlist1'
-   inlist_names(2) = 'inlist2'
-
-
    evolve_both_stars = .false.
 / ! end of binary_job namelist
 
 &binary_controls
 
-   do_tidal_sync = .true.
    do_initial_orbit_sync_1 = .false.
-
-   do_jdot_missing_wind = .true.   !false => non-rotating models
-   do_jdot_gr = .true.
-   do_jdot_ml = .true.
-   do_jdot_ls = .true.             !false => non-rotating models
-   do_jdot_mb = .false.
-
-   mdot_scheme = 'Kolb' ! by default
-
-   sync_type_1 = 'Hut_rad'      !New fitting fomula for E2
+   mdot_scheme = 'Kolb'
 
    limit_retention_by_mdot_edd = .true.     ! Use Eddington accretion rate
-   use_this_for_mdot_edd = 3.0d-8 !Tauris+2017
-   use_this_for_mdot_edd_eta = 0.1
-
-   use_other_tsync = .true.
-
-   ! initial conditions specified in extra inlist
-   read_extra_binary_controls_inlist1 = .true.
-   extra_binary_controls_inlist1_name = "inlist_extra"
-
+!   use_this_for_mdot_edd_eta = 0.1 !set in run_bianry_extra.f
 / ! end of binary_controls namelist
