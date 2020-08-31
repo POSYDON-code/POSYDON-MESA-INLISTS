@@ -1,14 +1,10 @@
 !!! create a pure He star 
 ! relax composition to desired uniform values
-! for masses >= 8 Msun
-! set "initial_mass = " to the desired mass
 ! set "accretion_species" to the desired composition
-
 &star_job
          !This will allow to relaxe to only he4
          relax_initial_to_xaccrete = .true.
          num_steps_to_relax_composition = 50
-
 
          save_model_when_terminate = .true.
          save_model_filename = 'step1.mod' 
@@ -35,12 +31,7 @@
          accretion_species_id(1) = 'he4'
          accretion_species_xa(1) = 1.0
 
-         ! stop condition, another termination in run_star to evolve for 50000 years
          xa_central_lower_limit_species(1) = 'he4'
          xa_central_lower_limit(1) = 1.0
 
 / ! end of controls namelist
-
-&pgstar
-        !pause = .true.
-/ ! end of pgstar namelist

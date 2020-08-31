@@ -143,10 +143,10 @@
          if (ierr /= 0) return
          extras_finish_step = keep_going
          !if (s% star_age .gt. 50000)  extras_finish_step = terminate
-         !if (extras_finish_step == terminate) s% termination_code =t_extras_finish_step
          !if (s% center_he4 < (1 - 0.03))  extras_finish_step = terminate
          ! consistent with H-ZAMS definition from Aaron
          if (s% power_he_burn * Lsun / s% L(1) > 0.99)  extras_finish_step = terminate
+
          if (extras_finish_step == terminate) s% termination_code =t_extras_finish_step
       end function extras_finish_step
 

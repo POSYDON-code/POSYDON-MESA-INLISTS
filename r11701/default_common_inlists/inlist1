@@ -1,4 +1,3 @@
-!high-mass stars
 
 &star_job
       show_log_description_at_start = .false.
