@@ -8,27 +8,22 @@
 / ! end of binary_job namelist
 
 &binary_controls
-   photo_interval = 0 !MANOS MAR20
-   ! be 100% sure MB is always off
+   photo_interval = 0 
    do_jdot_mb = .false.
    do_jdot_missing_wind = .true.
-   do_j_accretion = .true. !MANOS MAR20
+   do_j_accretion = .true. ! according to De Mink et al. 2013
 
-   mdot_scheme = "contact" !MANOS this will change to Kolb after one of the two stars will reach TAMS
+   mdot_scheme = "contact" ! This changes to 'Kolb' after one of the two stars reaches TAMS
 
    ! Mass transfer efficiency controls
      mass_transfer_alpha = 0d0      ! fraction of mass lost from the vicinity of donor as fast wind
      mass_transfer_beta = 0d0       ! fraction of mass lost from the vicinity of accretor as fast wind
      mass_transfer_delta = 0d0      ! fraction of mass lost from circumbinary coplanar toroid
-   ! limit_retention_by_mdot_edd = .true.     ! Use Eddington accretion rate !MANOS: important for projects with MT onto compact objects
+   ! limit_retention_by_mdot_edd = .true.     ! Use Eddington accretion rate, important for projects with MT onto compact objects
 
    history_interval = 1
    terminal_interval = 10
    write_header_frequency = 100
-
-   ! initial conditions specified in extra inlist
-   read_extra_binary_controls_inlist1 = .true.
-   extra_binary_controls_inlist1_name = "inlist_extra"
 
    ! timestep controls
    fr = 1d-3 !DEF: 1d-1
@@ -52,23 +47,21 @@
 
    min_mdot_for_implicit = 1d-9
    roche_min_mdot = 1d-10
-   ! assume merger or CE if mass transfer rate becomes too high
-   !max_implicit_abs_mdot = 1.0 !1.0d3 implemented in run_binary_extras.f
    accretor_overflow_terminate = 100
-   terminate_if_L2_overflow = .false. !MANOS DEC19. L2 checked is changed between Pabpl's and Devina's in from case A to case B respectively in run_binary_extras.f
+   terminate_if_L2_overflow = .false. ! L2 oveflow check changes between Marchant et al. 2016 and Misra et al. 2020 for MS or postMS star respectively, in run_binary_extras.f
 
 
    do_tidal_sync = .true. ! tides are on
-   do_initial_orbit_sync_1 = .true. ! equal initial orbital and stellar spin period !MANOS MAR20
-   do_initial_orbit_sync_2 = .true. ! equal initial orbital and stellar spin period !MANOS MAR20
+   do_initial_orbit_sync_1 = .true. ! equal initial orbital and stellar spin period
+   do_initial_orbit_sync_2 = .true. ! equal initial orbital and stellar spin period
 
    use_other_sync_spin_to_orbit = .true. !we decide where to apply the tides, only to the envelope. Calls the tidal timescale calculation
    use_other_tsync = .true. !tidal timescale calculation
 
    !sync_type_1 = "Hut_rad"
-   sync_type_1 = "structure_dependent" ! MANOS: if "structure_dependent" then it checks if the core is radiative or not and uses Hut_conv or Hut_rad respectively (the word in Hut refers to the envelope state).
+   sync_type_1 = "structure_dependent" ! If "structure_dependent", then it checks if the core is radiative or not and uses Hut_conv or Hut_rad respectively (the word in Hut refers to the envelope state).
 
    !sync_type_2 = "Hut_rad"
-   sync_type_2 = "structure_dependent" ! MANOS: if "structure_dependent" then it checks if the core is radiative or not and uses Hut_conv or Hut_rad respectively (the word in Hut refers to the envelope state).
+   sync_type_2 = "structure_dependent" ! If "structure_dependent", then it checks if the core is radiative or not and uses Hut_conv or Hut_rad respectively (the word in Hut refers to the envelope state).
 
 / ! end of binary_controls namelist

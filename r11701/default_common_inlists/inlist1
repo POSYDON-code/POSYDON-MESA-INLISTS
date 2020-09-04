@@ -1,3 +1,4 @@
+!default inlist
 
 &star_job
       show_log_description_at_start = .false.
@@ -21,7 +22,7 @@
       !OPACITY, NETWORK, RATE, etc.
       !network
       change_net = .true.
-      new_net_name = 'approx21.net'
+      new_net_name = 'approx21.net' 
       show_net_species_info = .true.
 
       new_rotation_flag = .true.
@@ -45,8 +46,7 @@
 / ! end of star_job namelist
 
 &controls
-      !zams_filename = './zams_z0.0142m2_y0.2703.data' 
-      zams_filename = '/projects/b1119/yqh6519/LATEST_INLISTS_RUN_STAR_BINARY_EXTRAS/POSYDON-MESA-INLISTS/r11701/MS-MS/zams_z0.0142m2_y0.2703.data' 
+      zams_filename = './zams_z0.0142m2_y0.2703.data' 
       initial_z = 1.42d-2
 
       warn_when_large_rel_run_E_err = 1d99
@@ -75,7 +75,7 @@
       write_profiles_flag = .false.
 
       !WHEN TO STOP
-      gamma_center_limit = 1.0d3
+      gamma_center_limit = 1.0d3 !other termination condition are in run_star/binary_extras.f
 
       !PHYSICS
       which_atm_option = 'simple_photosphere'
@@ -121,7 +121,7 @@
       rotational_mdot_kh_fac = 1d10 !DEF: 0.3d0
       mdot_revise_factor = 1.2 !DEF:1.1
       implicit_mdot_boost = 0.1 !DEF:0.1
-      max_mdot_jump_for_rotation = 10 !1d99 ! this is to avoid weird behaviour when a star switches from mass accretion to mass loss
+      max_mdot_jump_for_rotation = 10  ! for smooth transition from mass accretion to mass loss
 
       D_visc_factor = 0.0
       D_ST_factor = 0.0
@@ -169,13 +169,12 @@
 
       !MESH AND TIMESTEP PARAMETERS
       mesh_delta_coeff = 1.0d0
-      max_allowed_nz = 400000
-      max_dq = 0.0005d0
-      varcontrol_target = 5d-3
+      convective_bdy_weight = 0.5d0
+      varcontrol_target = 1d-3
+      max_timestep_factor = 1.5d0
+      max_allowed_nz = 20000
 
-! damped newton and structure only
-     scale_max_correction = 0.1d0
-     ignore_species_in_max_correction = .true.
+      newton_iterations_limit = 20
 
       delta_XH_cntr_limit = 0.005d0
       delta_XH_cntr_hard_limit = -1
@@ -186,45 +185,17 @@
       delta_XC_cntr_limit = 0.01d0
       delta_XC_cntr_hard_limit = -1
 
-      delta_lgT_cntr_limit = 0.001d0
-      delta_lgT_limit = 0.05d0
+      !better resolution of the Henyey hook
+      delta_lg_XH_cntr_max = -1.0d0
+      delta_lg_XH_cntr_min = -3.0d0
+      delta_lg_XH_cntr_limit = 0.1d0
+      delta_lg_XH_cntr_hard_limit = -1
 
-      delta_lgRho_cntr_limit = 0.005d0
-      delta_lgRho_limit = 0.1d0
+      delta_lg_XHe_cntr_max = -1.0d0
+      delta_lg_XHe_cntr_min = -3.0d0
+      delta_lg_XHe_cntr_limit = 0.1d0
+      delta_lg_XHe_cntr_hard_limit = -1
 
-      delta_lgL_He_limit = 0.1d0
-
-! time step resolution on fuel depletion
-
-      delta_lg_XH_cntr_limit = 0.01d0
-      delta_lg_XH_cntr_max   = 0.0d0
-      delta_lg_XH_cntr_min   = -4.0d0
-      delta_lg_XH_cntr_hard_limit = 0.02d0
-
-      delta_lg_XHe_cntr_limit = 0.01d0
-      delta_lg_XHe_cntr_max   = 0.0d0
-      delta_lg_XHe_cntr_min   = -4.0d0
-      delta_lg_XHe_cntr_hard_limit = 0.02d0
-
-      delta_lg_XC_cntr_limit = 0.01d0
-      delta_lg_XC_cntr_max   = 0.0d0
-      delta_lg_XC_cntr_min   = -2.0d0 ! -3.0d0
-      delta_lg_XC_cntr_hard_limit = 0.02d0
-
-      delta_lg_XO_cntr_limit = 0.01d0
-      delta_lg_XO_cntr_max   = 0.0d0
-      delta_lg_XO_cntr_min   = -3.0d0
-      delta_lg_XO_cntr_hard_limit = 0.02d0
-
-! limit the abundance changes in a timestep
-      dX_nuc_drop_limit = 2.0d-3        !  1.0d-4  default = 5.0d-2
-      dX_nuc_drop_limit_at_high_T = -1  ! default = -1 = same as dX_nuc_drop_limit
-      dX_nuc_drop_min_X_limit = 1.0d-3  ! 1.0d-3  default = 1.0d-4
-      dX_nuc_drop_max_A_limit = 52
-
-! limit changes in the timestep
-     min_timestep_factor         = 0.8d0
-     max_timestep_factor         = 1.05d0
-     timestep_factor_for_retries = 0.75
-
+      delta_lgT_cntr_limit = 0.1d0
+      delta_lgT_cntr_hard_limit = -1
 / ! end of controls namelist
