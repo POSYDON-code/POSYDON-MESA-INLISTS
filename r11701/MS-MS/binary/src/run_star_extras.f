@@ -115,8 +115,8 @@ contains
     s% overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_above_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_below_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
+    s% overshoot_f_above_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
+    s% overshoot_f_below_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_below_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
@@ -128,8 +128,8 @@ contains
     s% overshoot_f0_above_burn_h_core  = 8.0d-3
     s% overshoot_f0_above_burn_he_core = 8.0d-3
     s% overshoot_f0_above_burn_z_core  = 8.0d-3
-    !s% overshoot_f0_above_nonburn_shell = 8.0d-3
-    !s% overshoot_f0_below_nonburn_shell = 8.0d-3
+    s% overshoot_f0_above_nonburn_shell = 8.0d-3
+    s% overshoot_f0_below_nonburn_shell = 8.0d-3
     s% overshoot_f0_above_burn_h_shell  = 8.0d-3
     s% overshoot_f0_below_burn_h_shell  = 8.0d-3
     s% overshoot_f0_above_burn_he_shell = 8.0d-3
@@ -226,7 +226,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 10 !MANOS changed this from 9 to 10
+    how_many_extra_history_columns = 10 
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -356,7 +356,7 @@ contains
 
     vals(9) = MoI
 
-    names(10) = "spin_parameter" !MANOS
+    names(10) = "spin_parameter" 
     vals(10) = (clight*s% total_angular_momentum/(standard_cgrav*(s% m(1))**2))
 
   end subroutine data_for_extra_history_columns
@@ -456,36 +456,6 @@ contains
     extras_finish_step = keep_going
     call store_extra_info(s)
 
-    ! set ROTATION: extra param are set in inlist: star_job
-    ! rot_full_off = s% job% extras_rpar(1) !1.2 !commented by MANOS
-    ! rot_full_on = s% job% extras_rpar(2) !1.8!commented by MANOS
-
-    ! MANOS: commented rotation of MIST2. At least for defaults we decided on initial 0 rotation
-    !if (rot_set_check) then
-    !   if ((s% job% extras_rpar(3) > 0.0d0) .and. (s% initial_mass > rot_full_off)) then
-    !      !check if ZAMS is achieved, then set rotation
-    !      if ((abs(log10(s% power_h_burn * Lsun / s% L(1))) < 1.0d-2) ) then
-    !         if (s% initial_mass <= rot_full_on) then
-    !            frac2 = (s% initial_mass - rot_full_off) / (rot_full_on - rot_full_off)
-    !            frac2 = 0.5d0*(1.0d0 - cos(pi*frac2))
-    !         else
-    !            frac2 = 1.0d0
-    !         end if
-    !         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-    !         write(*,*) 'new omega_div_omega_crit, fraction', s% job% extras_rpar(3) * frac2, frac2
-    !         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-    !         s% job% new_omega_div_omega_crit = s% job% extras_rpar(3) * frac2
-    !         s% job% set_near_zams_omega_div_omega_crit_steps = 10
-    !         rot_set_check = .false.
-    !      end if
-    !   else
-    !      write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-    !      write(*,*) 'no rotation'
-    !      write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-    !      rot_set_check = .false.
-    !   end if
-    !end if
-
     ! TP-AGB
     if(TP_AGB_check .and. s% have_done_TP)then
        TP_AGB_check = .false.
@@ -583,10 +553,6 @@ contains
     else
        s% diffusion_dt_limit = original_diffusion_dt_limit
     end if
-
-
-    !MANOS MAR20.
-    !FOR NOW WE DO NOT FOLLOW TPAGB AND WE STOP IT
 
     ! TP-AGB
     if(s% have_done_TP) then
