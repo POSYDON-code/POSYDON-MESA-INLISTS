@@ -144,12 +144,14 @@
       angsml = 0.0d0 !
 
       !MASS LOSS
-      cool_wind_full_on_T = 1.0d0
-      hot_wind_full_on_T = 2.0d0
+      cool_wind_full_on_T = 0.8d4
+      hot_wind_full_on_T = 1.2d4
+      RGB_to_AGB_wind_switch = 1.0d-4
       hot_wind_scheme = 'Dutch'
       cool_wind_RGB_scheme ='Dutch'
-      cool_wind_AGB_scheme = 'Dutch'
+      cool_wind_AGB_scheme = 'Blocker'
       Dutch_scaling_factor = 1.0d0
+      Blocker_scaling_factor = 0.2d0
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr
 
       !DIFFUSION
