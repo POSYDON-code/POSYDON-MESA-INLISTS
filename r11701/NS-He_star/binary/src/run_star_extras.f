@@ -54,11 +54,10 @@ contains
     s% extras_after_evolve => extras_after_evolve
     s% how_many_extra_history_columns => how_many_extra_history_columns
     s% data_for_extra_history_columns => data_for_extra_history_columns
-    s% how_many_extra_profile_columns => how_many_extra_profile_columns
-    s% data_for_extra_profile_columns => data_for_extra_profile_columns
     s% how_many_extra_history_header_items => how_many_extra_history_header_items
     s% data_for_extra_history_header_items => data_for_extra_history_header_items
-
+  !  s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
+  !  s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
     s% job% warn_run_star_extras =.false.
 
     original_diffusion_dt_limit = s% diffusion_dt_limit
@@ -89,18 +88,20 @@ contains
     if(s% initial_mass < 10.0d0 .and. s% initial_mass >= 0.6d0)then
        TP_AGB_check=.true.
     endif
-
+      
+     
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
-    vct30 = 1.0d-4
-    vct100 = 1.0d-3
+    !vct30 = 1.0d-4
+    !vct100 = 1.0d-3
 
-    if (s% initial_mass > 30.0d0) then
-       frac = (s% initial_mass-30.0d0)/(100.0d0-30.0d0)
-       frac = 0.5d0*(1.0d0 - cospi_cr(frac))
-       s% varcontrol_target = vct30 + (vct100-vct30)*frac
-    elseif (s% initial_mass > 100.0d0) then
-       s% varcontrol_target = vct100
-    endif
+    !if (s% initial_mass > 30.0d0) then
+    !   frac = (s% initial_mass-30.0d0)/(100.0d0-30.0d0)
+    !   frac = 0.5d0*(1.0d0 - cospi_cr(frac))
+    !   s% varcontrol_target = vct30 + (vct100-vct30)*frac
+    !elseif (s% initial_mass > 100.0d0) then
+    !   s% varcontrol_target = vct100
+    !endif
+      
 
 
     !now set f_ov_below_nonburn from [Fe/H] at extras_cpar(3)
@@ -170,23 +171,24 @@ contains
     if (ierr /= 0) return
     extras_check_model = keep_going
   end function extras_check_model
-  
+
   subroutine how_many_extra_history_header_items(id, id_extra, num_cols)
       integer, intent(in) :: id, id_extra
       integer, intent(out) :: num_cols
-      num_cols=2
-      end subroutine how_many_extra_history_header_items
-      subroutine data_for_extra_history_header_items( &
+      num_cols=3
+  end subroutine how_many_extra_history_header_items
+
+  subroutine data_for_extra_history_header_items( &
                   id, id_extra, num_extra_header_items, &
                   extra_header_item_names, extra_header_item_vals, ierr)
-        use chem_def, only: chem_isos
+      use chem_def, only: chem_isos
       integer, intent(in) :: id, id_extra, num_extra_header_items
       character (len=*), pointer :: extra_header_item_names(:)
       real(dp), pointer :: extra_header_item_vals(:)
       type(star_info), pointer :: s
       integer, intent(out) :: ierr
       integer :: i
-      real(dp) :: Initial_X, Initial_Y, Initial_Z
+      real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
       ierr = 0
       call star_ptr(id,s,ierr)
       if(ierr/=0) return
@@ -195,6 +197,7 @@ contains
       initial_X = 0._dp
       initial_Y = 0._dp
       initial_Z = 0._dp
+      initial_m = 0._dp
       do i=1,s% species
          !write(*,*) chem_isos% name(s% chem_id(i)), s% xa(i,1)
          if( trim(chem_isos% name(s% chem_id(i))) == 'prot' .or. trim(chem_isos% name(s% chem_id(i))) == 'neut')then
@@ -207,10 +210,13 @@ contains
             initial_Z = initial_Z + s% xa(i,1)
          endif
       enddo
+      initial_m = s% initial_mass
       extra_header_item_names(1) = 'initial_Z'
       extra_header_item_vals(1) = initial_Z
       extra_header_item_names(2) = 'initial_Y'
       extra_header_item_vals(2) =  initial_Y
+      extra_header_item_names(3) = 'initial_m'
+      extra_header_item_vals(3) =  initial_m
   end subroutine data_for_extra_history_header_items
 
   integer function how_many_extra_history_columns(id, id_extra)
@@ -220,7 +226,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 10 !MANOS changed this from 9 to 10
+    how_many_extra_history_columns = 10 
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -350,10 +356,57 @@ contains
 
     vals(9) = MoI
 
-    names(10) = "spin_parameter" !MANOS
+    names(10) = "spin_parameter" 
     vals(10) = (clight*s% total_angular_momentum/(standard_cgrav*(s% m(1))**2))
 
   end subroutine data_for_extra_history_columns
+
+!  subroutine how_many_extra_profile_header_items(id, id_extra, num_cols)
+!      integer, intent(in) :: id, id_extra
+!      integer, intent(out) :: num_cols
+!      num_cols=3
+!  end subroutine how_many_extra_profile_header_items
+
+!  subroutine data_for_extra_profile_header_items( &
+!                  id, id_extra, num_extra_header_items, &
+!                  extra_header_item_names, extra_header_item_vals, ierr)
+!      use chem_def, only: chem_isos
+!      integer, intent(in) :: id, id_extra, num_extra_header_items
+!      character (len=*), pointer :: extra_header_item_names(:)
+!      real(dp), pointer :: extra_header_item_vals(:)
+!      type(star_info), pointer :: s
+!      integer, intent(out) :: ierr
+!      integer :: i
+!      real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
+!      ierr = 0
+!      call star_ptr(id,s,ierr)
+!      if(ierr/=0) return
+!      !here is an example for adding an extra history header item
+!      !set num_cols=1 in how_many_extra_history_header_items and then unccomment these lines
+!      initial_X = 0._dp
+!      initial_Y = 0._dp
+!      initial_Z = 0._dp
+!      initial_m = 0._dp
+!      do i=1,s% species
+!         !write(*,*) chem_isos% name(s% chem_id(i)), s% xa(i,1)
+!         if( trim(chem_isos% name(s% chem_id(i))) == 'prot' .or. trim(chem_isos% name(s% chem_id(i))) == 'neut')then
+!            continue ! don't count these
+!         else if( trim(chem_isos% name(s% chem_id(i))) == 'h1' .or. trim(chem_isos% name(s% chem_id(i))) == 'h2' ) then
+!            initial_X = initial_X + s% xa(i,1)
+!         else if( trim(chem_isos% name(s% chem_id(i))) == 'he3' .or. trim(chem_isos% name(s% chem_id(i))) == 'he4' ) then
+!            initial_Y = initial_Y + s% xa(i,1)
+!         else
+!            initial_Z = initial_Z + s% xa(i,1)
+!         endif
+!      enddo
+!      initial_m = s% initial_mass
+!      extra_header_item_names(1) = 'initial_Z'
+!      extra_header_item_vals(1) = initial_Z
+!      extra_header_item_names(2) = 'initial_Y'
+!      extra_header_item_vals(2) =  initial_Y
+!      extra_header_item_names(3) = 'initial_m'
+!      extra_header_item_vals(3) =  initial_m
+!  end subroutine data_for_extra_profile_header_items
 
   integer function how_many_extra_profile_columns(id, id_extra)
     use star_def, only: star_info
@@ -402,36 +455,6 @@ contains
     if (ierr /= 0) return
     extras_finish_step = keep_going
     call store_extra_info(s)
-
-    ! set ROTATION: extra param are set in inlist: star_job
-    ! rot_full_off = s% job% extras_rpar(1) !1.2 !commented by MANOS
-    ! rot_full_on = s% job% extras_rpar(2) !1.8!commented by MANOS
-
-    ! MANOS: commented rotation of MIST2. At least for defaults we decided on initial 0 rotation
-    !if (rot_set_check) then
-    !   if ((s% job% extras_rpar(3) > 0.0d0) .and. (s% initial_mass > rot_full_off)) then
-    !      !check if ZAMS is achieved, then set rotation
-    !      if ((abs(log10(s% power_h_burn * Lsun / s% L(1))) < 1.0d-2) ) then
-    !         if (s% initial_mass <= rot_full_on) then
-    !            frac2 = (s% initial_mass - rot_full_off) / (rot_full_on - rot_full_off)
-    !            frac2 = 0.5d0*(1.0d0 - cos(pi*frac2))
-    !         else
-    !            frac2 = 1.0d0
-    !         end if
-    !         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-    !         write(*,*) 'new omega_div_omega_crit, fraction', s% job% extras_rpar(3) * frac2, frac2
-    !         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-    !         s% job% new_omega_div_omega_crit = s% job% extras_rpar(3) * frac2
-    !         s% job% set_near_zams_omega_div_omega_crit_steps = 10
-    !         rot_set_check = .false.
-    !      end if
-    !   else
-    !      write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-    !      write(*,*) 'no rotation'
-    !      write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
-    !      rot_set_check = .false.
-    !   end if
-    !end if
 
     ! TP-AGB
     if(TP_AGB_check .and. s% have_done_TP)then
@@ -530,10 +553,6 @@ contains
     else
        s% diffusion_dt_limit = original_diffusion_dt_limit
     end if
-
-
-    !MANOS MAR20.
-    !FOR NOW WE DO NOT FOLLOW TPAGB AND WE STOP IT
 
     ! TP-AGB
     if(s% have_done_TP) then
