@@ -64,6 +64,7 @@
 
           b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
           b% other_tsync => my_tsync
+          b% other_mdot_edd => my_mdot_edd
       end subroutine extras_binary_controls
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
@@ -399,7 +400,6 @@
           end if
 
       end function k_div_T
-
 
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
