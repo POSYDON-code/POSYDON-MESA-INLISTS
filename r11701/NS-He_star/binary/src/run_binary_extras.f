@@ -707,6 +707,12 @@
                if (ierr /= 0) return ! failure in profile
             end if
          end if
+         !!Trigger CE phase: Eq.15 in Ivanova+2003
+          m_dot_crit=2d-3*(b% m(2)/Msun) **(1./2)*((b% period)/(24d0*60d0*60d0))**(2./3)
+          if (abs(b% mtransfer_rate/(Msun/secyer)) >= m_dot_crit) then
+            extras_binary_finish_step = terminate
+            write(*,'(g0)') "termination code: Reached the critical mt rate"
+          end if
 
       end function extras_binary_finish_step
 
