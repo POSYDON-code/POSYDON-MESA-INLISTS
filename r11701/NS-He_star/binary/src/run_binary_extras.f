@@ -569,7 +569,7 @@
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23,rl2_1
+            rl23,rl2_1,m_dot_crit
          logical :: is_ne_biggest
 
          extras_binary_finish_step = keep_going
