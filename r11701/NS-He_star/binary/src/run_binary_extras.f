@@ -427,8 +427,8 @@
              !! mdot_edd_eta for BH
              mdot_edd_eta = 1d0 &
                       - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*b% eq_initial_bh_mass)/(3d0*b% eq_initial_bh_mass))**2)
-              
-          mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i)&
+         end if     
+         mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i)&
               /(clight*0.2d0*(1d0+b% s_donor% surface_h1)* mdot_edd_eta)    
 
           !b% s1% x_ctrl(1) used to adjust the Eddington limit in inlist1
