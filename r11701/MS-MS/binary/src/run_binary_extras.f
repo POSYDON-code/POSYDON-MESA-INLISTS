@@ -475,7 +475,7 @@
                   d_l2 = b% rl(i_don) * (-0.04029713 * q ** 0.862143 * exp(-0.04049814*q) + 1.88325644)
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'                    
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
                      return
                   end if
                   if (b% r(i_don) .ge. (d_l2)) then
@@ -484,8 +484,8 @@
                      return
                   end if
                end if
-          end if            
-       end if 
+          end if
+       end if
 
        if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
           if (b% s2% center_h1 < 1d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
@@ -513,7 +513,7 @@
                   d_l2 = b% rl(i_don) * (-0.04029713 * q ** 0.862143 * exp(-0.04049814*q) + 1.88325644)
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'                    
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
                      return
                   end if
                   if (b% r(i_don) .ge. (d_l2)) then
@@ -522,8 +522,8 @@
                      return
                   end if
                end if
-          end if               
-       end if 
+          end if
+       end if
 
       end function extras_binary_check_model
 
@@ -558,10 +558,10 @@
 
 
          !remove gradL_composition term after MS, it can cause the convective helium core to recede
-         if (b% s1% center_h1 < 1d-6) then
+         if (b% point_mass_i /= 1 .and. b% s1% center_h1 < 1d-6) then
             b% s1% num_cells_for_smooth_gradL_composition_term = 0
          end if
-         if (b% s2% center_h1 < 1d-6) then
+         if (b% point_mass_i /= 2 .and. b% s2% center_h1 < 1d-6) then
             b% s2% num_cells_for_smooth_gradL_composition_term = 0
          end if
 
@@ -621,7 +621,7 @@
 
          ! check for L2 overflow after ZAMS, but before TAMS
          if(.not. b% ignore_rlof_flag .and. extras_binary_finish_step /= terminate .and. (b% point_mass_i == 0)) then ! only when we evolve both stars in MS
-            if (b% s1% center_h1 > 1d-6 .and. b% s2% center_h1 > 1d-6) then 
+            if (b% s1% center_h1 > 1d-6 .and. b% s2% center_h1 > 1d-6) then
                if (b% m(1) > b% m(2)) then
                  q = b% m(2) / b% m(1)
                  star_id = 2
@@ -630,7 +630,7 @@
                  star_id = 1
                end if
                if (b% rl_relative_gap(star_id) > 0.29858997d0*atan_cr(1.83530121d0*pow_cr(q,0.39661426d0))) then
-                 write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A" 
+                 write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A"
                  extras_binary_finish_step = terminate
                end if
             end if
@@ -648,7 +648,7 @@
                    b% mdot_scheme = "Kolb"
                    write(*,*) "Primary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
                              " and changing L2 overflow check according to Mishra et al. 2020"
-                   b% terminate_if_L2_overflow = .false. 
+                   b% terminate_if_L2_overflow = .false.
                 end if
             end if
             if (b% point_mass_i /= 2) then
@@ -656,7 +656,7 @@
                    b% mdot_scheme = "Kolb"
                    write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
                              " and changing L2 overflow check according to Mishra et al. 2020"
-                   b% terminate_if_L2_overflow = .false.  
+                   b% terminate_if_L2_overflow = .false.
                 end if
             end if
            !write(*,*) "still using: ", b% mdot_scheme
@@ -697,7 +697,7 @@
          if (ierr /= 0) return
           !if (b% point_mass_i /= 1) then
                  call star_write_profile_info(b% s1% id, "LOGS1/final_profile.data", b% s1% id, ierr) !MANOS: this should be checking if s1 is a point mass, but in minimum timestep cases, it is behaving like becoming a point mass.. So for now it is assuming it it is not a point mass, not sure if it works with compact object binaries.
-          !end if 
+          !end if
             if (ierr /= 0) return ! failure in profile
 
             if (b% point_mass_i /= 2) then
