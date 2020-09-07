@@ -1,0 +1,22 @@
+
+&star_job
+      show_log_description_at_start = .false.
+
+/ ! end of star_job namelist
+
+&controls
+
+      Dutch_scaling_factor = 0.0d0
+      Blocker_scaling_factor = 0.0d0
+
+      !OUTPUT OPTIONS
+      history_interval = 1
+      terminal_interval = 10
+      write_header_frequency = 10
+
+      !WHEN TO STOP
+      gamma_center_limit = 170 
+      logQ_limit = 58d0 
+      max_age = 1.4e10 ! Hubble time 
+      
+/ ! end of controls namelist
