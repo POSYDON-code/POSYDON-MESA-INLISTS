@@ -610,10 +610,10 @@
 
 
          !remove gradL_composition term after MS, it can cause the convective helium core to recede
-         if (b% s1% center_h1 < 1d-6) then
+         if (b% point_mass_i /= 1 .and. b% s1% center_h1 < 1d-6) then
             b% s1% num_cells_for_smooth_gradL_composition_term = 0
          end if
-         if (b% s2% center_h1 < 1d-6) then
+         if (b% point_mass_i /= 2 .and. b% s2% center_h1 < 1d-6) then
             b% s2% num_cells_for_smooth_gradL_composition_term = 0
          end if
 
