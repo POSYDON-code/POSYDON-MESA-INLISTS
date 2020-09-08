@@ -88,8 +88,8 @@ contains
     if(s% initial_mass < 10.0d0 .and. s% initial_mass >= 0.6d0)then
        TP_AGB_check=.true.
     endif
-      
-     
+
+
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
     !vct30 = 1.0d-4
     !vct100 = 1.0d-3
@@ -101,7 +101,7 @@ contains
     !elseif (s% initial_mass > 100.0d0) then
     !   s% varcontrol_target = vct100
     !endif
-      
+
 
 
     !now set f_ov_below_nonburn from [Fe/H] at extras_cpar(3)
@@ -226,7 +226,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 10 
+    how_many_extra_history_columns = 10
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -356,7 +356,7 @@ contains
 
     vals(9) = MoI
 
-    names(10) = "spin_parameter" 
+    names(10) = "spin_parameter"
     vals(10) = (clight*s% total_angular_momentum/(standard_cgrav*(s% m(1))**2))
 
   end subroutine data_for_extra_history_columns
@@ -558,8 +558,8 @@ contains
     if(s% have_done_TP) then
        !termination_code_str(t_xtra2) = 'Reached TPAGB'
        !s% termination_code = t_xtra2
-       extras_finish_step = terminate
-       write(*,'(g0)') 'termination code: Reached TPAGB'
+       !extras_finish_step = terminate
+       write(*,'(g0)') 'Reached TPAGB'
     end if
   end function extras_finish_step
 
