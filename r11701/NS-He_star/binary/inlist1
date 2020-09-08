@@ -5,8 +5,6 @@
 / ! end of star_job namelist
 
 &controls
-     !zams_filename = '' !Need to be commented out manually after 'bash setup' 
-
      !Added by Ying
      x_ctrl(1) = 1.0d0 ! 1Eddinton limit
 / ! end of controls namelist
