@@ -5,7 +5,7 @@
 / ! end of star_job namelist
 
 &controls
-     zams_filename = '' 
+     !zams_filename = '' 
 
      !Added by Ying
      x_ctrl(1) = 1.0d0 ! 1Eddinton limit
