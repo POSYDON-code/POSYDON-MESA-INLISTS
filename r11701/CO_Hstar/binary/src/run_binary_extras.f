@@ -64,6 +64,7 @@
 
           b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
           b% other_tsync => my_tsync
+          b% other_mdot_edd => my_mdot_edd
       end subroutine extras_binary_controls
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
@@ -400,6 +401,39 @@
 
       end function k_div_T
 
+      !! Eddington accreton limits for WD, NS and BH
+      subroutine my_mdot_edd(binary_id, mdot_edd, ierr)
+         use const_def, only: dp
+         integer, intent(in) :: binary_id
+         real(dp), intent(out) :: mdot_edd
+         integer, intent(out) :: ierr
+         real(dp) :: acc_radius, mdot_edd_eta
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         if (b% m(2)/Msun <= 2.50) then ! WD and NS
+             if (0.17 <= b% m(2)/Msun .and. b% m(2)/Msun <= 1.25) then !Radius for WD
+                   acc_radius = 10 ** (-2) * ( (b% m(2)/Msun) ** (-1/3)) * Rsun !in cm
+             else if (1.25 < b% m(2)/Msun .and. b% m(2)/Msun <= 2.50) then !Radius for NS
+                   acc_radius = 11.0 * 10 ** 5 !in cm
+             end if
+             !! mdot_edd_eta for WD and NS
+             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius)
+         else! M2 > 2.5 Msol for BHs
+             !! mdot_edd_eta for BH
+             mdot_edd_eta = 1d0 &
+                      - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*b% eq_initial_bh_mass)/(3d0*b% eq_initial_bh_mass))**2)
+         end if
+         mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i)&
+              /(clight*0.2d0*(1d0+b% s_donor% surface_h1)* mdot_edd_eta)
+          !b% s1% x_ctrl(1) used to adjust the Eddington limit in inlist1
+          mdot_edd = mdot_edd * b% s1% x_ctrl(1)
+      end subroutine my_mdot_edd
+
 
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
@@ -523,6 +557,24 @@
                   end if
                end if
           end if
+       end if
+
+       if ((b% rl_relative_gap(1) .ge. 0.d0) .or. (-b% mtransfer_rate .ge. 1d-10)) then
+          ! Single star evoluiton
+          b% s1% Dutch_scaling_factor = 1.0d0
+          b% s1% Blocker_scaling_factor = 0.2d0
+          ! Binary evolution
+          if (b% have_radiative_core(1)) then
+            b% do_jdot_mb = .true.
+            write(*,'(g0)') 'MB on'
+          else
+            b% do_jdot_mb = .false.
+          end if
+          b% do_jdot_gr = .true.
+          b% do_jdot_ml = .true.
+          b% do_jdot_ls = .true.
+          b% do_jdot_missing_wind = .true.
+          b% do_j_accretion = .true. !MANOS MAR20
        end if
 
       end function extras_binary_check_model

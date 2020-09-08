@@ -1,0 +1,32 @@
+&binary_job
+
+   inlist_names(1) = 'inlist1'
+   inlist_names(2) = 'inlist2'
+
+   evolve_both_stars = .false. 
+
+/ ! end of binary_job namelist
+
+&binary_controls
+
+   !orbital J controls!
+   do_jdot_mb = .false.
+   do_jdot_missing_wind = .false.
+   do_j_accretion = .false.
+   do_jdot_mb = .false.
+   do_jdot_gr = .false.
+   do_jdot_ml = .false.
+   do_jdot_ls = .false.
+
+   mdot_scheme = "Kolb"  
+
+   limit_retention_by_mdot_edd= .true. 
+   use_other_mdot_edd = .true.
+
+   fr = 1d-2 !1d-3!DEF: 1d-1 
+
+   history_interval = 1
+   terminal_interval = 10
+   write_header_frequency = 10
+
+/ ! end of binary_controls namelist
