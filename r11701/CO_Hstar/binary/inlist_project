@@ -18,8 +18,6 @@
    do_jdot_ml = .false.
    do_jdot_ls = .false.
 
-   mdot_scheme = "Kolb"  
-
    limit_retention_by_mdot_edd= .true. 
    use_other_mdot_edd = .true.
 
