@@ -406,10 +406,10 @@
           type(binary_info), pointer :: b
           real(dp) :: m_acc
 
-          if (m_acc/Msun <= 2.50) then ! WD and NS
-              if (0.17 <= m_acc/Msun .and. m_acc/Msun <= 1.25) then !Radius for WD
+          if (m_acc/Msun < 2.50) then ! WD and NS
+              if (0.17 <= m_acc/Msun .and. m_acc/Msun < 1.25) then !Radius for WD
                     acc_radius = 10 ** (-2) * ( (m_acc/Msun) ** (-1/3)) * Rsun !in cm
-              else if (1.25 < m_acc/Msun .and. m_acc/Msun <= 2.50) then !Radius for NS
+              else if (1.25 <= m_acc/Msun .and. m_acc/Msun < 2.50) then !Radius for NS
                     acc_radius = 11.0 * 10 ** 5 !in cm
               end if
             else ! Schwarzchild radius for non-rotating BHs
@@ -431,7 +431,7 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-         if (b% m(2)/Msun <= 2.50) then ! WD and NS
+         if (b% m(2)/Msun < 2.50) then ! WD and NS
              !! mdot_edd_eta for WD and NS
              mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius(b, b% m(2)))
          else! M2 > 2.5 Msol for BHs
