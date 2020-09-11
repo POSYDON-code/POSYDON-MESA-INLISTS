@@ -401,13 +401,29 @@
 
       end function k_div_T
 
+
+      real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of WD/NS) in cm
+          type(binary_info), pointer :: b
+          real(dp) :: m_acc
+
+          if (m_acc/Msun <= 2.50) then ! WD and NS
+              if (0.17 <= m_acc/Msun .and. m_acc/Msun <= 1.25) then !Radius for WD
+                    acc_radius = 10 ** (-2) * ( (m_acc/Msun) ** (-1/3)) * Rsun !in cm
+              else if (1.25 < m_acc/Msun .and. m_acc/Msun <= 2.50) then !Radius for NS
+                    acc_radius = 11.0 * 10 ** 5 !in cm
+              end if
+            else ! Schwarzchild radius for non-rotating BHs
+              acc_radius = 2 * b% s_donor% cgrav(1) * m_acc / clight ** 2
+            end if
+      end function acc_radius
+
       !! Eddington accreton limits for WD, NS and BH
       subroutine my_mdot_edd(binary_id, mdot_edd, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
          real(dp), intent(out) :: mdot_edd
          integer, intent(out) :: ierr
-         real(dp) :: acc_radius, mdot_edd_eta
+         real(dp) :: mdot_edd_eta
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -416,13 +432,8 @@
             return
          end if
          if (b% m(2)/Msun <= 2.50) then ! WD and NS
-             if (0.17 <= b% m(2)/Msun .and. b% m(2)/Msun <= 1.25) then !Radius for WD
-                   acc_radius = 10 ** (-2) * ( (b% m(2)/Msun) ** (-1/3)) * Rsun !in cm
-             else if (1.25 < b% m(2)/Msun .and. b% m(2)/Msun <= 2.50) then !Radius for NS
-                   acc_radius = 11.0 * 10 ** 5 !in cm
-             end if
              !! mdot_edd_eta for WD and NS
-             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius)
+             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius(b, b% m(2)))
          else! M2 > 2.5 Msol for BHs
              !! mdot_edd_eta for BH
              mdot_edd_eta = 1d0 &
@@ -438,7 +449,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 0
+         how_many_extra_binary_history_columns = 2
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -449,8 +460,22 @@
          character (len=maxlen_binary_history_column_name) :: names(n)
          real(dp) :: vals(n)
          integer, intent(out) :: ierr
-         real(dp) :: beta
+         real(dp) :: beta, trap_rad, mdot_edd
          ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then ! failure in  binary_ptr
+            return
+         end if
+
+         call my_mdot_edd(binary_id,mdot_edd,ierr)
+
+         !King & Begelman 1999 eq. 1
+         trap_rad = abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+         names(1) = 'trap_radius'
+         vals(1) = trap_rad/Rsun ! in Rsun units
+         names(2) = 'acc_radius'
+         vals(2) = acc_radius(b, b% m(2)) ! in cm units
+
       end subroutine data_for_extra_binary_history_columns
 
 
@@ -473,7 +498,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	 real(dp) :: r_l2, d_l2
+	       real(dp) :: r_l2, d_l2
          real(dp) :: q
          integer :: ierr
          call binary_ptr(binary_id, b, ierr)
@@ -559,7 +584,7 @@
           end if
        end if
 
-       if ((b% rl_relative_gap(1) .ge. 0.d0) .or. (-b% mtransfer_rate .ge. 1d-10)) then
+       if ((b% rl_relative_gap(1) .ge. 0.d0) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1d-10)) then
           ! Single star evoluiton
           b% s1% Dutch_scaling_factor = 1.0d0
           b% s1% Blocker_scaling_factor = 0.2d0
@@ -587,7 +612,7 @@
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23,rl2_1
+            rl23,rl2_1, trap_rad, mdot_edd
          logical :: is_ne_biggest
 
          extras_binary_finish_step = keep_going
@@ -596,7 +621,10 @@
          if (ierr /= 0) then ! failure in  binary_ptr
             return
          end if
+         call my_mdot_edd(binary_id,mdot_edd,ierr)
 
+         !King & Begelman 1999 eq. 1
+         trap_rad = abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
 
          if (b% point_mass_i == 0) then
             ! Check for simultaneous RLOF from both stars after TAMS of one star
@@ -618,9 +646,10 @@
          end if
 
          !check if mass transfer rate reached maximun, assume unstable regime if it happens
-          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
+          if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
+          !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
             extras_binary_finish_step = terminate
-            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
+            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
          end if
 
          ! check for termination due to carbon depletion or off center neon ignition for primary
