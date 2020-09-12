@@ -725,18 +725,31 @@
             !if (ierr /= 0) return ! failure in profile
          else
             if (b% point_mass_i /= 1) then
+                if (b% point_mass_i /=0 .and. b% s1% center_h1 >= 1d-6 .and. b% mdot_scheme .ne. "roche_lobe") then ! Changing from 'contact' scheme to Kolb if one star reaches TAMS
+                   b% mdot_scheme = "roche_lobe"
+                   write(*,*) "Primary on ZAMS, changing mdot_scheme to ", b% mdot_scheme, &
+                             " and changing L2 overflow check according to Misra et al. 2020"
+                   write(*,*)b% point_mass_i
+                   b% terminate_if_L2_overflow = .false.
+                end if
                 if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! Changing from 'contact' scheme to Kolb if one star reaches TAMS
                    b% mdot_scheme = "Kolb"
-                   write(*,*) "Primary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
-                             " and changing L2 overflow check according to Mishra et al. 2020"
+                   write(*,*) "Primary reached TAMS, changing mdot_scheme to ", b% mdot_scheme, &
+                             " and changing L2 overflow check according to Misra et al. 2020"
                    b% terminate_if_L2_overflow = .false.
                 end if
             end if
             if (b% point_mass_i /= 2) then
+                if (b% point_mass_i /=0 .and. b% s2% center_h1 >= 1d-6 .and. b% mdot_scheme .ne. "roche_lobe") then ! Changing from 'contact' scheme to Kolb if one star reaches TAMS
+                   b% mdot_scheme = "roche_lobe"
+                   write(*,*) "Secondary on ZAMS, changing mdot_scheme to", b% mdot_scheme, &
+                             " and changing L2 overflow check according to Misra et al. 2020"
+                   b% terminate_if_L2_overflow = .false.
+                end if
                 if (b% s2% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then
                    b% mdot_scheme = "Kolb"
                    write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
-                             " and changing L2 overflow check according to Mishra et al. 2020"
+                             " and changing L2 overflow check according to Misra et al. 2020"
                    b% terminate_if_L2_overflow = .false.
                 end if
             end if
