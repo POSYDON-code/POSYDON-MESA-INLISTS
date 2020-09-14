@@ -10,5 +10,5 @@
    mdot_scheme = 'Kolb'
 
    limit_retention_by_mdot_edd = .true.     ! Use Eddington accretion rate
-!   use_this_for_mdot_edd_eta = 0.1 !set in run_bianry_extra.f
+   use_other_mdot_edd = .true.
 / ! end of binary_controls namelist

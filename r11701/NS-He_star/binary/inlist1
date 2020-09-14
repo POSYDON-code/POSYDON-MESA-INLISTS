@@ -1,18 +1,10 @@
 !high-mass stars
 
 &star_job
-      load_saved_model = .true.
-      saved_model_name = 'load_model'
-
-      save_model_when_terminate = .true.
-      save_model_filename = 'model1.mod'
 
 / ! end of star_job namelist
 
 &controls
-      initial_z = 1.42d-2
-      Zbase = 1.42d-2
-
      !Added by Ying
      x_ctrl(1) = 1.0d0 ! 1Eddinton limit
 / ! end of controls namelist
