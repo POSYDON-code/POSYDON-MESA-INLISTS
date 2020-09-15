@@ -439,7 +439,7 @@
              mdot_edd_eta = 1d0 &
                       - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*b% eq_initial_bh_mass)/(3d0*b% eq_initial_bh_mass))**2)
          end if
-         mdot_edd = mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
+         mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
                   /(clight*b% s_donor% opacity(1)*mdot_edd_eta)
           !b% s1% x_ctrl(1) used to adjust the Eddington limit in inlist1
           mdot_edd = mdot_edd * b% s1% x_ctrl(1)
