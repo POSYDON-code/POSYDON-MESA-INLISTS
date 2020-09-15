@@ -470,7 +470,7 @@
          call my_mdot_edd(binary_id,mdot_edd,ierr)
 
          !King & Begelman 1999 eq. 1
-         trap_rad = abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+         trap_rad = 0.5 * abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
          names(1) = 'trap_radius'
          vals(1) = trap_rad/Rsun ! in Rsun units
          names(2) = 'acc_radius'
@@ -624,7 +624,7 @@
          call my_mdot_edd(binary_id,mdot_edd,ierr)
 
          !King & Begelman 1999 eq. 1
-         trap_rad = abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+         trap_rad = 0.5 * abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
 
          if (b% point_mass_i == 0) then
             ! Check for simultaneous RLOF from both stars after TAMS of one star
