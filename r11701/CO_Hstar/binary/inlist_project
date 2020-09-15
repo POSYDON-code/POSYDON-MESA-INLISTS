@@ -18,6 +18,7 @@
    do_jdot_ml = .false.
    do_jdot_ls = .false.
 
+   mdot_scheme = "roche_lobe" ! This will switch to Kolb after TAMS
    limit_retention_by_mdot_edd= .true. 
    use_other_mdot_edd = .true.
 
