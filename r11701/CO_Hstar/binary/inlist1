@@ -19,4 +19,6 @@
       logQ_limit = 58d0 
       max_age = 1.4e10 ! Hubble time 
       
+      x_ctrl(1) = 1.0d0 !Eddington limit calculated * 1
+      
 / ! end of controls namelist

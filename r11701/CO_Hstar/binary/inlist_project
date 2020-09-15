@@ -18,11 +18,10 @@
    do_jdot_ml = .false.
    do_jdot_ls = .false.
 
-   mdot_scheme = "Kolb"  
-
+   mdot_scheme = "roche_lobe" ! This will switch to Kolb after TAMS
    limit_retention_by_mdot_edd= .true. 
    use_other_mdot_edd = .true.
-
+   
    fr = 1d-2 !1d-3!DEF: 1d-1 
 
    history_interval = 1
