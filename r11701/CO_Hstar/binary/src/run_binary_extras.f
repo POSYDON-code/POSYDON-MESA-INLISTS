@@ -404,7 +404,7 @@
 
       real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of WD/NS) in cm
           type(binary_info), pointer :: b
-          real(dp) :: m_acc
+          real(dp) :: m_acc, a
 
           if (m_acc/Msun < 2.50) then ! WD and NS
               if (0.17 <= m_acc/Msun .and. m_acc/Msun < 1.25) then !Radius for WD
@@ -412,8 +412,11 @@
               else if (1.25 <= m_acc/Msun .and. m_acc/Msun < 2.50) then !Radius for NS
                     acc_radius = 11.0 * 10 ** 5 !in cm
               end if
-            else ! Schwarzchild radius for non-rotating BHs
-              acc_radius = 2 * b% s_donor% cgrav(1) * m_acc / clight ** 2
+            else ! Event horizon for Kerr-BH
+              a = sqrt(two_thirds) &
+                 *(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass)) &
+                 *(4 - sqrt(18*(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass))**2 - 2))
+              acc_radius = (1 + sqrt(1 - a ** 2)) * b% s_donor% cgrav(1) * m_acc / clight ** 2
             end if
       end function acc_radius
 
@@ -470,7 +473,7 @@
          call my_mdot_edd(binary_id,mdot_edd,ierr)
 
          !King & Begelman 1999 eq. 1
-         trap_rad = 0.5 * abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+         trap_rad = abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
          names(1) = 'trap_radius'
          vals(1) = trap_rad/Rsun ! in Rsun units
          names(2) = 'acc_radius'
@@ -624,7 +627,7 @@
          call my_mdot_edd(binary_id,mdot_edd,ierr)
 
          !King & Begelman 1999 eq. 1
-         trap_rad = 0.5 * abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+         trap_rad = abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
 
          if (b% point_mass_i == 0) then
             ! Check for simultaneous RLOF from both stars after TAMS of one star
