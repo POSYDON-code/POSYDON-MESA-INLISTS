@@ -230,6 +230,7 @@ contains
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
+    use chem_def, only: chem_isos      
     integer, intent(in) :: id, id_extra, n
     character (len=maxlen_history_column_name) :: names(n)
     real(dp) :: vals(n)
@@ -362,22 +363,24 @@ contains
     names(10) = "spin_parameter"
     vals(10) = (clight*s% total_angular_momentum/(standard_cgrav*(s% m(1))**2))
 
-    !location of c core
-    k1=s% c_core_k
-
-    !location of center
-    k2=s% nz
-
-    !locate Carbon-12 in s% xa
-    do i1=1,s% species
-            if(chem_isos% Z(s% chem_id(i))==6 .and. chem_isos% Z_plus_N(s% chem_id(i))==12) then
-                j = i1
-                exit
-            end if 
-    end do
-    avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% dq(k1:k2)) 
-    names(11) = "avg_c_in_c_core"
-    vals(11) = avg_c_in_c_core
+    if(s% c_core_k > 0 .and. s% c_core_k < s% nz) then
+        !location of c core
+        k1=s% c_core_k
+        !location of center
+        k2=s% nz
+        !locate Carbon-12 in s% xa
+        do i1=1,s% species
+             if(chem_isos% Z(s% chem_id(i1))==6 .and. chem_isos% Z_plus_N(s% chem_id(i1))==12)then
+                 j=i1
+                 exit
+             endif 
+        enddo
+        avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% q(k1:k2)) 
+     else
+        avg_c_in_c_core = 0
+     endif     
+     names(11) = "avg_c_in_c_core"
+     vals(11) = avg_c_in_c_core
   end subroutine data_for_extra_history_columns
 
 !  subroutine how_many_extra_profile_header_items(id, id_extra, num_cols)
