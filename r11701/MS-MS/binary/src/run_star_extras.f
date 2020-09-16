@@ -226,7 +226,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 10
+    how_many_extra_history_columns = 11
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -240,6 +240,9 @@ contains
          dr, ocz_turnover_time_g, ocz_turnover_time_l_b, ocz_turnover_time_l_t, &
          env_binding_E, total_env_binding_E, MoI
     integer :: i, k, n_conv_bdy, nz, k_ocz_bot, k_ocz_top
+    integer :: i1, k1, k2, j
+    real(dp) :: avg_c_in_c_core
+
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -359,6 +362,22 @@ contains
     names(10) = "spin_parameter"
     vals(10) = (clight*s% total_angular_momentum/(standard_cgrav*(s% m(1))**2))
 
+    !location of c core
+    k1=s% c_core_k
+
+    !location of center
+    k2=s% nz
+
+    !locate Carbon-12 in s% xa
+    do i1=1,s% species
+            if(chem_isos% Z(s% chem_id(i))==6 .and. chem_isos% Z_plus_N(s% chem_id(i))==12) then
+                j = i1
+                exit
+            end if 
+    end do
+    avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% dq(k1:k2)) 
+    names(11) = "avg_c_in_c_core"
+    vals(11) = avg_c_in_c_core
   end subroutine data_for_extra_history_columns
 
 !  subroutine how_many_extra_profile_header_items(id, id_extra, num_cols)
