@@ -401,11 +401,11 @@
 
       end function k_div_T
 
-      real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of WD/NS) in cm
+      real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of NS) in cm
           type(binary_info), pointer :: b
           real(dp) :: m_acc, a
 
-          if (m_acc/Msun < 2.50) then ! WD and NS
+          if (m_acc/Msun < 2.50) then ! NS
             !Radius for NS
             acc_radius = 11.0 * 10 ** 5 !in cm
           else ! Event horizon for Kerr-BH
@@ -417,7 +417,7 @@
           end if
       end function acc_radius
 
-      !! Eddington accreton limits for WD, NS and BH
+      !! Eddington accreton limits for NS and BH
       subroutine my_mdot_edd(binary_id, mdot_edd, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
