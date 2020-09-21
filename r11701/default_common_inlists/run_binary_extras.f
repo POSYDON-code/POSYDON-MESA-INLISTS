@@ -595,9 +595,6 @@
          else
            i_don = 2
          end if
-          ! Single star evoluiton
-          b% s1% Dutch_scaling_factor = 1.0d0
-          b% s1% Blocker_scaling_factor = 0.2d0
           ! Binary evolution
           if (b% have_radiative_core(i_don)) then
             b% do_jdot_mb = .true.
