@@ -448,7 +448,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 0
+         how_many_extra_binary_history_columns = 2
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -459,8 +459,28 @@
          character (len=maxlen_binary_history_column_name) :: names(n)
          real(dp) :: vals(n)
          integer, intent(out) :: ierr
-         real(dp) :: beta
+         integer:: i_don, i_acc
+         real(dp) :: beta, trap_rad, mdot_edd, accretor_radius
          ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then ! failure in  binary_ptr
+            return
+         end if
+
+         call my_mdot_edd(binary_id,mdot_edd,ierr)
+
+         if (b% point_mass_i == 0) then ! if there is no compact object then trappping radius is 0
+           trap_rad = 0.0
+           accretor_radius = 0.0
+         else ! King & Begelman 1999 eq. 1: accretor is star 2
+           trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+           accretor_radius = acc_radius(b, b% m(2))
+         end if
+
+         names(1) = 'trap_radius'
+         vals(1) = trap_rad/Rsun ! in Rsun units
+         names(2) = 'acc_radius'
+         vals(2) = accretor_radius ! in cm units
       end subroutine data_for_extra_binary_history_columns
 
 
@@ -567,6 +587,29 @@
                   end if
                end if
           end if
+       end if
+
+       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1d-10))) then
+         if (b% point_mass_i/=1) then
+           i_don = 1
+         else
+           i_don = 2
+         end if
+          ! Single star evoluiton
+          b% s1% Dutch_scaling_factor = 1.0d0
+          b% s1% Blocker_scaling_factor = 0.2d0
+          ! Binary evolution
+          if (b% have_radiative_core(i_don)) then
+            b% do_jdot_mb = .true.
+            write(*,'(g0)') 'MB on'
+          else
+            b% do_jdot_mb = .false.
+          end if
+          b% do_jdot_gr = .true.
+          b% do_jdot_ml = .true.
+          b% do_jdot_ls = .true.
+          b% do_jdot_missing_wind = .true.
+          b% do_j_accretion = .true. !MANOS MAR20
        end if
 
       end function extras_binary_check_model
