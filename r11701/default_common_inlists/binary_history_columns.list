@@ -21,7 +21,7 @@
 
 ! the first few lines of the log file contain parameter values as of the start of the run
 ! for completeness, those items are described here:
-   
+
    ! version_number -- MESA version number that created this file
    ! initial_star_1_mass -- initial mass of first star (in Msun)
    ! initial_star_2_mass -- initial mass of second star (in Msun)
@@ -33,7 +33,7 @@
 
 
 ! the following lines of the log file contain info about 1 model per row
-   
+
       model_number ! model number of donor star
       age ! age of donor star
 
@@ -57,9 +57,9 @@
       !rl_overflow_2 ! roche lobe overflow of second star in rsun
       rl_relative_overflow_1 ! roche lobe overflow of first star in units of rl_donor
       rl_relative_overflow_2 ! roche lobe overflow of second star in units of rl_donor
-   
+
       ! Information related to eccentricity change
-      
+
       !edot ! total eccentricity change
       !edot_tidal ! eccentricity change due to tidal interactions
       !edot_enhance ! eccentricity change due to eccentricity pumping
@@ -86,6 +86,10 @@
       !delta_star_1_mass ! star_2_mass/initial_star_2_mass
       !delta_star_2_mass ! star_2_mass/initial_star_2_mass
       xfer_fraction ! mass transfer fraction
+      lg_mdot_edd ! log10 Eddington accretion rate for point mass accretor in units of Msun/secyer
+      mdot_edd_eta ! Efficiency of radiation from accretion to point source
+      lg_accretion_luminosity ! log10 Luminosity from accretion to point source (in units of Lsun)
+      bh_spin ! Spin parameter of BH accretor
       !lg_mdot_system h1 ! you can use lg_mdot_system <isotope> to get the mass loss
                          ! rate from the system corresponding to a particular isotope.
 
@@ -120,4 +124,3 @@
       donor_index ! 1 or 2 depending on which star is taken as the donor
 
       point_mass_index ! index of the star taken as point mass, zero if both are modelled
-

@@ -401,25 +401,23 @@
 
       end function k_div_T
 
-      real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of WD/NS) in cm
+      real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of NS) in cm
           type(binary_info), pointer :: b
           real(dp) :: m_acc, a
 
-          if (m_acc/Msun < 2.50) then ! WD and NS
-              if (0.17 <= m_acc/Msun .and. m_acc/Msun < 1.25) then !Radius for WD
-                    acc_radius = 10 ** (-2) * ( (m_acc/Msun) ** (-1/3)) * Rsun !in cm
-              else if (1.25 <= m_acc/Msun .and. m_acc/Msun < 2.50) then !Radius for NS
-                    acc_radius = 11.0 * 10 ** 5 !in cm
-              end if
-            else ! Event horizon for Kerr-BH
-              a = sqrt(two_thirds) &
+          if (m_acc/Msun < 2.50) then ! NS
+            !Radius for NS
+            acc_radius = 11.0 * 10 ** 5 !in cm
+          else ! Event horizon for Kerr-BH
+            a = sqrt(two_thirds) &
                  *(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass)) &
                  *(4 - sqrt(18*(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass))**2 - 2))
-              acc_radius = (1 + sqrt(1 - a ** 2)) * b% s_donor% cgrav(1) * m_acc / clight ** 2
-            end if
+            !Podsiadlowski et al. (2003) assuming a initially non-rotating BH
+            acc_radius = (1 + sqrt(1 - a ** 2)) * b% s_donor% cgrav(1) * m_acc / clight ** 2
+          end if
       end function acc_radius
 
-      !! Eddington accreton limits for WD, NS and BH
+      !! Eddington accreton limits for NS and BH
       subroutine my_mdot_edd(binary_id, mdot_edd, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
@@ -433,8 +431,8 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-         if (b% m(2)/Msun < 2.50) then ! WD and NS
-             !! mdot_edd_eta for WD and NS
+         if (b% m(2)/Msun < 2.50) then ! NS
+             !! mdot_edd_eta for NS
              mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius(b, b% m(2)))
          else! M2 > 2.5 Msol for BHs
              !! mdot_edd_eta for BH
@@ -450,7 +448,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 0
+         how_many_extra_binary_history_columns = 2
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -461,8 +459,28 @@
          character (len=maxlen_binary_history_column_name) :: names(n)
          real(dp) :: vals(n)
          integer, intent(out) :: ierr
-         real(dp) :: beta
+         integer:: i_don, i_acc
+         real(dp) :: beta, trap_rad, mdot_edd, accretor_radius
          ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then ! failure in  binary_ptr
+            return
+         end if
+
+         call my_mdot_edd(binary_id,mdot_edd,ierr)
+
+         if (b% point_mass_i == 0) then ! if there is no compact object then trappping radius is 0
+           trap_rad = 0.0
+           accretor_radius = 0.0
+         else ! King & Begelman 1999 eq. 1: accretor is star 2
+           trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+           accretor_radius = acc_radius(b, b% m(2))
+         end if
+
+         names(1) = 'trap_radius'
+         vals(1) = trap_rad/Rsun ! in Rsun units
+         names(2) = 'acc_radius'
+         vals(2) = accretor_radius ! in cm units
       end subroutine data_for_extra_binary_history_columns
 
 
@@ -571,6 +589,26 @@
           end if
        end if
 
+       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1d-10))) then
+         if (b% point_mass_i/=1) then
+           i_don = 1
+         else
+           i_don = 2
+         end if
+          ! Binary evolution
+          if (b% have_radiative_core(i_don)) then
+            b% do_jdot_mb = .true.
+            write(*,'(g0)') 'MB on'
+          else
+            b% do_jdot_mb = .false.
+          end if
+          b% do_jdot_gr = .true.
+          b% do_jdot_ml = .true.
+          b% do_jdot_ls = .true.
+          b% do_jdot_missing_wind = .true.
+          b% do_j_accretion = .true. !MANOS MAR20
+       end if
+
       end function extras_binary_check_model
 
       ! returns either keep_going or terminate.
@@ -591,10 +629,6 @@
             return
          end if
 
-         call my_mdot_edd(binary_id,mdot_edd,ierr)
-
-         !King & Begelman 1999 eq. 1
-         trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
 
          if (b% point_mass_i == 0) then
             ! Check for simultaneous RLOF from both stars after TAMS of one star
@@ -616,11 +650,25 @@
          end if
 
          !check if mass transfer rate reached maximun, assume unstable regime if it happens
-          if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
-          !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
+          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
             extras_binary_finish_step = terminate
-            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
+            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
          end if
+
+         ! check trapping radius only for runs with a compact object
+         if (b% point_mass_i == 2) then
+           call my_mdot_edd(binary_id,mdot_edd,ierr)
+
+           !King & Begelman 1999 eq. 1
+           trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+
+           !check if mass transfer rate reached maximun, assume unstable regime if it happens
+            if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
+            !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
+              extras_binary_finish_step = terminate
+              write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
+            end if
+          end if
 
          ! check for termination due to carbon depletion or off center neon ignition for primary
          if (b% point_mass_i /= 1) then
@@ -697,8 +745,8 @@
             if (b% point_mass_i /= 1) then
                 if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! Changing from 'contact' scheme to Kolb if one star reaches TAMS
                    b% mdot_scheme = "Kolb"
-                   write(*,*) "Primary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
-                             " and changing L2 overflow check according to Mishra et al. 2020"
+                   write(*,*) "Primary reached TAMS, changing mdot_scheme to ", b% mdot_scheme, &
+                             " and changing L2 overflow check according to Misra et al. 2020"
                    b% terminate_if_L2_overflow = .false.
                 end if
             end if
@@ -706,7 +754,7 @@
                 if (b% s2% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then
                    b% mdot_scheme = "Kolb"
                    write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
-                             " and changing L2 overflow check according to Mishra et al. 2020"
+                             " and changing L2 overflow check according to Misra et al. 2020"
                    b% terminate_if_L2_overflow = .false.
                 end if
             end if

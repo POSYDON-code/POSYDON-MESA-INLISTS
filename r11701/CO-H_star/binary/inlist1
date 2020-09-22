@@ -6,8 +6,8 @@
 
 &controls
 
-      Dutch_scaling_factor = 0.0d0
-      Blocker_scaling_factor = 0.0d0
+      !Dutch_scaling_factor = 0.0d0
+      !Blocker_scaling_factor = 0.0d0
 
       !OUTPUT OPTIONS
       history_interval = 1
