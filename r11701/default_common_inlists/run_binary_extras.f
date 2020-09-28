@@ -434,7 +434,7 @@
          if (b% m(2)/Msun < 2.50) then ! NS
              !! mdot_edd_eta for NS
              mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius(b, b% m(2)))
-         else! M2 > 2.5 Msol for BHs
+         else! M2 >= 2.5 Msol for BHs
              !! mdot_edd_eta for BH
              mdot_edd_eta = 1d0 &
                       - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*b% eq_initial_bh_mass)/(3d0*b% eq_initial_bh_mass))**2)
