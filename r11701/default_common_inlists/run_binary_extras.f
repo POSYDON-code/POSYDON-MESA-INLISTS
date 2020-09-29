@@ -424,6 +424,7 @@
          real(dp), intent(out) :: mdot_edd
          integer, intent(out) :: ierr
          real(dp) :: mdot_edd_eta
+         real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -431,13 +432,30 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-         if (b% m(2)/Msun < 2.50) then ! NS
-             !! mdot_edd_eta for NS
-             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius(b, b% m(2)))
-         else! M2 >= 2.5 Msol for BHs
+         if (b% m(2)/Msun >= 2.50) then ! M2 >= 2.5 Msol for BHs
+             ! this part is only relevant for BH accretors
+             if (b% initial_bh_spin < 0d0) then
+                b% initial_bh_spin = 0d0
+                write(*,*) "initial_bh_spin is smaller than zero. It has been set to zero."
+             else if (b% initial_bh_spin > 1d0) then
+                b% initial_bh_spin = 1d0
+                write(*,*) "initial_bh_spin is larger than one. It has been set to one."
+             end if
+             ! compute isco radius from eq. 2.21 of Bardeen et al. (1972), ApJ, 178, 347
+             Z1 = 1d0 + pow_cr(1d0 - b% initial_bh_spin**2,one_third) &
+                * (pow_cr(1d0 + b% initial_bh_spin,one_third) + pow_cr(1d0 - b% initial_bh_spin,one_third))
+             Z2 = sqrt(3d0*b% initial_bh_spin**2 + Z1**2)
+             r_isco = 3d0 + Z2 - sqrt((3d0 - Z1)*(3d0 + Z1 + 2d0*Z2))
+             ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
+             ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
+             ! zero spin (r_isco = sqrt(6)).
+             eq_initial_bh_mass = b% m(2) * sqrt(r_isco/6d0)
              !! mdot_edd_eta for BH
              mdot_edd_eta = 1d0 &
-                      - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*b% eq_initial_bh_mass)/(3d0*b% eq_initial_bh_mass))**2)
+                      - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass))**2)
+         else ! NS
+             !! mdot_edd_eta for NS accretors
+             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius(b, b% m(2)))
          end if
          mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
                   /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
