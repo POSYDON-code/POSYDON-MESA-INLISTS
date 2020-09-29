@@ -161,7 +161,7 @@ contains
     elseif(m > 8.0d0) then
        frac = 1.0d0
     else
-       frac = 0.5d0 * (1.0d0 - 0.5d0*cos( pi * 0.25d0*(m-4.0d0) ))
+       frac = 0.5d0 * (1.0d0 - cospi_cr(0.25d0*(m-4.0d0)))
     endif
     f_ov = f1 + (f2-f1)*frac
   end function f_ov_fcn_of_mass
