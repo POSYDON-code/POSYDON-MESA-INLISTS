@@ -450,7 +450,7 @@
              ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
              ! zero spin (r_isco = sqrt(6)).
              eq_initial_bh_mass = b% m(2) * sqrt(r_isco/6d0)
-             !! mdot_edd_eta for BH
+             !! mdot_edd_eta for BH following Podsiadlowski, Rappaport & Han (2003), MNRAS, 341, 385
              mdot_edd_eta = 1d0 &
                       - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass))**2)
          else ! NS
