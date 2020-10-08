@@ -428,8 +428,8 @@
             ! zero spin (r_isco = sqrt(6)).
             eq_initial_bh_mass = b% m(2) * sqrt(r_isco/6d0)
             a = sqrt(two_thirds) &
-                 *(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass)) &
-                 *(4 - sqrt(18*(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass))**2 - 2))
+                 *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass)) &
+                 *(4 - sqrt(18*(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass))**2 - 2))
             !Podsiadlowski et al. (2003) assuming a initially non-rotating BH
             acc_radius = (1 + sqrt(1 - a ** 2)) * b% s_donor% cgrav(1) * m_acc / clight ** 2
           end if
