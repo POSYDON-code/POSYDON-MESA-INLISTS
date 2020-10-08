@@ -404,11 +404,29 @@
       real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of NS) in cm
           type(binary_info), pointer :: b
           real(dp) :: m_acc, a
+          real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
 
           if (m_acc/Msun < 2.50) then ! NS
             !Radius for NS
             acc_radius = 11.0 * 10 ** 5 !in cm
           else ! Event horizon for Kerr-BH
+            ! this part is only relevant for BH accretors
+            if (b% initial_bh_spin < 0d0) then
+               b% initial_bh_spin = 0d0
+               write(*,*) "initial_bh_spin is smaller than zero. It has been set to zero."
+            else if (b% initial_bh_spin > 1d0) then
+               b% initial_bh_spin = 1d0
+               write(*,*) "initial_bh_spin is larger than one. It has been set to one."
+            end if
+            ! compute isco radius from eq. 2.21 of Bardeen et al. (1972), ApJ, 178, 347
+            Z1 = 1d0 + pow_cr(1d0 - b% initial_bh_spin**2,one_third) &
+               * (pow_cr(1d0 + b% initial_bh_spin,one_third) + pow_cr(1d0 - b% initial_bh_spin,one_third))
+            Z2 = sqrt(3d0*b% initial_bh_spin**2 + Z1**2)
+            r_isco = 3d0 + Z2 - sqrt((3d0 - Z1)*(3d0 + Z1 + 2d0*Z2))
+            ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
+            ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
+            ! zero spin (r_isco = sqrt(6)).
+            eq_initial_bh_mass = b% m(2) * sqrt(r_isco/6d0)
             a = sqrt(two_thirds) &
                  *(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass)) &
                  *(4 - sqrt(18*(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass))**2 - 2))
@@ -450,7 +468,7 @@
              ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
              ! zero spin (r_isco = sqrt(6)).
              eq_initial_bh_mass = b% m(2) * sqrt(r_isco/6d0)
-             !! mdot_edd_eta for BH following Podsiadlowski, Rappaport & Han (2003), MNRAS, 341, 385
+             !! mdot_edd_eta for BH
              mdot_edd_eta = 1d0 &
                       - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass))**2)
          else ! NS
