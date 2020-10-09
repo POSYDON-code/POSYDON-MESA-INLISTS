@@ -275,10 +275,10 @@
 
    !add_abundances ! this adds all of the isos that are in the current net
    ! NOTE: you can list specific isotopes by giving their names (from chem_def)
-   !h1
+   h1
    !he3
-   !he4
-   !c12
+   he4
+   c12
    !n14
    !o16
 
