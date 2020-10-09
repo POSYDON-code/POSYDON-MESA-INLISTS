@@ -408,7 +408,7 @@
 
           if (m_acc/Msun < 2.50) then ! NS
             !Radius for NS
-            acc_radius = 11.0 * 10 ** 5 !in cm
+            acc_radius = 13.0 * 10 ** 5 !in cm
           else ! Event horizon for Kerr-BH
             ! this part is only relevant for BH accretors
             if (b% initial_bh_spin < 0d0) then
