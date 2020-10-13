@@ -613,13 +613,8 @@
          else
            i_don = 2
          end if
-          ! Binary evolution
-          if (b% have_radiative_core(i_don)) then
-            b% do_jdot_mb = .true.
-            write(*,'(g0)') 'MB on'
-          else
-            b% do_jdot_mb = .false.
-          end if
+          ! Binary evolution         
+          b% do_jdot_mb = .true.
           b% do_jdot_gr = .true.
           b% do_jdot_ml = .true.
           b% do_jdot_ls = .true.
