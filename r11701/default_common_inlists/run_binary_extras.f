@@ -112,21 +112,12 @@
                  t_sync = 1d0/t_sync
                  !write(*,*) 'Hut_rad ', t_sync
          else if (sync_type == "structure_dependent") then !  Checks if the core is radiative or not and uses equation from Hut_con or Hut_rad respectively (Hut word refers to the envelope status)
-                if (b% have_radiative_core(id)) then
                   !sync_type .eq. "Hut_conv"!Convective envelope + Radiative core
                   ! eq. (11) of Hut, P. 1981, A&A, 99, 126
-                  t_sync = 3.0*k_div_T(b, s,.true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  ! invert it.
+                  one_div_t_sync_conv1 = 3.0*k_div_T_new(b, s,1)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  one_div_t_sync_conv2 = 3.0*k_div_T_new(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  one_div_t_sync_rad = 3.0*k_div_T_new(b, s,3)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   t_sync = 1d0/t_sync
-                  !write(*,*) 'Hut_conv!! ', t_sync
-                else
-                  !sync_type .eq. "Hut_rad"! Radiative envelope + convective core
-                  ! eq. (11) of Hut, P. 1981, A&A, 99, 126
-                  t_sync = 3.0*k_div_T(b, s,.false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  ! invert it.
-                  t_sync = 1d0/t_sync
-                  !write(*,*) 'Hut_rad ', t_sync
-                end if
          else if (sync_type == "Orb_period") then ! sync on timescale of orbital period
                  t_sync = b% period ! synchronize on timescale of orbital period
          else
@@ -400,6 +391,93 @@
           end if
 
       end function k_div_T
+
+      real(dp) function k_div_T_new(b, s, layer_calculation)
+         type(binary_info), pointer :: b
+         type(star_info), pointer :: s
+         !logical, intent(in) :: has_convective_envelope
+         integer :: layer_calculation
+
+         integer :: k,i, h1
+         real(dp) osep, qratio, m, r_phot,porb, m_env, r_env, tau_conv, P_tid, f_conv,E2, Xs
+
+         ! k/T computed as in Hurley, J., Tout, C., Pols, O. 2002, MNRAS, 329, 897
+         ! Kudos to Francesca Valsecchi for help implementing and testing this
+
+          k_div_T = 0d0
+
+          osep = b% separation
+          qratio = b% m(b% a_i) / b% m(b% d_i)
+          if (is_donor(b, s)) then
+             m = b% m(b% d_i)
+             r_phot = b% r(b% d_i)
+          else
+             qratio = 1.0/qratio
+             m = b% m(b% a_i)
+             r_phot = b% r(b% a_i)
+          end if
+          porb = b% period
+
+          if (layer_calculation == 1) then
+             m_env = 0d0
+             r_env = 0d0
+             if (s% n_conv_regions > 0) then ! more massive convective region
+                if ((s% conv_mx1_bot* s% mstar / Msun) > =  s% mass_conv_core) then
+                  !n=s% n_conv_regions
+                  !menv = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
+                  menv = (s% conv_mx1_top - s% conv_mx1_bot) * s% mstar / Msun
+                  renv = (s% conv_mx1_top_r - s% conv_mx1_bot_r)
+               end if
+               tau_conv = 0.431*pow_cr(m_env*r_env* &
+                  (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+               P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
+               f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
+               k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
+             end if
+          else if (layer_calculation == 2) then
+             m_env = 0d0
+             r_env = 0d0
+             if (s% n_conv_regions > 1) then ! 2nd more massive convective region
+                if ((s% conv_mx2_bot* s% mstar / Msun) > =  s% mass_conv_core) then
+                  !n=s% n_conv_regions
+                  !menv = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
+                  menv = (s% conv_mx2_top - s% conv_mx2_bot) * s% mstar / Msun
+                  renv = (s% conv_mx2_top_r - s% conv_mx2_bot_r)
+               end if
+               tau_conv = 0.431*pow_cr(m_env*r_env* &
+                  (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+               P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
+               f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
+               k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
+             end if
+          else ! assuming a radiative star
+           ! New fitting E2 (Qin et al. 2018)
+             do i = s% nz, 1, -1
+                if (s% brunt_N2(i) >= 0) exit
+             end do
+             !write(*,*) i
+             h1 = s% net_iso(ih1)
+             Xs = s% xa(h1,1)
+             ! E2 is different for H-rich and He stars (Qin et al. 2018)
+             if (Xs < 0.4d0) then ! HeStar
+                E2 = 10**(-0.93)*(s% r(i)/r_phot)**(6.7)! HeStars
+             else
+                E2 = 10**(-0.42)*(s% r(i)/r_phot)**(7.5)! H-rich stars
+             !write(*,*) E2, s% r(i)
+             end if
+             if (isnan(E2)) then  !maybe this won't be used.
+                 k_div_T = 1d-20
+             else
+                k_div_T = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
+                k_div_T = k_div_T*pow_cr(1d0+qratio,5d0/6d0)
+                k_div_T = k_div_T * E2
+             end if
+          end if
+
+      end function k_div_T
+
+
+
 
       real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of NS) in cm
           type(binary_info), pointer :: b
