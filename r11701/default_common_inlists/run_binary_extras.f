@@ -426,7 +426,13 @@
             ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
             ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
             ! zero spin (r_isco = sqrt(6)).
-            eq_initial_bh_mass = b% m(2) * sqrt(r_isco/6d0)
+	    
+	     if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
+		eq_initial_bh_mass = b% eq_initial_bh_mass
+	     else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5Msun as eq_initial_mass
+	       eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
+	     end if
+	    
             a = sqrt(two_thirds) &
                  *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass)) &
                  *(4 - sqrt(18*(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass))**2 - 2))
@@ -467,7 +473,13 @@
              ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
              ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
              ! zero spin (r_isco = sqrt(6)).
-             eq_initial_bh_mass = b% m(2) * sqrt(r_isco/6d0)
+	     
+             if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
+                eq_initial_bh_mass = b% eq_initial_bh_mass
+             else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5 as eq_initial_mass
+               eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
+             end if
+	     
              !! mdot_edd_eta for BH
              mdot_edd_eta = 1d0 &
                       - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass))**2)
