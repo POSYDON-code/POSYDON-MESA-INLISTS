@@ -407,8 +407,13 @@
           real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
 
           if (m_acc/Msun < 2.50) then ! NS
-            !Radius for NS
-            acc_radius = 13.0 * 10 ** 5 !in cm
+            !Radius refernces for NS: 
+	    ! 1) Miller, M. C., Lamb, F. K., Dittmann, A. J., et al. 2019, ApJL, 887, L2
+	    ! 2) Riley, T. E., Watts, A. L., Bogdanov, S., et al., 2019, ApJL, 887, L21
+	    ! 3) Landry, P., Essick, R., & Chatziioannou, K. 2020
+	    ! 4) E.R. Most, L.R. Weih, L. Rezzolla and J. Schaffner-Bielich, 2018, Phys. Rev. Lett. 120, 261103
+	    ! 5) Abbott, B. P., Abbott, R., Abbott, T. D., et al. 2020, ApJL, 892, L3
+            acc_radius = 12.5 * 10 ** 5 !in cm
           else ! Event horizon for Kerr-BH
             ! this part is only relevant for BH accretors
             if (b% initial_bh_spin < 0d0) then
