@@ -117,7 +117,11 @@
                   one_div_t_sync_conv1 = 3.0*k_div_T_new(b, s,1)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   one_div_t_sync_conv2 = 3.0*k_div_T_new(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   one_div_t_sync_rad = 3.0*k_div_T_new(b, s,3)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  t_sync = 1d0/t_sync
+                  write(*,*) '3 1/timescales ', one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad
+                  one_div_t_sync = MAX(one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad)
+                  !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad
+                  t_sync = 1d0/one_div_t_sync
+                  write(*,*) 't_tides', t_sync
          else if (sync_type == "Orb_period") then ! sync on timescale of orbital period
                  t_sync = b% period ! synchronize on timescale of orbital period
          else
@@ -323,6 +327,28 @@
 
        end function f5
 
+       real(dp) function mass_conv_core(s)
+           type (star_info), pointer :: s
+           integer :: j, nz, k
+           real(dp) :: dm_limit
+           include 'formats'
+           mass_conv_core = 0
+           dm_limit = s% conv_core_gap_dq_limit*s% xmstar
+           nz = s% nz
+           do j = 1, s% n_conv_regions
+              ! ignore possible small gap at center
+              if (s% cz_bot_mass(j) <= s% m(nz) + dm_limit) then
+                 mass_conv_core = s% cz_top_mass(j)/Msun
+                 ! jump over small gaps
+                 do k = j+1, s% n_conv_regions
+                    if (s% cz_bot_mass(k) - s% cz_top_mass(k-1) >= dm_limit) exit
+                    mass_conv_core = s% cz_top_mass(k)/Msun
+                 end do
+                 exit
+              end if
+           end do
+        end function mass_conv_core
+
 
       real(dp) function k_div_T(b, s, has_convective_envelope)
          type(binary_info), pointer :: b
@@ -404,7 +430,7 @@
          ! k/T computed as in Hurley, J., Tout, C., Pols, O. 2002, MNRAS, 329, 897
          ! Kudos to Francesca Valsecchi for help implementing and testing this
 
-          k_div_T = 0d0
+          k_div_T_new = 0d0
 
           osep = b% separation
           qratio = b% m(b% a_i) / b% m(b% d_i)
@@ -421,8 +447,9 @@
           if (layer_calculation == 1) then
              m_env = 0d0
              r_env = 0d0
+             mass_conv_core = mass_conv_core(s)
              if (s% n_conv_regions > 0) then ! more massive convective region
-                if ((s% conv_mx1_bot* s% mstar / Msun) > =  s% mass_conv_core) then
+                if ((s% conv_mx1_bot* s% mstar / Msun) >=   mass_conv_core) then
                   !n=s% n_conv_regions
                   !menv = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
                   menv = (s% conv_mx1_top - s% conv_mx1_bot) * s% mstar / Msun
@@ -432,13 +459,14 @@
                   (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
                P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
                f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
-               k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
+               k_div_T_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
              end if
           else if (layer_calculation == 2) then
              m_env = 0d0
              r_env = 0d0
+             mass_conv_core = mass_conv_core(s)
              if (s% n_conv_regions > 1) then ! 2nd more massive convective region
-                if ((s% conv_mx2_bot* s% mstar / Msun) > =  s% mass_conv_core) then
+                if ((s% conv_mx2_bot* s% mstar / Msun) >= mass_conv_core) then
                   !n=s% n_conv_regions
                   !menv = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
                   menv = (s% conv_mx2_top - s% conv_mx2_bot) * s% mstar / Msun
@@ -448,7 +476,7 @@
                   (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
                P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
                f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
-               k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
+               k_div_T_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
              end if
           else ! assuming a radiative star
            ! New fitting E2 (Qin et al. 2018)
@@ -466,15 +494,15 @@
              !write(*,*) E2, s% r(i)
              end if
              if (isnan(E2)) then  !maybe this won't be used.
-                 k_div_T = 1d-20
+                 k_div_T_new = 1d-20
              else
-                k_div_T = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
-                k_div_T = k_div_T*pow_cr(1d0+qratio,5d0/6d0)
-                k_div_T = k_div_T * E2
+                k_div_T_new = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
+                k_div_T_new = k_div_T*pow_cr(1d0+qratio,5d0/6d0)
+                k_div_T_new = k_div_T * E2
              end if
           end if
 
-      end function k_div_T
+      end function k_div_T_new
 
 
 
