@@ -78,6 +78,7 @@
          real(dp), intent(out) :: t_sync
          integer, intent(out) :: ierr
          real(dp) :: rGyr_squared , moment_of_inertia
+         real(dp) :: one_div_t_sync_conv1, one_div_t_sync_conv2, one_div_t_sync_rad, one_div_t_sync
          type (binary_info), pointer :: b
          type (star_info), pointer :: s
 
@@ -117,11 +118,11 @@
                   one_div_t_sync_conv1 = 3.0*k_div_T_new(b, s,1)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   one_div_t_sync_conv2 = 3.0*k_div_T_new(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   one_div_t_sync_rad = 3.0*k_div_T_new(b, s,3)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  write(*,*) '3 1/timescales ', one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad
+                  !write(*,*) 'three 1/timescales ', one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad
                   one_div_t_sync = MAX(one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad)
                   !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad
                   t_sync = 1d0/one_div_t_sync
-                  write(*,*) 't_tides', t_sync
+                  !write(*,*) 't_tides', t_sync
          else if (sync_type == "Orb_period") then ! sync on timescale of orbital period
                  t_sync = b% period ! synchronize on timescale of orbital period
          else
@@ -425,7 +426,7 @@
          integer :: layer_calculation
 
          integer :: k,i, h1
-         real(dp) osep, qratio, m, r_phot,porb, m_env, r_env, tau_conv, P_tid, f_conv,E2, Xs
+         real(dp) osep, qratio, m, r_phot,porb, m_env, r_env, tau_conv, P_tid, f_conv,E2, Xs, m_conv_core
 
          ! k/T computed as in Hurley, J., Tout, C., Pols, O. 2002, MNRAS, 329, 897
          ! Kudos to Francesca Valsecchi for help implementing and testing this
@@ -447,14 +448,15 @@
           if (layer_calculation == 1) then
              m_env = 0d0
              r_env = 0d0
-             mass_conv_core = mass_conv_core(s)
+             m_conv_core = mass_conv_core(s)
              if (s% n_conv_regions > 0) then ! more massive convective region
-                if ((s% conv_mx1_bot* s% mstar / Msun) >=   mass_conv_core) then
+                if ((s% conv_mx1_bot* s% mstar / Msun) >=  m_conv_core) then
                   !n=s% n_conv_regions
-                  !menv = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
-                  menv = (s% conv_mx1_top - s% conv_mx1_bot) * s% mstar / Msun
-                  renv = (s% conv_mx1_top_r - s% conv_mx1_bot_r)
+                  !m_env = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
+                  m_env = (s% conv_mx1_top - s% conv_mx1_bot) * s% mstar / Msun
+                  r_env = (s% conv_mx1_top_r - s% conv_mx1_bot_r)
                end if
+               ! write(*,'(g0)') m_env, r_env
                tau_conv = 0.431*pow_cr(m_env*r_env* &
                   (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
                P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
@@ -464,13 +466,13 @@
           else if (layer_calculation == 2) then
              m_env = 0d0
              r_env = 0d0
-             mass_conv_core = mass_conv_core(s)
+             m_conv_core = mass_conv_core(s)
              if (s% n_conv_regions > 1) then ! 2nd more massive convective region
-                if ((s% conv_mx2_bot* s% mstar / Msun) >= mass_conv_core) then
+                if ((s% conv_mx2_bot* s% mstar / Msun) >= m_conv_core) then
                   !n=s% n_conv_regions
-                  !menv = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
-                  menv = (s% conv_mx2_top - s% conv_mx2_bot) * s% mstar / Msun
-                  renv = (s% conv_mx2_top_r - s% conv_mx2_bot_r)
+                  !m_env = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
+                  m_env = (s% conv_mx2_top - s% conv_mx2_bot) * s% mstar / Msun
+                  r_env = (s% conv_mx2_top_r - s% conv_mx2_bot_r)
                end if
                tau_conv = 0.431*pow_cr(m_env*r_env* &
                   (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
@@ -497,8 +499,8 @@
                  k_div_T_new = 1d-20
              else
                 k_div_T_new = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
-                k_div_T_new = k_div_T*pow_cr(1d0+qratio,5d0/6d0)
-                k_div_T_new = k_div_T * E2
+                k_div_T_new = k_div_T_new*pow_cr(1d0+qratio,5d0/6d0)
+                k_div_T_new = k_div_T_new * E2
              end if
           end if
 
