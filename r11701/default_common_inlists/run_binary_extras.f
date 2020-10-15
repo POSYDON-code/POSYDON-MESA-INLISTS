@@ -115,11 +115,11 @@
          else if (sync_type == "structure_dependent") then !  Checks if the core is radiative or not and uses equation from Hut_con or Hut_rad respectively (Hut word refers to the envelope status)
                   !sync_type .eq. "Hut_conv"!Convective envelope + Radiative core
                   ! eq. (11) of Hut, P. 1981, A&A, 99, 126
-                  one_div_t_sync_conv1 = 3.0*k_div_T_new(b, s,1)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  one_div_t_sync_conv2 = 3.0*k_div_T_new(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  one_div_t_sync_rad = 3.0*k_div_T_new(b, s,3)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  write(*,*) 'three 1/timescales ', one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad
-                  one_div_t_sync = MAX(one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad)
+                  one_div_t_sync_conv = 3.0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  !one_div_t_sync_conv2 = 3.0*k_div_T_posydon(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  one_div_t_sync_rad = 3.0*k_div_T_posydon(b, s, .false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  write(*,*) 'two 1/timescales ', one_div_t_sync_conv , one_div_t_sync_rad
+                  one_div_t_sync = MAX(one_div_t_sync_conv,one_div_t_sync_rad)
                   !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad
                   t_sync = 1d0/one_div_t_sync
                   write(*,*) 't_tides in years', t_sync / secyer
@@ -267,11 +267,11 @@
           !end if
 
           ! Tides apply in all layers
-          write(*,*) 'applying tides in all layers'                                                                                                                                      
+          write(*,*) 'applying tides in all layers'
           do k=1,nz
-              delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k)) 
+              delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
           end do
-          
+
 
           if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
              b% t_sync_1 = t_sync
@@ -427,7 +427,7 @@
 
       end function k_div_T
 
-      real(dp) function k_div_T_new(b, s, layer_calculation)
+      real(dp) function k_div_T_posydon(b, s, conv_layer_calculation)
          type(binary_info), pointer :: b
          type(star_info), pointer :: s
          !logical, intent(in) :: has_convective_envelope
@@ -439,7 +439,7 @@
          ! k/T computed as in Hurley, J., Tout, C., Pols, O. 2002, MNRAS, 329, 897
          ! Kudos to Francesca Valsecchi for help implementing and testing this
 
-          k_div_T_new = 0d0
+          k_div_T_posydon = 0d0
 
           osep = b% separation
           qratio = b% m(b% a_i) / b% m(b% d_i)
@@ -453,42 +453,36 @@
           end if
           porb = b% period
 
-          if (layer_calculation == 1) then
-             m_env = 0d0
-             r_env = 0d0
-             m_conv_core = mass_conv_core(s)
-             if (s% n_conv_regions > 0) then ! more massive convective region
-                if ((s% conv_mx1_bot* s% mstar / Msun) >=  m_conv_core) then
-                  !n=s% n_conv_regions
-                  !m_env = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
-                  m_env = (s% conv_mx1_top - s% conv_mx1_bot) * s% mstar / Msun
-                  r_env = (s% conv_mx1_top_r - s% conv_mx1_bot_r)
-               end if
-               write(*,'(g0)') "M_env, R_env in conv region 1:" , m_env, r_env
-               tau_conv = 0.431*pow_cr(m_env*r_env* &
-                  (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
-               P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
-               f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
-               k_div_T_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
-             end if
-          else if (layer_calculation == 2) then
-             m_env = 0d0
-             r_env = 0d0
-             m_conv_core = mass_conv_core(s)
-             if (s% n_conv_regions > 1) then ! 2nd more massive convective region
-                if ((s% conv_mx2_bot* s% mstar / Msun) >= m_conv_core) then
-                  !n=s% n_conv_regions
-                  !m_env = (s% cz_top_mass(n)-s% cz_bot_mass(n))/Msun)
-                  m_env = (s% conv_mx2_top - s% conv_mx2_bot) * s% mstar / Msun
-                  r_env = (s% conv_mx2_top_r - s% conv_mx2_bot_r)
-               end if
-               write(*,'(g0)') "M_env, R_env in conv region 2:" , m_env, r_env
-               tau_conv = 0.431*pow_cr(m_env*r_env* &
-                  (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
-               P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
-               f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
-               k_div_T_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
-             end if
+          if (conv_layer_calculation) then
+            m_conv_core = mass_conv_core(s)
+
+            if s% n_conv_regions > 0
+              do k=1, s% n_conv_regions
+                m_env = 0d0
+                r_env = 0d0
+                if ((conv_mx_bot* s% mstar / Msun) >=  m_conv_core) then ! if the conv. layer is not inside the conv. core
+                  !m_env = (conv_mx_top - conv_mx_bot) * s% mstar / Msun
+                  !r_env = (conv_mx_top_r - conv_mx_bot_r)
+                  m_env = (s% cz_top_mass(k) - s% cz_bot_mass(k)) / Msun
+                  r_env = (s% cz_top_radius(k) - s% cz_bot_radius(k))
+                  tau_conv = 0.431*pow_cr(m_env*r_env* &
+                     (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+                  P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi)) !!! MANOS OMEGA of k maybe??
+                  f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
+                  k_div_T_posydon_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
+                  if k_div_T_posydon_new >= k_div_T_posydon
+                    k_div_T_posydon = k_div_T_posydon_new
+                    conv_mx_top = s% cz_top_mass(k)/s% mstar !  mass coordinate of top layer
+                    conv_mx_bot = s% cz_bot_mass(k)/s% mstar
+                    conv_mx_top_r = s% cz_top_radius(k) !cgs???
+                    conv_mx_bot_r = s% cz_bot_radius(k)
+                    omega = s% omega_avg_surf
+                    write(*,'(g0)') "4 values" , conv_mx_top, conv_mc_bot, conv_mx_top_r, conv_mx_bot_r
+                    write(*,'(g0)') "M_env, R_env in conv region ", k ," is ", m_env, r_env
+                  end if
+                end if
+              end do
+            end if
           else ! assuming a radiative star
            ! New fitting E2 (Qin et al. 2018)
              do i = s% nz, 1, -1
@@ -505,15 +499,15 @@
              !write(*,*) E2, s% r(i)
              end if
              if (isnan(E2)) then  !maybe this won't be used.
-                 k_div_T_new = 1d-20
+                 k_div_T_posydon = 1d-20
              else
-                k_div_T_new = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
-                k_div_T_new = k_div_T_new*pow_cr(1d0+qratio,5d0/6d0)
-                k_div_T_new = k_div_T_new * E2
+                k_div_T_posydon = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
+                k_div_T_posydon = k_div_T_posydon*pow_cr(1d0+qratio,5d0/6d0)
+                k_div_T_posydon = k_div_T_posydon * E2
              end if
           end if
 
-      end function k_div_T_new
+      end function k_div_T_posydon
 
 
 
