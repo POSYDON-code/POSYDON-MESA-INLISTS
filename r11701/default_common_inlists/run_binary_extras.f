@@ -118,11 +118,11 @@
                   one_div_t_sync_conv1 = 3.0*k_div_T_new(b, s,1)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   one_div_t_sync_conv2 = 3.0*k_div_T_new(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   one_div_t_sync_rad = 3.0*k_div_T_new(b, s,3)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  !write(*,*) 'three 1/timescales ', one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad
+                  write(*,*) 'three 1/timescales ', one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad
                   one_div_t_sync = MAX(one_div_t_sync_conv1,one_div_t_sync_conv2,one_div_t_sync_rad)
                   !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad
                   t_sync = 1d0/one_div_t_sync
-                  !write(*,*) 't_tides', t_sync
+                  write(*,*) 't_tides in years', t_sync / secyer
          else if (sync_type == "Orb_period") then ! sync on timescale of orbital period
                  t_sync = b% period ! synchronize on timescale of orbital period
          else
@@ -246,25 +246,33 @@
           a2 = pow_cr(1-b% eccentricity**2, 1.5d0)*f5(b% eccentricity)
 
           ! Tides apply only to the envelope. (Qin et al. 2018 implementation)
-          if (.not. b% have_radiative_core(id)) then ! convective core
-              !write(*,*) 'applying tides only in radiative envelope'
-              do k=1,nz
-                 if (s% mixing_type(k) /= convective_mixing) then
-                     delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
-                 else
-                     delta_j(k) = 0.0
-                 end if
-              end do
-          else
-              !write(*,*) 'applying tides only in convective regions'
-              do k=1,nz
-                 if (s% mixing_type(k) == convective_mixing) then
-                     delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
-                 else
-                     delta_j(k) = 0.0
-                 end if
-              end do
-          end if
+          !if (.not. b% have_radiative_core(id)) then ! convective core
+          !    !write(*,*) 'applying tides only in radiative envelope'
+          !    do k=1,nz
+          !       if (s% mixing_type(k) /= convective_mixing) then
+          !           delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
+          !       else
+          !           delta_j(k) = 0.0
+          !       end if
+          !    end do
+          !else
+          !    !write(*,*) 'applying tides only in convective regions'
+          !    do k=1,nz
+          !       if (s% mixing_type(k) == convective_mixing) then
+          !           delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
+          !       else
+          !           delta_j(k) = 0.0
+          !       end if
+          !    end do
+          !end if
+
+          ! Tides apply in all layers
+          write(*,*) 'applying tides in all layers'                                                                                                                                      
+          do k=1,nz
+              delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k)) 
+          end do
+          
+
           if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
              b% t_sync_1 = t_sync
           else
@@ -456,7 +464,7 @@
                   m_env = (s% conv_mx1_top - s% conv_mx1_bot) * s% mstar / Msun
                   r_env = (s% conv_mx1_top_r - s% conv_mx1_bot_r)
                end if
-               ! write(*,'(g0)') m_env, r_env
+               write(*,'(g0)') "M_env, R_env in conv region 1:" , m_env, r_env
                tau_conv = 0.431*pow_cr(m_env*r_env* &
                   (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
                P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
@@ -474,6 +482,7 @@
                   m_env = (s% conv_mx2_top - s% conv_mx2_bot) * s% mstar / Msun
                   r_env = (s% conv_mx2_top_r - s% conv_mx2_bot_r)
                end if
+               write(*,'(g0)') "M_env, R_env in conv region 2:" , m_env, r_env
                tau_conv = 0.431*pow_cr(m_env*r_env* &
                   (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
                P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
