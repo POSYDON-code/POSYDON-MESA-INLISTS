@@ -562,14 +562,43 @@
       real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of NS) in cm
           type(binary_info), pointer :: b
           real(dp) :: m_acc, a
+          real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
 
           if (m_acc/Msun < 2.50) then ! NS
-            !Radius for NS
-            acc_radius = 11.0 * 10 ** 5 !in cm
+            !Radius refernces for NS: 
+	    ! 1) Miller, M. C., Lamb, F. K., Dittmann, A. J., et al. 2019, ApJL, 887, L2
+	    ! 2) Riley, T. E., Watts, A. L., Bogdanov, S., et al., 2019, ApJL, 887, L21
+	    ! 3) Landry, P., Essick, R., & Chatziioannou, K. 2020
+	    ! 4) E.R. Most, L.R. Weih, L. Rezzolla and J. Schaffner-Bielich, 2018, Phys. Rev. Lett. 120, 261103
+	    ! 5) Abbott, B. P., Abbott, R., Abbott, T. D., et al. 2020, ApJL, 892, L3
+            acc_radius = 12.5 * 10 ** 5 !in cm
           else ! Event horizon for Kerr-BH
+            ! this part is only relevant for BH accretors
+            if (b% initial_bh_spin < 0d0) then
+               b% initial_bh_spin = 0d0
+               write(*,*) "initial_bh_spin is smaller than zero. It has been set to zero."
+            else if (b% initial_bh_spin > 1d0) then
+               b% initial_bh_spin = 1d0
+               write(*,*) "initial_bh_spin is larger than one. It has been set to one."
+            end if
+            ! compute isco radius from eq. 2.21 of Bardeen et al. (1972), ApJ, 178, 347
+            Z1 = 1d0 + pow_cr(1d0 - b% initial_bh_spin**2,one_third) &
+               * (pow_cr(1d0 + b% initial_bh_spin,one_third) + pow_cr(1d0 - b% initial_bh_spin,one_third))
+            Z2 = sqrt(3d0*b% initial_bh_spin**2 + Z1**2)
+            r_isco = 3d0 + Z2 - sqrt((3d0 - Z1)*(3d0 + Z1 + 2d0*Z2))
+            ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
+            ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
+            ! zero spin (r_isco = sqrt(6)).
+	    
+	     if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
+		eq_initial_bh_mass = b% eq_initial_bh_mass
+	     else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5Msun as eq_initial_mass
+	       eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
+	     end if
+	    
             a = sqrt(two_thirds) &
-                 *(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass)) &
-                 *(4 - sqrt(18*(b% eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*b% eq_initial_bh_mass))**2 - 2))
+                 *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass)) &
+                 *(4 - sqrt(18*(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass))**2 - 2))
             !Podsiadlowski et al. (2003) assuming a initially non-rotating BH
             acc_radius = (1 + sqrt(1 - a ** 2)) * b% s_donor% cgrav(1) * m_acc / clight ** 2
           end if
@@ -607,7 +636,13 @@
              ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
              ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
              ! zero spin (r_isco = sqrt(6)).
-             eq_initial_bh_mass = b% m(2) * sqrt(r_isco/6d0)
+	     
+             if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
+                eq_initial_bh_mass = b% eq_initial_bh_mass
+             else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5 as eq_initial_mass
+               eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
+             end if
+	     
              !! mdot_edd_eta for BH following Podsiadlowski, Rappaport & Han (2003), MNRAS, 341, 385
              mdot_edd_eta = 1d0 &
                       - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass))**2)
@@ -771,13 +806,8 @@
          else
            i_don = 2
          end if
-          ! Binary evolution
-          if (b% have_radiative_core(i_don)) then
-            b% do_jdot_mb = .true.
-            write(*,'(g0)') 'MB on'
-          else
-            b% do_jdot_mb = .false.
-          end if
+          ! Binary evolution         
+          b% do_jdot_mb = .true.
           b% do_jdot_gr = .true.
           b% do_jdot_ml = .true.
           b% do_jdot_ls = .true.
