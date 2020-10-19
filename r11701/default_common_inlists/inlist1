@@ -155,7 +155,7 @@
       cool_wind_AGB_scheme = 'Blocker'
       Dutch_scaling_factor = 1.0d0
       Blocker_scaling_factor = 0.2d0
-      Reimers_scaling_factor = 0.5 ! Only used of mass <= 10Msun
+      Reimers_scaling_factor = 0.1d0 ! Only used of mass <= 10Msun
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr
 
       !DIFFUSION
