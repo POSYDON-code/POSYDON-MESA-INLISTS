@@ -231,7 +231,7 @@ contains
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
-    use chem_def, only: chem_isos      
+    use chem_def, only: chem_isos
     integer, intent(in) :: id, id_extra, n
     character (len=maxlen_history_column_name) :: names(n)
     real(dp) :: vals(n)
@@ -374,12 +374,12 @@ contains
              if(chem_isos% Z(s% chem_id(i1))==6 .and. chem_isos% Z_plus_N(s% chem_id(i1))==12)then
                  j=i1
                  exit
-             endif 
+             endif
         enddo
-        avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% q(k1:k2)) 
+        avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% q(k1:k2))
      else
         avg_c_in_c_core = 0
-     endif     
+     endif
      names(11) = "avg_c_in_c_core"
      vals(11) = avg_c_in_c_core
   end subroutine data_for_extra_history_columns
