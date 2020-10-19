@@ -476,39 +476,39 @@
                 m_env = 0.0
                 r_top = 0.0
                 r_bottom = 0.0
-                if ((s% cz_bot_mass(k) / Msun) >=  m_conv_core) then ! if the conv. layer is not inside the conv. core
+                if ((s% cz_bot_mass(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
                   !m_env = (conv_mx_top - conv_mx_bot) * s% mstar / Msun
                   !r_env = (conv_mx_top_r - conv_mx_bot_r)
                   m_env = (s% cz_top_mass(k) - s% cz_bot_mass(k)) / Msun
                   !write(*,'(g0)') "mass boundaries", k, s% cz_top_mass(k)/Msun , s% cz_bot_mass(k) /Msun
                   !write(*,'(g0)') "bool top", 2*k-1, s% top_conv_bdy(2*k-1)
-                  
+
                   top_bound_zone = 2*k-mod(s% num_conv_boundaries,2)
                   !s% num_conv_boundaries -2*(k-1) ! boundaries are calculated inside to outside
-                  r_top = s% r(s% conv_bdy_loc(top_bound_zone))/ Rsun  
-                  if( mod(s% num_conv_boundaries,2) == 1 .and. s% top_conv_bdy(1) ) then 
-                    ! have convective core and the bottom convective boundary is at zone = nz 
+                  r_top = s% r(s% conv_bdy_loc(top_bound_zone))/ Rsun
+                  if( mod(s% num_conv_boundaries,2) == 1 .and. s% top_conv_bdy(1) ) then
+                    ! have convective core and the bottom convective boundary is at zone = nz
                     ! and not included in s% num_conv_boundaries. First boundary in s% num_conv_boundaries(from inside out)
                     ! is the a TOP boundary of the core convective region
                     if (k /= 1) then
                        bot_bound_zone = 2*k-mod(s% num_conv_boundaries,2) -1
-                       r_bottom = s% r(s% conv_bdy_loc(bot_bound_zone))/ Rsun 
+                       r_bottom = s% r(s% conv_bdy_loc(bot_bound_zone))/ Rsun
                     else
-                      r_bottom = 0.0 
+                      r_bottom = 0.0
                     end if
                   else if ( s% num_conv_boundaries == 2 * s% n_conv_regions ) then !no convective core
                     bot_bound_zone = 2*k-mod(s% num_conv_boundaries,2) -1
-                    r_bottom = s% r(s% conv_bdy_loc(bot_bound_zone))/ Rsun 
+                    r_bottom = s% r(s% conv_bdy_loc(bot_bound_zone))/ Rsun
                   else
                     write(*,'(g0)') "we have a problem with the calculation of conv. regions for tides"
                   end if
                   !write(*,'(g0)') 'radius boundaries', r_top, r_bottom
                   Dr_env = r_top - r_bottom  !depth of the convective layer, length of the eddie
-                  ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002 
+                  ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
                   ! and to (R-Renv) term in eq. 4 of Rasio et al. 1996  (different notation)
-                  
+
                   Renv_middle = (r_top + r_bottom)*0.5d0  !middle of the convective layer
-                  ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002 
+                  ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
                   ! and to the Renv in eq. 4 of Rasio et al. 1996
                   ! where it represented the base of the convective layer (different notation)
                   tau_conv = 0.431*pow_cr(m_env*Dr_env* &
@@ -522,10 +522,11 @@
                     conv_mx_bot = s% cz_bot_mass(k)/s% mstar
                     conv_mx_top_r = r_top ! in Rsun
                     conv_mx_bot_r = r_bottom
-                    omega = s% omega_avg_surf
+                    omega_conv_region = s% omega(top_bound_zone)
                     !write(*,'(g0)') 'conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r' , &
-                    conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r
-                    !write(*,'(g0)') 'M_env, DR_env, Renv_middle in conv region ', k ,' is ', m_env, Dr_env, Renv_middle
+                    !conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r
+                    !write(*,'(g0)') 'M_env, DR_env, Renv_middle, omega_conv_region in conv region ', k ,' is ', &
+                    !  m_env, Dr_env, Renv_middle, omega_conv_region
                   end if
                 end if
               end do
@@ -565,7 +566,7 @@
           real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
 
           if (m_acc/Msun < 2.50) then ! NS
-            !Radius refernces for NS: 
+            !Radius refernces for NS:
 	    ! 1) Miller, M. C., Lamb, F. K., Dittmann, A. J., et al. 2019, ApJL, 887, L2
 	    ! 2) Riley, T. E., Watts, A. L., Bogdanov, S., et al., 2019, ApJL, 887, L21
 	    ! 3) Landry, P., Essick, R., & Chatziioannou, K. 2020
@@ -589,13 +590,13 @@
             ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
             ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
             ! zero spin (r_isco = sqrt(6)).
-	    
+
 	     if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
 		eq_initial_bh_mass = b% eq_initial_bh_mass
 	     else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5Msun as eq_initial_mass
 	       eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
 	     end if
-	    
+
             a = sqrt(two_thirds) &
                  *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass)) &
                  *(4 - sqrt(18*(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass))**2 - 2))
@@ -636,13 +637,13 @@
              ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
              ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
              ! zero spin (r_isco = sqrt(6)).
-	     
+
              if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
                 eq_initial_bh_mass = b% eq_initial_bh_mass
              else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5 as eq_initial_mass
                eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
              end if
-	     
+
              !! mdot_edd_eta for BH following Podsiadlowski, Rappaport & Han (2003), MNRAS, 341, 385
              mdot_edd_eta = 1d0 &
                       - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass))**2)
@@ -806,7 +807,7 @@
          else
            i_don = 2
          end if
-          ! Binary evolution         
+          ! Binary evolution
           b% do_jdot_mb = .true.
           b% do_jdot_gr = .true.
           b% do_jdot_ml = .true.

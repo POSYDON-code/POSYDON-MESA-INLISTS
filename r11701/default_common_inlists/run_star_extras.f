@@ -226,11 +226,11 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 11
+    how_many_extra_history_columns = 14
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
-    use chem_def, only: chem_isos      
+    use chem_def, only: chem_isos
     integer, intent(in) :: id, id_extra, n
     character (len=maxlen_history_column_name) :: names(n)
     real(dp) :: vals(n)
@@ -243,6 +243,9 @@ contains
     integer :: i, k, n_conv_bdy, nz, k_ocz_bot, k_ocz_top
     integer :: i1, k1, k2, j
     real(dp) :: avg_c_in_c_core
+    integer ::  top_bound_zone, bot_bound_zone
+    real(dp) :: m_env, Dr_env, Renv_middle, tau_conv, tau_conv_new, m_conv_core
+    real(dp) :: r_top, r_bottom, m_env_new, Dr_env_new, Renv_middle_new
 
 
     ierr = 0
@@ -373,15 +376,109 @@ contains
              if(chem_isos% Z(s% chem_id(i1))==6 .and. chem_isos% Z_plus_N(s% chem_id(i1))==12)then
                  j=i1
                  exit
-             endif 
+             endif
         enddo
-        avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% q(k1:k2)) 
+        avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% q(k1:k2))
      else
         avg_c_in_c_core = 0
-     endif     
+     endif
      names(11) = "avg_c_in_c_core"
      vals(11) = avg_c_in_c_core
+
+
+     ! more significant covective layer for tides
+     m_conv_core = mass_conv_core(s)
+     m_env = 0.0
+     Dr_env = 0.0
+     Renv_middle = 0.0
+     m_env_new = 0.0
+     Dr_env_new = 0.0
+     Renv_middle_new = 0.0
+     tau_conv = 1d99
+     if (s% n_conv_regions > 0) then
+       do k=1, s% n_conv_regions ! from inside out
+         if ((s% cz_bot_mass(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
+           m_env_new = (s% cz_top_mass(k) - s% cz_bot_mass(k)) / Msun
+           top_bound_zone = 2*k-mod(s% num_conv_boundaries,2)
+           r_top = s% r(s% conv_bdy_loc(top_bound_zone))/ Rsun
+           if( mod(s% num_conv_boundaries,2) == 1 .and. s% top_conv_bdy(1) ) then
+             ! have convective core and the bottom convective boundary is at zone = nz
+             ! and not included in s% num_conv_boundaries. First boundary in s% num_conv_boundaries(from inside out)
+             ! is the a TOP boundary of the core convective region
+             if (k /= 1) then
+                bot_bound_zone = 2*k-mod(s% num_conv_boundaries,2) -1
+                r_bottom = s% r(s% conv_bdy_loc(bot_bound_zone))/ Rsun
+             else
+               r_bottom = 0.0
+             end if
+           else if ( s% num_conv_boundaries == 2 * s% n_conv_regions ) then !no convective core
+             bot_bound_zone = 2*k-mod(s% num_conv_boundaries,2) -1
+             r_bottom = s% r(s% conv_bdy_loc(bot_bound_zone))/ Rsun
+           else
+             write(*,'(g0)') "we have a problem with the calculation of conv. regions for tides"
+           end if
+           Dr_env_new = r_top - r_bottom  !depth of the convective layer, length of the eddie
+           ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
+           ! and to (R-Renv) term in eq. 4 of Rasio et al. 1996  (different notation)
+
+           Renv_middle_new = (r_top + r_bottom)*0.5d0  !middle of the convective layer
+           ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
+           ! and to the Renv in eq. 4 of Rasio et al. 1996
+           ! where it represented the base of the convective layer (different notation)
+           tau_conv_new = 0.431*pow_cr(m_env_new*Dr_env_new* &
+              Renv_middle_new/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+           !P_tid = 1d0/abs(1d0/porb-s% omega(top_bound_zone)/(2d0*pi))
+           !f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
+           !k_div_T_posydon_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
+           if (tau_conv_new < tau_conv) then
+             M_env = M_env_new
+             DR_env = DR_env_new
+             Renv_middle = Renv_middle_new
+             tau_conv = tau_conv_new
+             !conv_mx_top = s% cz_top_mass(k)/s% mstar !  mass coordinate of top layer
+             !conv_mx_bot = s% cz_bot_mass(k)/s% mstar
+             !conv_mx_top_r = r_top ! in Rsun
+             !conv_mx_bot_r = r_bottom
+             !write(*,'(g0)') 'conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r' , &
+             !conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r
+             !write(*,'(g0)') 'M_env, DR_env, Renv_middle in conv region ', k ,' is ', &
+            !    m_env, Dr_env, Renv_middle
+            end if
+          end if
+        end do
+    end if
+    names(12) = "mass_conv_reg_fortides"
+    vals(12) = M_env !in solar units
+    names(13) = "thickness_conv_reg_fortides"
+    vals(13) = Dr_env  !in solar units
+    names(14) = "radius_conv_reg_fortides"
+    vals(14) = Renv_middle !in solar units
+
+
   end subroutine data_for_extra_history_columns
+
+  real(dp) function mass_conv_core(s)
+      type (star_info), pointer :: s
+      integer :: j, nz, k
+      real(dp) :: dm_limit
+      include 'formats'
+      mass_conv_core = 0
+      dm_limit = s% conv_core_gap_dq_limit*s% xmstar
+      nz = s% nz
+      do j = 1, s% n_conv_regions
+         ! ignore possible small gap at center
+         if (s% cz_bot_mass(j) <= s% m(nz) + dm_limit) then
+            mass_conv_core = s% cz_top_mass(j)/Msun
+            ! jump over small gaps
+            do k = j+1, s% n_conv_regions
+               if (s% cz_bot_mass(k) - s% cz_top_mass(k-1) >= dm_limit) exit
+               mass_conv_core = s% cz_top_mass(k)/Msun
+            end do
+            exit
+         end if
+      end do
+   end function mass_conv_core
+
 
 !  subroutine how_many_extra_profile_header_items(id, id_extra, num_cols)
 !      integer, intent(in) :: id, id_extra
