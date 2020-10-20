@@ -433,14 +433,14 @@
          !logical, intent(in) :: has_convective_envelope
          logical, intent(in) :: conv_layer_calculation
 
-         integer :: k,i, h1, top_bound_zone, bot_bound_zone
+         integer :: k,i, h1, top_bound_zone, bot_bound_zone, min_zones_for_convective_tides
          real(dp) :: osep, qratio, m, r_phot,porb, m_env, Dr_env, Renv_middle, tau_conv, P_tid, f_conv,E2, Xs, m_conv_core
-         real(dp) :: k_div_T_posydon_new, conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r , omega,r_top, r_bottom
-
+         real(dp) :: k_div_T_posydon_new, conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r , omega_conv_region,r_top, r_bottom
          ! k/T computed as in Hurley, J., Tout, C., Pols, O. 2002, MNRAS, 329, 897
          ! Kudos to Francesca Valsecchi for help implementing and testing this
 
           k_div_T_posydon = 0d0
+          min_zones_for_convective_tides = 5
 
           osep = b% separation
           qratio = b% m(b% a_i) / b% m(b% d_i)
@@ -456,7 +456,7 @@
 
           if (conv_layer_calculation) then
             m_conv_core = mass_conv_core(s)
-            write(*,'(g0)') 'm_conv_core', m_conv_core
+            !write(*,'(g0)') 'm_conv_core', m_conv_core
             !write(*,'(g0)') "s% nz, s% n_conv_regions, s% num_conv_boundaries", s% nz, s% n_conv_regions, s% num_conv_boundaries
             !do k_boundary = 1, s% num_conv_boundaries
             !   write(*,'(g0)') "k_boundary, s% conv_bdy_loc(k_boundary), s% top_conv_bdy(k_boundary)", &
@@ -477,12 +477,6 @@
                 r_top = 0.0
                 r_bottom = 0.0
                 if ((s% cz_bot_mass(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
-                  !m_env = (conv_mx_top - conv_mx_bot) * s% mstar / Msun
-                  !r_env = (conv_mx_top_r - conv_mx_bot_r)
-                  m_env = (s% cz_top_mass(k) - s% cz_bot_mass(k)) / Msun
-                  !write(*,'(g0)') "mass boundaries", k, s% cz_top_mass(k)/Msun , s% cz_bot_mass(k) /Msun
-                  !write(*,'(g0)') "bool top", 2*k-1, s% top_conv_bdy(2*k-1)
-
                   top_bound_zone = 2*k-mod(s% num_conv_boundaries,2)
                   !s% num_conv_boundaries -2*(k-1) ! boundaries are calculated inside to outside
                   r_top = s% r(s% conv_bdy_loc(top_bound_zone))/ Rsun
@@ -502,31 +496,39 @@
                   else
                     write(*,'(g0)') "we have a problem with the calculation of conv. regions for tides"
                   end if
-                  !write(*,'(g0)') 'radius boundaries', r_top, r_bottom
-                  Dr_env = r_top - r_bottom  !depth of the convective layer, length of the eddie
-                  ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
-                  ! and to (R-Renv) term in eq. 4 of Rasio et al. 1996  (different notation)
-
-                  Renv_middle = (r_top + r_bottom)*0.5d0  !middle of the convective layer
-                  ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
-                  ! and to the Renv in eq. 4 of Rasio et al. 1996
-                  ! where it represented the base of the convective layer (different notation)
-                  tau_conv = 0.431*pow_cr(m_env*Dr_env* &
-                     Renv_middle/3d0/s% L_phot,1.0d0/3.0d0) * secyer
-                  P_tid = 1d0/abs(1d0/porb-s% omega(top_bound_zone)/(2d0*pi))
-                  f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
-                  k_div_T_posydon_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
-                  if (k_div_T_posydon_new >= k_div_T_posydon) then
-                    k_div_T_posydon = k_div_T_posydon_new
-                    conv_mx_top = s% cz_top_mass(k)/s% mstar !  mass coordinate of top layer
-                    conv_mx_bot = s% cz_bot_mass(k)/s% mstar
-                    conv_mx_top_r = r_top ! in Rsun
-                    conv_mx_bot_r = r_bottom
-                    omega_conv_region = s% omega(top_bound_zone)
-                    !write(*,'(g0)') 'conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r' , &
-                    !conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r
-                    !write(*,'(g0)') 'M_env, DR_env, Renv_middle, omega_conv_region in conv region ', k ,' is ', &
-                    !  m_env, Dr_env, Renv_middle, omega_conv_region
+                  if (s% conv_bdy_loc(bot_bound_zone) - s% conv_bdy_loc(top_bound_zone) >= min_zones_for_convective_tides) then
+                    !m_env = (conv_mx_top - conv_mx_bot) * s% mstar / Msun
+                    !r_env = (conv_mx_top_r - conv_mx_bot_r)
+                    m_env = (s% cz_top_mass(k) - s% cz_bot_mass(k)) / Msun
+                    !write(*,'(g0)') "mass boundaries", k, s% cz_top_mass(k)/Msun , s% cz_bot_mass(k) /Msun
+                    !write(*,'(g0)') "bool top", 2*k-1, s% top_conv_bdy(2*k-1)
+                    !write(*,'(g0)') 'radius boundaries', r_top, r_bottom
+                    Dr_env = r_top - r_bottom  !depth of the convective layer, length of the eddie
+                    ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
+                    ! and to (R-Renv) term in eq. 4 of Rasio et al. 1996  (different notation)
+                    Renv_middle = (r_top + r_bottom)*0.5d0  !middle of the convective layer
+                    ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
+                    ! and to the Renv in eq. 4 of Rasio et al. 1996
+                    ! where it represented the base of the convective layer (different notation)
+                    tau_conv = 0.431*pow_cr(m_env*Dr_env* &
+                      Renv_middle/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+                    P_tid = 1d0/abs(1d0/porb-s% omega(s% conv_bdy_loc(top_bound_zone))/(2d0*pi))
+                    f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
+                    k_div_T_posydon_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
+                    if (k_div_T_posydon_new >= k_div_T_posydon) then
+                      k_div_T_posydon = k_div_T_posydon_new
+                      !conv_mx_top = s% cz_top_mass(k)/s% mstar !  mass coordinate of top layer
+                      !conv_mx_bot = s% cz_bot_mass(k)/s% mstar
+                      !conv_mx_top_r = r_top ! in Rsun
+                      !conv_mx_bot_r = r_bottom
+                      !omega_conv_region = s% omega(s% conv_bdy_loc(top_bound_zone))
+                      !write(*,'(g0)') 'conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r' , &
+                      !conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r
+                      !write(*,'(g0)') 'M_env, DR_env, Renv_middle, omega_conv_region in conv region ', k ,' is ', &
+                      !  m_env, Dr_env, Renv_middle, omega_conv_region, 'spanning number of zones = ', &
+                      !  s% conv_bdy_loc(bot_bound_zone) , s% conv_bdy_loc(top_bound_zone), &
+                      !  s% conv_bdy_loc(bot_bound_zone) - s% conv_bdy_loc(top_bound_zone)
+                    end if
                   end if
                 end if
               end do
