@@ -89,7 +89,7 @@ contains
        TP_AGB_check=.true.
     endif
 
-    if (s% mstar <= 10.0d0) s% cool_wind_RGB_scheme ='Reimers'
+    if (s% mstar / Msun <= 10.0d0) s% cool_wind_RGB_scheme ='Reimers'
 
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
     !vct30 = 1.0d-4
