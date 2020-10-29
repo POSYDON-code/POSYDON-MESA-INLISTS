@@ -406,7 +406,7 @@
           real(dp) :: m_acc, a
           real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
 
-          if (m_acc/Msun < 2.50) then ! NS
+          if (m_acc/Msun <= 2.50) then ! NS
             !Radius refernces for NS: 
 	    ! 1) Miller, M. C., Lamb, F. K., Dittmann, A. J., et al. 2019, ApJL, 887, L2
 	    ! 2) Riley, T. E., Watts, A. L., Bogdanov, S., et al., 2019, ApJL, 887, L21
@@ -439,8 +439,8 @@
 	     end if
 	    
             a = sqrt(two_thirds) &
-                 *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass)) &
-                 *(4 - sqrt(18*(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass))**2 - 2))
+                 *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)* eq_initial_bh_mass)) &
+                 *(4 - sqrt(18*(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)* eq_initial_bh_mass))**2 - 2))
             !Podsiadlowski et al. (2003) assuming a initially non-rotating BH
             acc_radius = (1 + sqrt(1 - a ** 2)) * b% s_donor% cgrav(1) * m_acc / clight ** 2
           end if
@@ -461,7 +461,7 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-         if (b% m(2)/Msun >= 2.50) then ! M2 >= 2.5 Msol for BHs
+         if (b% m(2)/Msun > 2.50) then ! M2 > 2.5 Msol for BHs
              ! this part is only relevant for BH accretors
              if (b% initial_bh_spin < 0d0) then
                 b% initial_bh_spin = 0d0
