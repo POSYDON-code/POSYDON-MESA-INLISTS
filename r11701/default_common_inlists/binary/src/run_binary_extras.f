@@ -731,7 +731,7 @@
          if (b% point_mass_i == 0) then ! if there is no compact object then trappping radius is 0
            trap_rad = 0.0
            accretor_radius = 0.0
-         else ! King & Begelman 1999 eq. 1: accretor is star 2
+         else ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
            trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
            accretor_radius = acc_radius(b, b% m(2))
          end if
@@ -938,7 +938,7 @@
          if (b% point_mass_i == 2) then
            call my_mdot_edd(binary_id,mdot_edd,ierr)
 
-           !King & Begelman 1999 eq. 1
+           ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
            trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
 
            !check if mass transfer rate reached maximun, assume unstable regime if it happens
