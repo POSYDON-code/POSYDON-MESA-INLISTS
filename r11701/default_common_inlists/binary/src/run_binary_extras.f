@@ -103,16 +103,16 @@
                  ! eq. (11) of Hut, P. 1981, A&A, 99, 126
                  t_sync = 3.0*k_div_T(b, s,.true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                  ! invert it.
-                 !write(*,*) 'star id', s% id 
-                 if (b% s1% id == s% id) then
+                 !write(*,*) 'star id', s% id
+                 if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
                    b% s1% xtra2 = 1d0/t_sync
-                   !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2  
-                 else if (b% s2% id == s% id) then
+                   !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2
+                 else if (b% point_mass_i /= 2 .and. b% s2% id == s% id) then
                    b% s2% xtra2 = 1d0/t_sync
-                   !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2  
+                   !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2
                  else
                    write(*,*) 'something is not going well with the stars IDs '
-                 end if                     
+                 end if
                  t_sync = 1d0/t_sync
                  !write(*,*) 'Hut_conv ', t_sync
         else if (sync_type == "Hut_rad") then
@@ -120,16 +120,16 @@
                  ! eq. (11) of Hut, P. 1981, A&A, 99, 126
                  t_sync = 3.0*k_div_T(b, s,.false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                  ! invert it.
-                 !write(*,*) 'star id', s% id 
-                 if (b% s1% id == s% id) then
+                 !write(*,*) 'star id', s% id
+                 if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
                    b% s1% xtra1 = 1d0/t_sync
-                   !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2  
-                 else if (b% s2% id == s% id) then
+                   !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2
+                 else if (b% point_mass_i /= 2 .and. b% s2% id == s% id) then
                    b% s2% xtra1 = 1d0/t_sync
-                   !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2  
+                   !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2
                  else
                    write(*,*) 'something is not going well with the stars IDs '
-                 end if                     
+                 end if
                  t_sync = 1d0/t_sync
                  !write(*,*) 'Hut_rad ', t_sync
          else if (sync_type == "structure_dependent") then !  Checks if the core is radiative or not and uses equation from Hut_con or Hut_rad respectively (Hut word refers to the envelope status)
@@ -138,18 +138,18 @@
                   one_div_t_sync_conv = 3.0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   !one_div_t_sync_conv2 = 3.0*k_div_T_posydon(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   one_div_t_sync_rad = 3.0*k_div_T_posydon(b, s, .false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  !write(*,*) 'star id', s% id 
-                  if (b% s1% id == s% id) then
+                  !write(*,*) 'star id', s% id
+                  if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
                     b% s1% xtra1 = 1d0/one_div_t_sync_rad
                     b% s1% xtra2 = 1d0/one_div_t_sync_conv
-                    !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2  
-                  else if (b% s2% id == s% id) then
+                    !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2
+                  else if (b% point_mass_i /= 2 .and. b% s2% id == s% id) then
                     b% s2% xtra1 = 1d0/one_div_t_sync_rad
                     b% s2% xtra2 = 1d0/one_div_t_sync_conv
-                    !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2  
+                    !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2
                   else
                      write(*,*) 'something is not going well with the stars IDs '
-                  end if                     
+                  end if
                   !write(*,*) 'two 1/timescales ', one_div_t_sync_conv , one_div_t_sync_rad
                   !write(*,*) 'two timescales ', b% s1% ixtra1, b% s1% ixtra2
                   one_div_t_sync = MAX(one_div_t_sync_conv,one_div_t_sync_rad)
@@ -604,9 +604,9 @@
           type(binary_info), pointer :: b
           real(dp) :: m_acc, a
           real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
-          
+
           if (m_acc/Msun <= 2.50) then ! NS
-            !Radius refernces for NS: 
+            !Radius refernces for NS:
             ! 1) Miller, M. C., Lamb, F. K., Dittmann, A. J., et al. 2019, ApJL, 887, L2
             ! 2) Riley, T. E., Watts, A. L., Bogdanov, S., et al., 2019, ApJL, 887, L21
             ! 3) Landry, P., Essick, R., & Chatziioannou, K. 2020
@@ -748,15 +748,24 @@
        !   t_sync_conv_1 = 3.0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
        !else
        !   t_sync_rad_1 = nan
-
-         names(3) = 't_sync_rad_1'
-         vals(3) = b% s1% xtra1
-         names(4) = 't_sync_conv_1'
-         vals(4) = b% s1% xtra2
-         names(5) = 't_sync_rad_2'
-         vals(5) = b% s2% xtra1
-         names(6) = 't_sync_conv_2'
-         vals(6) = b% s2% xtra2
+        names(3) = 't_sync_rad_1'
+        names(4) = 't_sync_conv_1'
+        names(5) = 't_sync_rad_2'
+        names(6) = 't_sync_conv_2'
+        if (b% point_mass_i /= 1) then
+          vals(3) = b% s1% xtra1
+          vals(4) = b% s1% xtra2
+        else
+          vals(3) = -1d0
+          vals(4) = -1d0
+        end if
+        if (b% point_mass_i /= 2) then
+           vals(5) = b% s2% xtra1
+           vals(6) = b% s2% xtra2
+        else
+          vals(5) = -1d0
+          vals(6) = -1d0
+        end if
          !write(*,*) "synchr timescales: ", b% s1% xtra1, b% s1% xtra2, b% s2% xtra1, b% s2% xtra2
       end subroutine data_for_extra_binary_history_columns
 
@@ -772,12 +781,16 @@
          end if
 
          if (.not. restart) then
-            ! extras are used to store the two tidal sychronization timescales (rad/conv) for each star. 
+            ! extras are used to store the two tidal sychronization timescales (rad/conv) for each star.
             ! -1 if they are point masses
-            b% s1% xtra1 = -1d0 ! t_sync_rad_1
-            b% s1% xtra2 = -1d0 ! t_sync_conv_1
-            b% s2% xtra1 = -1d0 ! t_sync_rad_2
-            b% s2% xtra2 = -1d0 ! t_sync_conv_2
+            if (b% point_mass_i /= 1) then
+              b% s1% xtra1 = -1d0 ! t_sync_rad_1
+              b% s1% xtra2 = -1d0 ! t_sync_conv_1
+            end if
+            if (b% point_mass_i /= 2) then
+              b% s2% xtra1 = -1d0 ! t_sync_rad_2
+              b% s2% xtra2 = -1d0 ! t_sync_conv_2
+            end if
          end if
          extras_binary_startup = keep_going
       end function  extras_binary_startup
