@@ -467,16 +467,17 @@
          logical :: in_convective_region
          integer :: k, j, nz
          logical, parameter :: dbg = .false.
-         integer :: n_conv_regions_posydon, n_zones_of_region, bot_bdy, top_bdy
-         real(dp) :: cz_bot_mass_posydon, cz_bot_radius_posydon
-         real(dp) :: cz_top_mass_posydon, cz_top_radius_posydon
+         integer, intent(out) :: n_conv_regions_posydon
+         integer, intent(out), dimension (:), allocatable :: n_zones_of_region, bot_bdy, top_bdy
+         real(dp),intent(out), dimension (:), allocatable :: cz_bot_mass_posydon, cz_bot_radius_posydon
+         real(dp),intent(out), dimension (:), allocatable :: cz_top_mass_posydon, cz_top_radius_posydon
 
          include 'formats'
          !ierr = 0
          nz = s% nz
 
          n_conv_regions_posydon = 0
-         n_zones_of_region = 0
+         !n_zones_of_region = 0
          in_convective_region = (s% mixing_type(nz) == convective_mixing)
          if (in_convective_region) then
             n_conv_regions_posydon = 1
@@ -500,20 +501,18 @@
                end if
             else
                if (s% mixing_type(k) == convective_mixing) then ! bottom of convective region
-                  if (n_conv_regions_posydon < max_num_mixing_regions) then
-                     n_conv_regions_posydon = n_conv_regions_posydon + 1
-                     cz_bot_mass_posydon(n_conv_regions_posydon) = &
-                        s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
-                     cz_bot_radius_posydon(n_conv_regions_posydon) = s% r(k)
-                     bot_bdy(n_conv_regions_posydon) = k
-                  end if
+                  n_conv_regions_posydon = n_conv_regions_posydon + 1
+                  cz_bot_mass_posydon(n_conv_regions_posydon) = &
+                     s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
+                  cz_bot_radius_posydon(n_conv_regions_posydon) = s% r(k)
+                  bot_bdy(n_conv_regions_posydon) = k
                   in_convective_region = .true.
                end if
             end if
          end do
          if (in_convective_region) then
             cz_top_mass_posydon(n_conv_regions_posydon) = s% mstar
-            cz_top_radius_posydon(n_conv_regions_posydon) = s% rstar
+            cz_top_radius_posydon(n_conv_regions_posydon) = s% r(1)
             top_bdy(n_conv_regions_posydon) = 1
             n_zones_of_region(n_conv_regions_posydon) = &
               bot_bdy(n_conv_regions_posydon) - top_bdy(n_conv_regions_posydon)
