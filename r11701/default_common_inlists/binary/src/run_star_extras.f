@@ -245,7 +245,7 @@ contains
     real(dp) :: avg_c_in_c_core
     integer ::  top_bound_zone, bot_bound_zone
     real(dp) :: m_env, Dr_env, Renv_middle, tau_conv, tau_conv_new, m_conv_core, f_conv
-    real(dp) :: r_top, r_bottom, m_env_new, Dr_env_new, Renv_middle_new, min_zones_for_convective_tides
+    real(dp) :: r_top, r_bottom, m_env_new, Dr_env_new, Renv_middle_new
     real(dp) :: conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r, k_div_T_posydon_new, k_div_T_posydon
       integer :: n_conv_regions_posydon
       integer,  dimension (max_num_mixing_regions) :: n_zones_of_region, bot_bdy, top_bdy
@@ -403,7 +403,7 @@ contains
      Renv_middle_new = 0.0
      k_div_T_posydon_new = 0.0
      k_div_T_posydon = 0.0 
-     min_zones_for_convective_tides = 10
+     !min_zones_for_convective_tides = 10
      f_conv = 1.0 ! we cannot calculate explicitly eq. 32 of Hurley et al. 2002 in single stars,
         ! beuse it is based on difference of period and spin in real binaries
             n_zones_of_region(:)=0
@@ -420,7 +420,6 @@ contains
      if (n_conv_regions_posydon > 0) then
        do k=1, n_conv_regions_posydon ! from inside out
          if ((cz_bot_mass_posydon(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
-            if (n_zones_of_region(k) >= min_zones_for_convective_tides) then
               m_env_new = (cz_top_mass_posydon(k) - cz_bot_mass_posydon(k)) / Msun
               Dr_env_new = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k) !depth of the convective layer, length of the eddie
 ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
@@ -452,7 +451,6 @@ contains
                !write(*,'(g0)') 'Single m_env, DR_env, Renv_middle, k/T in conv region ', k ,' is ', &
                !   m_env, Dr_env, Renv_middle, k_div_T_posydon
               end if
-            end if
           end if
         end do
     end if
@@ -809,6 +807,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          !integer, intent(out), dimension (:), allocatable :: n_zones_of_region, bot_bdy, top_bdy
          !real(dp),intent(out), dimension (:), allocatable :: cz_bot_mass_posydon, cz_bot_radius_posydon
          !real(dp),intent(out), dimension (:), allocatable :: cz_top_mass_posydon, cz_top_radius_posydon
+         integer :: min_zones_for_convective_tides
+         integer ::  pot_n_zones_of_region, pot_bot_bdy, pot_top_bdy
+         real(dp) :: pot_cz_bot_mass_posydon, pot_cz_bot_radius_posydon
          integer, intent(out), dimension (max_num_mixing_regions) :: n_zones_of_region, bot_bdy, top_bdy
          real(dp),intent(out), dimension (max_num_mixing_regions) :: cz_bot_mass_posydon
          real(dp),intent(out) :: cz_bot_radius_posydon(max_num_mixing_regions)
@@ -816,6 +817,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
          include 'formats'
          !ierr = 0
+         min_zones_for_convective_tides = 10
          nz = s% nz
          n_zones_of_region(:)=0
          bot_bdy(:)=0
@@ -825,56 +827,72 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          cz_top_mass_posydon(:)=0.0
          cz_top_radius_posydon(:)=0.0
          n_conv_regions_posydon = 0
+         pot_cz_bot_mass_posydon = 0.0
+         pot_cz_bot_radius_posydon = 0.0
+         pot_bot_bdy = 0.0
+         pot_n_zones_of_region = 0
          
          in_convective_region = (s% mixing_type(nz) == convective_mixing)
          if (in_convective_region) then
-            n_conv_regions_posydon = 1
-
-            cz_bot_radius_posydon(1) = 0.0
-            cz_bot_mass_posydon(1) = s% M_center
-            cz_bot_radius_posydon(1) = 0.0
-            bot_bdy(1) = nz
+            pot_cz_bot_mass_posydon = s% M_center
+            pot_cz_bot_radius_posydon = 0.0
+            pot_bot_bdy = nz
          end if
 
-         if (dbg) write(*,*) 'initial in_convective_region', in_convective_region
+         !write(*,*) 'initial in_convective_region', in_convective_region
 
          do k=nz-1, 2, -1
             if (in_convective_region) then
                if (s% mixing_type(k) /= convective_mixing) then ! top of convective region
-                  cz_top_mass_posydon(n_conv_regions_posydon) = &
-                     s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
-                  cz_top_radius_posydon(n_conv_regions_posydon) = s% r(k)/Rsun
-                  top_bdy(n_conv_regions_posydon) = k
-                  n_zones_of_region(n_conv_regions_posydon) = &
-                    bot_bdy(n_conv_regions_posydon) - top_bdy(n_conv_regions_posydon)
+                  pot_top_bdy = k
+                  pot_n_zones_of_region = pot_bot_bdy - pot_top_bdy
+                  if (pot_n_zones_of_region >= min_zones_for_convective_tides) then
+                    if (n_conv_regions_posydon < max_num_mixing_regions) then
+                      n_conv_regions_posydon = n_conv_regions_posydon + 1
+                    end if 
+                    cz_top_mass_posydon(n_conv_regions_posydon) = &
+                      s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
+                    cz_bot_mass_posydon(n_conv_regions_posydon) = pot_cz_bot_mass_posydon
+                    cz_top_radius_posydon(n_conv_regions_posydon) = s% r(k)/Rsun
+                    cz_bot_radius_posydon(n_conv_regions_posydon) = pot_cz_bot_radius_posydon
+                    top_bdy(n_conv_regions_posydon) = pot_top_bdy
+                    bot_bdy(n_conv_regions_posydon) = pot_bot_bdy
+                    n_zones_of_region(n_conv_regions_posydon) = pot_n_zones_of_region
+                  end if 
                   in_convective_region = .false.
                end if
             else
                if (s% mixing_type(k) == convective_mixing) then ! bottom of convective region
-                  if (s% n_conv_regions < max_num_mixing_regions) then
-                     n_conv_regions_posydon = n_conv_regions_posydon + 1
-                     cz_bot_mass_posydon(n_conv_regions_posydon) = &
-                       s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
-                     cz_bot_radius_posydon(n_conv_regions_posydon) = s% r(k)/Rsun
-                     bot_bdy(n_conv_regions_posydon) = k
-                  end if
+                  pot_cz_bot_mass_posydon = &
+                    s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
+                  pot_cz_bot_radius_posydon = s% r(k)/Rsun
+                  pot_bot_bdy = k
                   in_convective_region = .true.
                end if
             end if
          end do
          if (in_convective_region) then
-            cz_top_mass_posydon(n_conv_regions_posydon) = s% mstar
-            cz_top_radius_posydon(n_conv_regions_posydon) = s% r(1)/Rsun
-            top_bdy(n_conv_regions_posydon) = 1
-            n_zones_of_region(n_conv_regions_posydon) = &
-              bot_bdy(n_conv_regions_posydon) - top_bdy(n_conv_regions_posydon)
-
+            pot_top_bdy = 1
+            pot_n_zones_of_region = pot_bot_bdy - pot_top_bdy
+            if (pot_n_zones_of_region >= min_zones_for_convective_tides) then
+              if (n_conv_regions_posydon < max_num_mixing_regions) then
+                n_conv_regions_posydon = n_conv_regions_posydon + 1
+              end if 
+              cz_top_mass_posydon(n_conv_regions_posydon) = s% mstar
+              cz_top_radius_posydon(n_conv_regions_posydon) = s% r(1)/Rsun
+              top_bdy(n_conv_regions_posydon) = 1
+              cz_bot_mass_posydon(n_conv_regions_posydon) = pot_cz_bot_mass_posydon
+              cz_bot_radius_posydon(n_conv_regions_posydon) = pot_cz_bot_radius_posydon
+              bot_bdy(n_conv_regions_posydon) = pot_bot_bdy
+              n_zones_of_region(n_conv_regions_posydon) = pot_n_zones_of_region
+           end if
          end if
+
           !write(*,*)
           !write(*,2) 'set_mixing_info n_conv_regions_posydon', n_conv_regions_posydon
           !do j = 1, n_conv_regions_posydon
-             !write(*,2) 'conv region', j, cz_bot_mass_posydon(j)/Msun, cz_top_mass_posydon(j)/Msun
-             !write(*,2) 'conv region', j, cz_bot_radius_posydon(j), cz_top_radius_posydon(j)
+          !   write(*,2) 'conv region', j, cz_bot_mass_posydon(j)/Msun, cz_top_mass_posydon(j)/Msun
+          !   write(*,2) 'conv region', j, cz_bot_radius_posydon(j), cz_top_radius_posydon(j)
           !end do
           !write(*,*)
       end subroutine loop_conv_layers
