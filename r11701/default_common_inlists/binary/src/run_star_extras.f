@@ -89,7 +89,8 @@ contains
        TP_AGB_check=.true.
     endif
 
-
+    if (s% star_mass <= 10.0d0) s% cool_wind_RGB_scheme ='Reimers'
+    
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
     !vct30 = 1.0d-4
     !vct100 = 1.0d-3
