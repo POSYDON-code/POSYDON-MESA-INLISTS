@@ -9,8 +9,10 @@
 
       write_profile_when_terminate = .false. !this is done in the run_binary_extras.f
 
+      save_model_number = 0
+
       save_model_when_terminate = .true.
-      save_model_filename = 'model2.mod'
+      save_model_filename = 'model2.mod' ! name changed from Scotti's script
 
 
       ! set initial age and model number to 0 again
