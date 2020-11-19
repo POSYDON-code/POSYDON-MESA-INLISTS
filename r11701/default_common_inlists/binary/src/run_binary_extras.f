@@ -1149,6 +1149,17 @@
             !   end if
             !   if (ierr /= 0) return ! failure in profile
             !end if
+            if (b% model_number == 1 ) then ! Saving initial_models
+               write(*,*) "saving initial models"
+               if (b% point_mass_i /= 1) then
+                    call star_write_model(b% s1% id, "initial_star1.mod", b% s1% id, ierr)
+               end if
+               if (ierr /= 0) return ! failure 
+               if (b% point_mass_i /= 2) then
+                    call star_write_model(b% s2% id, "initial_star2.mod", b% s2% id, ierr)
+               end if
+               if (ierr /= 0) return ! failure 
+            end if
          end if
 
       end function extras_binary_finish_step
