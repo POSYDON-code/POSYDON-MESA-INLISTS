@@ -1138,17 +1138,17 @@
             end if
            !write(*,*) "still using: ", b% mdot_scheme
 
-            if (b% model_number == 1 ) then ! Saving initial_profiles
-               write(*,*) "saving initial profiles"
-               if (b% point_mass_i /= 1) then
-                    call star_write_profile_info(b% s1% id, "LOGS1/initial_profile.data", b% s1% id, ierr)
-               end if
-               if (ierr /= 0) return ! failure in profile
-               if (b% point_mass_i /= 2) then
-                    call star_write_profile_info(b% s2% id, "LOGS2/initial_profile.data", b% s2% id, ierr)
-               end if
-               if (ierr /= 0) return ! failure in profile
-            end if
+            !if (b% model_number == 1 ) then ! Saving initial_profiles
+            !   write(*,*) "saving initial profiles"
+            !   if (b% point_mass_i /= 1) then
+            !        call star_write_profile_info(b% s1% id, "LOGS1/initial_profile.data", b% s1% id, ierr)
+            !   end if
+            !   if (ierr /= 0) return ! failure in profile
+            !   if (b% point_mass_i /= 2) then
+            !        call star_write_profile_info(b% s2% id, "LOGS2/initial_profile.data", b% s2% id, ierr)
+            !   end if
+            !   if (ierr /= 0) return ! failure in profile
+            !end if
          end if
 
       end function extras_binary_finish_step
