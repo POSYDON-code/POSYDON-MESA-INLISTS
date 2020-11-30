@@ -944,7 +944,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
         if (s% brunt_N2(k) > 0d0) then
             if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
                 omegac = 1d0*s% omega(k)*sqrt_cr(brunts/s% omega(k))*pow_cr(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
-                nu_tsf = 5d-1+5d-1*tanh(5d0*log(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
+                nu_tsf = 5d-1+5d-1*tanh_cr(5d0*log_cr(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
                 nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
             end if
             ! Add TSF enabled by thermal diffusion
@@ -979,7 +979,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
         if (s% brunt_N2(k) > 0d0) then
             if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
                 omegac = 1d0*s% omega(k)*sqrt_cr(brunts/s% omega(k))*pow_cr(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
-                nu_tsf = 5d-1+5d-1*tanh(5d0*log(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
+                nu_tsf = 5d-1+5d-1*tanh_cr(5d0*log_cr(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
                 nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
             end if
             ! Add TSF enabled by thermal diffusion
@@ -1012,7 +1012,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     if (s% brunt_N2(k) > 0d0) then
         if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
             omegac = 1d0*s% omega(k)*sqrt_cr(brunts/s% omega(k))*pow_cr(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
-            nu_tsf = 5d-1+5d-1*tanh(5d0*log(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
+            nu_tsf = 5d-1+5d-1*tanh_cr(5d0*log_cr(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
             nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
         end if
         ! Add TSF enabled by thermal diffusion

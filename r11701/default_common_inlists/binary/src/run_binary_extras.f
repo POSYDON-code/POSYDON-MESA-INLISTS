@@ -276,7 +276,7 @@
              if (ierr/=0) return
           end if
           a1 = f2(b% eccentricity)
-          a2 = pow_cr(1-powi_cr(b% eccentricity,2), 1.5d0)*f5(b% eccentricity)
+          a2 = pow_cr(1-pow2(b% eccentricity), 1.5d0)*f5(b% eccentricity)
 
           ! Tides apply only to the envelope. (Qin et al. 2018 implementation)
           !if (.not. b% have_radiative_core(id)) then ! convective core
@@ -428,8 +428,8 @@
                    exit
                 end if
              end do
-             tau_conv = 0.431*pow_cr(m_env*r_env* &
-                (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+             tau_conv = 0.431_dp*pow_cr(m_env*r_env* &
+                (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,one_third) * secyer
              P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
              f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv),b% tidal_reduction)
 
@@ -638,7 +638,7 @@
                     ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
                     ! and to the Renv in eq. 4 of Rasio et al. 1996
                     ! where it represented the base of the convective layer (different notation)
-                    tau_conv = 0.431*pow_cr(m_env*Dr_env* &
+                    tau_conv = 0.431_dp*pow_cr(m_env*Dr_env* &
                        Renv_middle/3d0/s% L_phot,1.0d0/3.0d0) * secyer
                     P_tid = 1d0/abs(1d0/porb-s% omega(top_bdy(k))/(2d0*pi))
                     f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv), b% tidal_reduction)
