@@ -265,19 +265,19 @@ contains
     i = s% n_conv_regions
     k_ocz_bot = 0
     k_ocz_top = 0
-    ocz_turnover_time_g = 0
-    ocz_turnover_time_l_b = 0
-    ocz_turnover_time_l_t = 0
-    ocz_top_mass = 0.0
-    ocz_bot_mass = 0.0
-    ocz_top_radius = 0.0
-    ocz_bot_radius = 0.0
+    ocz_turnover_time_g = 0.0_dp
+    ocz_turnover_time_l_b = 0.0_dp
+    ocz_turnover_time_l_t = 0.0_dp
+    ocz_top_mass = 0.0_dp
+    ocz_bot_mass = 0.0_dp
+    ocz_top_radius = 0.0_dp
+    ocz_bot_radius = 0.0_dp
 
     !check the outermost convection zone
     !if dM_convenv/M < 1d-8, there's no conv env.
     if (s% n_conv_regions > 0) then
        if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
-            ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11)) then
+            ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1.0d-11)) then
 
           ocz_bot_mass = s% cz_bot_mass(i)
           ocz_top_mass = s% cz_top_mass(i)
@@ -322,7 +322,7 @@ contains
 
           !compute the "local" turnover time one scale height above the BCZ
           do k=k_ocz_top,k_ocz_bot
-             if (s% r(k) < (s% r(k_ocz_bot)+1.0d0*(mixing_length_at_bcz))) then
+             if (s% r(k) <  s% r(k_ocz_bot)+mixing_length_at_bcz ) then
                 ocz_turnover_time_l_t = mixing_length_at_bcz/s% conv_vel(k)
                 exit
              end if
@@ -371,7 +371,7 @@ contains
     vals(9) = MoI
 
     names(10) = "spin_parameter"
-    vals(10) = (clight*s% total_angular_momentum/(standard_cgrav*(s% m(1))**2))
+    vals(10) = clight * s% total_angular_momentum/( standard_cgrav * s% m(1) * s% m(1) )
 
     if(s% c_core_k > 0 .and. s% c_core_k < s% nz) then
         !location of c core
@@ -396,24 +396,24 @@ contains
 
      ! more significant covective layer for tides
      m_conv_core = mass_conv_core(s)
-     m_env = 0.0
-     Dr_env = 0.0
-     Renv_middle = 0.0
-     m_env_new = 0.0
-     Dr_env_new = 0.0
-     Renv_middle_new = 0.0
-     k_div_T_posydon_new = 0.0
-     k_div_T_posydon = 0.0 
+     m_env = 0.0_dp
+     Dr_env = 0.0_dp
+     Renv_middle = 0.0_dp
+     m_env_new = 0.0_dp
+     Dr_env_new = 0.0_dp
+     Renv_middle_new = 0.0_dp
+     k_div_T_posydon_new = 0.0_dp
+     k_div_T_posydon = 0.0_dp
      !min_zones_for_convective_tides = 10
-     f_conv = 1.0 ! we cannot calculate explicitly eq. 32 of Hurley et al. 2002 in single stars,
+     f_conv = 1.0_dp ! we cannot calculate explicitly eq. 32 of Hurley et al. 2002 in single stars,
         ! beuse it is based on difference of period and spin in real binaries
-            n_zones_of_region(:)=0
-            bot_bdy(:)=0
-            top_bdy(:)=0
-            cz_bot_mass_posydon(:)=0.0
-            cz_bot_radius_posydon(:)=0.0
-            cz_top_mass_posydon(:)=0.0
-            cz_top_radius_posydon(:)=0.0
+            n_zones_of_region=0
+            bot_bdy=0
+            top_bdy=0
+            cz_bot_mass_posydon=0.0_dp
+            cz_bot_radius_posydon=0.0_dp
+            cz_top_mass_posydon=0.0_dp
+            cz_top_radius_posydon=0.0_dp
             n_conv_regions_posydon = 0
 
             call loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy, top_bdy, &
@@ -425,24 +425,24 @@ contains
               Dr_env_new = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k) !depth of the convective layer, length of the eddie
 ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
 ! and to (R-Renv) term in eq. 4 of Rasio et al. 1996  (different notation)
-            Renv_middle_new = (cz_top_radius_posydon(k) + cz_bot_radius_posydon(k) )*0.5d0 !middle of the convective layer
+            Renv_middle_new = 0.5_dp * (cz_top_radius_posydon(k) + cz_bot_radius_posydon(k) ) !middle of the convective layer
 ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
 ! and to the Renv in eq. 4 of Rasio et al. 1996
 ! where it represented the base of the convective layer (different notation)
 
-            tau_conv_new = 0.431*pow_cr(m_env_new*Dr_env_new* &
-              Renv_middle_new/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+            tau_conv_new = 0.431_dp * pow_cr( m_env_new*Dr_env_new* &
+              Renv_middle_new/3d0/s% L_phot, one_third) * secyer
 
              !P_tid = 1d0/abs(1d0/porb-s% omega(top_bound_zone)/(2d0*pi))
              !f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
 
              ! eq 30 of Hurley et al. 2002, assuming f_conv = 1
-             k_div_T_posydon_new = 2d0/21d0*f_conv/tau_conv_new*m_env_new/ (s% mstar/Msun) 
+             k_div_T_posydon_new = (2.0_dp/21.0_dp) * (f_conv/tau_conv_new) * (m_env_new/(s% mstar/Msun))
              if (k_div_T_posydon_new >= k_div_T_posydon) then
-               m_env = m_env_new
-               Dr_env = Dr_env_new
-               Renv_middle = Renv_middle_new
-               k_div_T_posydon = k_div_T_posydon_new 
+                m_env = m_env_new
+                Dr_env = Dr_env_new
+                Renv_middle = Renv_middle_new
+                k_div_T_posydon = k_div_T_posydon_new 
                !conv_mx_top = s% cz_top_mass(k)/s% mstar !  mass coordinate of top layer
                !conv_mx_bot = s% cz_bot_mass(k)/s% mstar
                !conv_mx_top_r = r_top ! in Rsun
@@ -572,7 +572,7 @@ contains
          critmass, feh, rot_full_off, rot_full_on, frac2
     real(dp), parameter :: huge_dt_limit = 3.15d16 ! ~1 Gyr
     real(dp), parameter :: new_varcontrol_target = 1d-3
-    real(dp), parameter :: Zsol = 0.0142
+    real(dp), parameter :: Zsol = 0.0142_dp
     type (star_info), pointer :: s
     logical :: diff_test1, diff_test2, diff_test3
     character (len=strlen) :: photoname, stuff
@@ -820,23 +820,23 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          !ierr = 0
          min_zones_for_convective_tides = 10
          nz = s% nz
-         n_zones_of_region(:)=0
-         bot_bdy(:)=0
-         top_bdy(:)=0
-         cz_bot_mass_posydon(:)=0.0
-         cz_bot_radius_posydon(:)=0.0
-         cz_top_mass_posydon(:)=0.0
-         cz_top_radius_posydon(:)=0.0
-         n_conv_regions_posydon = 0
-         pot_cz_bot_mass_posydon = 0.0
-         pot_cz_bot_radius_posydon = 0.0
-         pot_bot_bdy = 0.0
+         n_zones_of_region=0
+         bot_bdy=0
+         top_bdy=0
+         cz_bot_mass_posydon=0.0_dp
+         cz_bot_radius_posydon=0.0_dp
+         cz_top_mass_posydon=0.0_dp
+         cz_top_radius_posydon=0.0_dp
+         n_conv_regions_posydon = 0_dp
+         pot_cz_bot_mass_posydon = 0.0_dp
+         pot_cz_bot_radius_posydon = 0.0_dp
+         pot_bot_bdy = 0.0_dp
          pot_n_zones_of_region = 0
          
          in_convective_region = (s% mixing_type(nz) == convective_mixing)
          if (in_convective_region) then
             pot_cz_bot_mass_posydon = s% M_center
-            pot_cz_bot_radius_posydon = 0.0
+            pot_cz_bot_radius_posydon = 0.0_dp
             pot_bot_bdy = nz
          end if
 
@@ -1120,7 +1120,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
   real(dp) function sqrt_cr(x)
     real(dp), intent(in) :: x
-
     sqrt_cr = pow_cr(x, 0.5d0)
   end function sqrt_cr
 
