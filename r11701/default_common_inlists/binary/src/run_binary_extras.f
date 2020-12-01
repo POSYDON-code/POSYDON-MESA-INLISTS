@@ -276,7 +276,7 @@
              if (ierr/=0) return
           end if
           a1 = f2(b% eccentricity)
-          a2 = pow_cr(1-b% eccentricity**2, 1.5d0)*f5(b% eccentricity)
+          a2 = pow_cr(1-pow2(b% eccentricity), 1.5d0)*f5(b% eccentricity)
 
           ! Tides apply only to the envelope. (Qin et al. 2018 implementation)
           !if (.not. b% have_radiative_core(id)) then ! convective core
@@ -326,7 +326,7 @@
 
           ! Hut 1981, A&A, 99, 126, definition of f2 after eq. 11
           if (e > 0d0) then
-              f2 = 1d0 + 15d0/2d0*e**2 + 45d0/8d0*pow4(e) + 5d0/16d0*pow6(e)
+              f2 = 1d0 + 15d0/2d0 * pow2(e) + 45d0/8d0 * pow4(e) + 5d0/16d0 * pow6(e)
           end if
 
        end function f2
@@ -338,7 +338,7 @@
 
           ! Hut 1981, A&A, 99, 126, definition of f3 after eq. 11
           if (e > 0d0) then
-              f3 = 1d0 + 15d0/4d0*e**2 + 15d0/8d0*pow4(e) + 5d0/64d0*pow6(e)
+              f3 = 1d0 + 15d0/4d0*pow2(e) + 15d0/8d0 * pow4(e) + 5d0/64d0 * pow6(e)
           end if
 
        end function f3
@@ -351,7 +351,7 @@
 
           ! Hut 1981, A&A, 99, 126, definition of f4 after eq. 11
           if (e > 0d0) then
-              f4 = 1d0 + 3d0/2d0*e**2 + 1d0/8d0*pow4(e)
+              f4 = 1d0 + 3d0/2d0 * pow2(e) + 1d0/8d0 * pow4(e)
           end if
 
        end function f4
@@ -364,7 +364,7 @@
 
           ! Hut 1981, A&A, 99, 126, definition of f5 after eq. 11
           if (e > 0d0) then
-              f5 = 1d0 + 3d0*e**2 + 3d0/8d0*pow4(e)
+              f5 = 1d0 + 3d0*pow2(e) + 3d0/8d0 * pow4(e)
           end if
 
        end function f5
@@ -428,10 +428,10 @@
                    exit
                 end if
              end do
-             tau_conv = 0.431*pow_cr(m_env*r_env* &
-                (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+             tau_conv = 0.431_dp*pow_cr(m_env*r_env* &
+                (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,one_third) * secyer
              P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
-             f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
+             f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv),b% tidal_reduction)
 
              k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
           else ! radiative envelope
@@ -444,15 +444,15 @@
              Xs = s% xa(h1,1)
              ! E2 is different for H-rich and He stars (Qin et al. 2018)
              if (Xs < 0.4d0) then ! HeStar
-                E2 = 10**(-0.93)*(s% r(i)/r_phot)**(6.7)! HeStars
+                E2 = exp10_cr(-0.93)*pow_cr(s% r(i)/r_phot,6.7_dp)! HeStars
              else
-                E2 = 10**(-0.42)*(s% r(i)/r_phot)**(7.5)! H-rich stars
+                E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot,7.5_dp)! H-rich stars
              !write(*,*) E2, s% r(i)
              end if
              if (isnan(E2)) then  !maybe this won't be used.
                  k_div_T = 1d-20
              else
-                k_div_T = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
+                k_div_T = sqrt(standard_cgrav*m*r_phot*r_phot/pow5(osep)/(Msun/pow3(Rsun)))
                 k_div_T = k_div_T*pow_cr(1d0+qratio,5d0/6d0)
                 k_div_T = k_div_T * E2
              end if
@@ -638,10 +638,10 @@
                     ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
                     ! and to the Renv in eq. 4 of Rasio et al. 1996
                     ! where it represented the base of the convective layer (different notation)
-                    tau_conv = 0.431*pow_cr(m_env*Dr_env* &
+                    tau_conv = 0.431_dp*pow_cr(m_env*Dr_env* &
                        Renv_middle/3d0/s% L_phot,1.0d0/3.0d0) * secyer
                     P_tid = 1d0/abs(1d0/porb-s% omega(top_bdy(k))/(2d0*pi))
-                    f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
+                    f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv), b% tidal_reduction)
                     !write(*,'(g0)') 'porb, p_from_omega, f_conv = ', porb, &
    !1                / (s% omega(top_bdy(k))/(2d0*pi)), &
    !1                /(s% omega_avg_surf/(2d0*pi)), f_conv
@@ -667,15 +667,15 @@
              Xs = s% xa(h1,1)
              ! E2 is different for H-rich and He stars (Qin et al. 2018)
              if (Xs < 0.4d0) then ! HeStar
-                E2 = 10**(-0.93)*(s% r(i)/r_phot)**(6.7)! HeStars
+                E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot, 6.7_dp)! HeStars
              else
-                E2 = 10**(-0.42)*(s% r(i)/r_phot)**(7.5)! H-rich stars
+                E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot, 7.5_dp)! H-rich stars
              !write(*,*) E2, s% r(i)
              end if
              if (isnan(E2)) then  !maybe this won't be used.
                  k_div_T_posydon = 1d-20
              else
-                k_div_T_posydon = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
+                k_div_T_posydon = sqrt(standard_cgrav*m*r_phot*r_phot/pow5(osep)/(Msun/pow3(Rsun)))
                 k_div_T_posydon = k_div_T_posydon*pow_cr(1d0+qratio,5d0/6d0)
                 k_div_T_posydon = k_div_T_posydon * E2
              end if
@@ -698,7 +698,7 @@
             ! 3) Landry, P., Essick, R., & Chatziioannou, K. 2020
             ! 4) E.R. Most, L.R. Weih, L. Rezzolla and J. Schaffner-Bielich, 2018, Phys. Rev. Lett. 120, 261103
             ! 5) Abbott, B. P., Abbott, R., Abbott, T. D., et al. 2020, ApJL, 892, L3
-            acc_radius = 12.5 * 10 ** 5 !in cm
+            acc_radius = 12.5E5_dp !* 10 ** 5 !in cm
           else ! Event horizon for Kerr-BH
             ! this part is only relevant for BH accretors
             if (b% initial_bh_spin < 0d0) then
@@ -709,25 +709,26 @@
                write(*,*) "initial_bh_spin is larger than one. It has been set to one."
             end if
             ! compute isco radius from eq. 2.21 of Bardeen et al. (1972), ApJ, 178, 347
-            Z1 = 1d0 + pow_cr(1d0 - b% initial_bh_spin**2,one_third) &
+            Z1 = 1d0 + pow_cr(1d0 - pow2(b% initial_bh_spin),one_third) &
                * (pow_cr(1d0 + b% initial_bh_spin,one_third) + pow_cr(1d0 - b% initial_bh_spin,one_third))
-            Z2 = sqrt(3d0*b% initial_bh_spin**2 + Z1**2)
+            Z2 = sqrt(3d0*pow2(b% initial_bh_spin) + pow2(Z1))
             r_isco = 3d0 + Z2 - sqrt((3d0 - Z1)*(3d0 + Z1 + 2d0*Z2))
             ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
             ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
             ! zero spin (r_isco = sqrt(6)).
 
-	     if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
+	     if (initial_mass(2) > 2.5_dp) then ! If it was already a BH then take the initial mass m2
 		eq_initial_bh_mass = b% eq_initial_bh_mass
-	     else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5Msun as eq_initial_mass
-	       eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
+	     else if (initial_mass(2) <= 2.5_dp) then! If it was initially a NS then take 2.5Msun as eq_initial_mass
+	       eq_initial_bh_mass = 2.5_dp * Msun * sqrt(r_isco/6d0)
 	     end if
 
             a = sqrt(two_thirds) &
-                 *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)* eq_initial_bh_mass)) &
-                 *(4 - sqrt(18*(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)* eq_initial_bh_mass))**2 - 2))
+              *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)* eq_initial_bh_mass)) &
+              *(4._dp - sqrt(18._dp*pow2(eq_initial_bh_mass/ &
+              min(b% m(b% point_mass_i),sqrt(6d0)* eq_initial_bh_mass)) - 2._dp))
             !Podsiadlowski et al. (2003) assuming a initially non-rotating BH
-            acc_radius = (1 + sqrt(1 - a ** 2)) * b% s_donor% cgrav(1) * m_acc / clight ** 2
+            acc_radius = (1.0_dp + sqrt(1.0_dp - a*a)) * b% s_donor% cgrav(1) * m_acc/pow2(clight)
           end if
       end function acc_radius
 
@@ -746,7 +747,7 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-         if (b% m(2)/Msun > 2.50) then ! M2 > 2.5 Msol for BHs
+         if (b% m(2)/Msun > 2.50_dp) then ! M2 > 2.5 Msol for BHs
              ! this part is only relevant for BH accretors
              if (b% initial_bh_spin < 0d0) then
                 b% initial_bh_spin = 0d0
@@ -756,26 +757,26 @@
                 write(*,*) "initial_bh_spin is larger than one. It has been set to one."
              end if
              ! compute isco radius from eq. 2.21 of Bardeen et al. (1972), ApJ, 178, 347
-             Z1 = 1d0 + pow_cr(1d0 - b% initial_bh_spin**2,one_third) &
+             Z1 = 1d0 + pow_cr(1d0 - pow2(b% initial_bh_spin),one_third) &
                 * (pow_cr(1d0 + b% initial_bh_spin,one_third) + pow_cr(1d0 - b% initial_bh_spin,one_third))
-             Z2 = sqrt(3d0*b% initial_bh_spin**2 + Z1**2)
+             Z2 = sqrt(3d0*pow2(b% initial_bh_spin) + pow2(Z1))
              r_isco = 3d0 + Z2 - sqrt((3d0 - Z1)*(3d0 + Z1 + 2d0*Z2))
              ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
              ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
              ! zero spin (r_isco = sqrt(6)).
 
-             if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
+             if (initial_mass(2) > 2.5_dp) then ! If it was already a BH then take the initial mass m2
                 eq_initial_bh_mass = b% eq_initial_bh_mass
-             else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5 as eq_initial_mass
-               eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
+             else if (initial_mass(2) <= 2.5_dp) then! If it was initially a NS then take 2.5 as eq_initial_mass
+               eq_initial_bh_mass = 2.5_dp * Msun * sqrt(r_isco/6d0)
              end if
 
              !! mdot_edd_eta for BH following Podsiadlowski, Rappaport & Han (2003), MNRAS, 341, 385
-             mdot_edd_eta = 1d0 &
-                      - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass))**2)
+             mdot_edd_eta = 1d0 - sqrt(1d0 - &
+                   pow2(min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass)))
          else ! NS
              !! mdot_edd_eta for NS accretors
-             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius(b, b% m(2)))
+             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (pow2(clight) * acc_radius(b, b% m(2)))
          end if
          mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
                   /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
@@ -815,10 +816,10 @@
          call my_mdot_edd(binary_id,mdot_edd,ierr)
 
          if (b% point_mass_i == 0) then ! if there is no compact object then trappping radius is 0
-           trap_rad = 0.0
-           accretor_radius = 0.0
+           trap_rad = 0.0_dp
+           accretor_radius = 0.0_dp
          else ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
-           trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+           trap_rad = 0.5_dp*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
            accretor_radius = acc_radius(b, b% m(2))
          end if
 
@@ -842,15 +843,15 @@
           vals(3) = b% s1% xtra1
           vals(4) = b% s1% xtra2
         else
-          vals(3) = -1d0
-          vals(4) = -1d0
+          vals(3) = -1.0d0
+          vals(4) = -1.0d0
         end if
         if (b% point_mass_i /= 2) then
            vals(5) = b% s2% xtra1
            vals(6) = b% s2% xtra2
         else
-          vals(5) = -1d0
-          vals(6) = -1d0
+          vals(5) = -1.0d0
+          vals(6) = -1.0d0
         end if
          !write(*,*) "synchr timescales: ", b% s1% xtra1, b% s1% xtra2, b% s2% xtra1, b% s2% xtra2
       end subroutine data_for_extra_binary_history_columns
@@ -870,12 +871,12 @@
             ! extras are used to store the two tidal sychronization timescales (rad/conv) for each star.
             ! -1 if they are point masses
             if (b% point_mass_i /= 1) then
-              b% s1% xtra1 = -1d0 ! t_sync_rad_1
-              b% s1% xtra2 = -1d0 ! t_sync_conv_1
+              b% s1% xtra1 = -1.0d0 ! t_sync_rad_1
+              b% s1% xtra2 = -1.0d0 ! t_sync_conv_1
             end if
             if (b% point_mass_i /= 2) then
-              b% s2% xtra1 = -1d0 ! t_sync_rad_2
-              b% s2% xtra2 = -1d0 ! t_sync_conv_2
+              b% s2% xtra1 = -1.0d0 ! t_sync_rad_2
+              b% s2% xtra2 = -1.0d0 ! t_sync_conv_2
             end if
          end if
          extras_binary_startup = keep_going
@@ -897,13 +898,13 @@
 
 
        if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
-          if (b% s1% center_h1 < 1d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+          if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
              i_don = 1
              i_acc = 2
                if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784 * q ** 1.05 * exp(-0.188*q) + 1.004)
-                  d_l2 = b% rl(i_don) * (3.334 * q ** 0.514 * exp(-0.052*q) + 1.308)
+                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp0 * exp_cr(-0.052_dp*q) + 1.308_dp)
                   !Condition to stop when star overflows L2
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
@@ -918,8 +919,8 @@
 
                else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811 * q ** 0.82788069*exp(-0.01572339*q) + 1.36176161)
-                  d_l2 = b% rl(i_don) * (-0.04029713 * q ** 0.862143 * exp(-0.04049814*q) + 1.88325644)
+                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
                      write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
@@ -935,13 +936,13 @@
        end if
 
        if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
-          if (b% s2% center_h1 < 1d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+          if (b% s2% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
              i_don = 2
              i_acc = 1
                if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784 * q ** 1.05 * exp(-0.188*q) + 1.004)
-                  d_l2 = b% rl(i_don) * (3.334 * q ** 0.514 * exp(-0.052*q) + 1.308)
+                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q, 1.05_dp) * exp_cr(-0.188_dp * q) + 1.004_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q,  0.514_dp) * exp_cr(-0.052_dp * q) + 1.308_dp)
                   !Condition to stop when star overflows L2
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
@@ -956,8 +957,8 @@
 
                else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811 * q ** 0.82788069*exp(-0.01572339*q) + 1.36176161)
-                  d_l2 = b% rl(i_don) * (-0.04029713 * q ** 0.862143 * exp(-0.04049814*q) + 1.88325644)
+                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
                      write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
@@ -972,7 +973,7 @@
           end if
        end if
 
-       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1d-10))) then
+       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
          if (b% point_mass_i/=1) then
            i_don = 1
          else
@@ -1010,8 +1011,8 @@
 
          if (b% point_mass_i == 0) then
             ! Check for simultaneous RLOF from both stars after TAMS of one star
-            if (b% s2% center_h1 < 1d-6 .or. b% s1% center_h1 < 1d-6) then
-                if (b% rl_relative_gap(1) > 0.0 .and. b% rl_relative_gap(2) > 0.0) then
+            if (b% s2% center_h1 < 1.0d-6 .or. b% s1% center_h1 < 1.0d-6) then
+                if (b% rl_relative_gap(1) > 0.0_dp .and. b% rl_relative_gap(2) > 0.0_dp) then
                   extras_binary_finish_step = terminate
                   write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and at least one of them is off MS"
                 end if
@@ -1020,10 +1021,10 @@
 
 
          !remove gradL_composition term after MS, it can cause the convective helium core to recede
-         if (b% point_mass_i /= 1 .and. b% s1% center_h1 < 1d-6) then
+         if (b% point_mass_i /= 1 .and. b% s1% center_h1 < 1.0d-6) then
             b% s1% num_cells_for_smooth_gradL_composition_term = 0
          end if
-         if (b% point_mass_i /= 2 .and. b% s2% center_h1 < 1d-6) then
+         if (b% point_mass_i /= 2 .and. b% s2% center_h1 < 1.0d-6) then
             b% s2% num_cells_for_smooth_gradL_composition_term = 0
          end if
 
@@ -1038,7 +1039,7 @@
            call my_mdot_edd(binary_id,mdot_edd,ierr)
 
            ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
-           trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+           trap_rad = 0.5_dp*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
 
            !check if mass transfer rate reached maximun, assume unstable regime if it happens
             if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
@@ -1050,7 +1051,7 @@
 
          ! check for termination due to carbon depletion or off center neon ignition for primary
          if (b% point_mass_i /= 1) then
-            if (b% s1% center_c12 < 1d-2 .and. b% s1% center_he4 < 1d-6) then
+            if (b% s1% center_c12 < 1.0d-2 .and. b% s1% center_he4 < 1.0d-6) then
                   write(*,'(g0)') "termination code: Primary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
@@ -1074,7 +1075,7 @@
 
          ! check for termination due to carbon depletion or off center neon ignition for secondary
          if (b% point_mass_i /= 2) then
-            if (b% s2% center_c12 < 1d-2 .and. b% s2% center_he4 < 1d-6) then
+            if (b% s2% center_c12 < 1.0d-2 .and. b% s2% center_he4 < 1.0d-6) then
                   write(*,'(g0)') "termination code: Secondary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
@@ -1082,12 +1083,12 @@
                ! check if neon is by far greatest source of energy
                is_ne_biggest = .true.
                do i=1, num_categories
-                  if(i /= i_burn_ne .and. b% s2% L_by_category(i_burn_ne) < 10*b% s2% L_by_category(i)) then
+                  if(i /= i_burn_ne .and. b% s2% L_by_category(i_burn_ne) < 10._dp*b% s2% L_by_category(i)) then
                      is_ne_biggest = .false.
                      exit
                   end if
                end do
-               if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01) then
+               if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01_dp) then
                      write(*,'(g0)') "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
                         b% s2% max_eps_z_m
                      extras_binary_finish_step = terminate
