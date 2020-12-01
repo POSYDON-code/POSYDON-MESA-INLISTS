@@ -431,7 +431,7 @@
              tau_conv = 0.431_dp*pow_cr(m_env*r_env* &
                 (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,one_third) * secyer
              P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
-             f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv),b% tidal_reduction)
+             f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv),b% tidal_reduction)))
 
              k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
           else ! radiative envelope
@@ -444,7 +444,7 @@
              Xs = s% xa(h1,1)
              ! E2 is different for H-rich and He stars (Qin et al. 2018)
              if (Xs < 0.4d0) then ! HeStar
-                E2 = exp10_cr(-0.93)*pow_cr(s% r(i)/r_phot,6.7_dp)! HeStars
+                E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot,6.7_dp)! HeStars
              else
                 E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot,7.5_dp)! H-rich stars
              !write(*,*) E2, s% r(i)
@@ -641,7 +641,7 @@
                     tau_conv = 0.431_dp*pow_cr(m_env*Dr_env* &
                        Renv_middle/3d0/s% L_phot,1.0d0/3.0d0) * secyer
                     P_tid = 1d0/abs(1d0/porb-s% omega(top_bdy(k))/(2d0*pi))
-                    f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv), b% tidal_reduction)
+                    f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv), b% tidal_reduction))
                     !write(*,'(g0)') 'porb, p_from_omega, f_conv = ', porb, &
    !1                / (s% omega(top_bdy(k))/(2d0*pi)), &
    !1                /(s% omega_avg_surf/(2d0*pi)), f_conv
@@ -904,7 +904,7 @@
                if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
                   q = b% m(i_acc) / b% m(i_don)
                   r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
-                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp0 * exp_cr(-0.052_dp*q) + 1.308_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp) * exp_cr(-0.052_dp*q) + 1.308_dp)
                   !Condition to stop when star overflows L2
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
@@ -973,7 +973,8 @@
           end if
        end if
 
-       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
+       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
+         .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
          if (b% point_mass_i/=1) then
            i_don = 1
          else
