@@ -431,7 +431,7 @@
              tau_conv = 0.431_dp*pow_cr(m_env*r_env* &
                 (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,one_third) * secyer
              P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
-             f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv),b% tidal_reduction)))
+             f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv),b% tidal_reduction))
 
              k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
           else ! radiative envelope
