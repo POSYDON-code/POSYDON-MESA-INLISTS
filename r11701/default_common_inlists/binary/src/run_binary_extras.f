@@ -663,17 +663,22 @@
                 if (s% brunt_N2(i) >= 0) exit
              end do
              !write(*,*) i
-             h1 = s% net_iso(ih1)
-             Xs = s% xa(h1,1)
-             ! E2 is different for H-rich and He stars (Qin et al. 2018)
-             if (Xs < 0.4d0) then ! HeStar
-                E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot, 6.7_dp)! HeStars
-             else
-                E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot, 7.5_dp)! H-rich stars
-             !write(*,*) E2, s% r(i)
-             end if
+	     if (i == 0.0) then ! expected in a fully convective star
+	     	E2 = 1d-99
+	     else
+	     	h1 = s% net_iso(ih1)
+		Xs = s% xa(h1,1)
+	     	! E2 is different for H-rich and He stars (Qin et al. 2018)
+	     	if (Xs < 0.4d0) then ! HeStar
+		    E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot, 6.7_dp)! HeStars
+	     	else
+		    E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot, 7.5_dp)! H-rich stars
+	     	!write(*,*) E2, s% r(i)
+	     	end if
+	     end if
+	     
              if (isnan(E2)) then  !maybe this won't be used.
-                 k_div_T_posydon = 1d-20
+                 k_div_T_posydon = 1d-99
              else
                 k_div_T_posydon = sqrt(standard_cgrav*m*r_phot*r_phot/pow5(osep)/(Msun/pow3(Rsun)))
                 k_div_T_posydon = k_div_T_posydon*pow_cr(1d0+qratio,5d0/6d0)
