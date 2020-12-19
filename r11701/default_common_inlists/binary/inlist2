@@ -24,7 +24,7 @@
       !OPACITY, NETWORK, RATE, etc.
       !network
       change_net = .true.
-      new_net_name = 'approx21.net' 
+      new_net_name = 'approx21.net'
       show_net_species_info = .true.
 
       new_rotation_flag = .true.
@@ -48,7 +48,7 @@
 / ! end of star_job namelist
 
 &controls
-      zams_filename = './zams_z0.0142m2_y0.2703.data' 
+      zams_filename = './zams_z0.0142m2_y0.2703.data'
       initial_z = 1.42d-2
 
       warn_when_large_rel_run_E_err = 1d99
@@ -77,7 +77,9 @@
       write_profiles_flag = .false.
 
       !WHEN TO STOP
-      gamma_center_limit = 1.0d3 !other termination condition are in run_star/binary_extras.f
+      gamma_center_limit = 170 ! Crystallization begins ==> white dwarf
+      logQ_limit = 58d0 ! Full extent of the EOS parameter space
+      max_age = 1.4e10 ! Hubble time
 
       !PHYSICS
       which_atm_option = 'simple_photosphere'
@@ -146,6 +148,7 @@
       angsml = 0.0d0 !
 
       !MASS LOSS
+      use_other_wind=.true. ! combination of Dutch and Reimers, with Z=Zbase for the scaling
       cool_wind_full_on_T = 0.8d4
       hot_wind_full_on_T = 1.2d4
       RGB_to_AGB_wind_switch = 1.0d-4
@@ -154,6 +157,7 @@
       cool_wind_AGB_scheme = 'Blocker'
       Dutch_scaling_factor = 1.0d0
       Blocker_scaling_factor = 0.2d0
+      Reimers_scaling_factor = 0.1d0 ! Only used of mass <= 10Msun
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr
 
       !DIFFUSION
