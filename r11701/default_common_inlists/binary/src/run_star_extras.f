@@ -658,14 +658,13 @@ contains
        endif
     endif
 
-    ! MANOS: All stopping criteria are in run_binary_extras.f
+    ! MANOS: All stopping criteria are in run_binary_extras.f but we also use one here too for single star runs only
     ! define STOPPING CRITERION: stopping criterion for C burning exhaustion, massive stars.
     !if ((s% center_h1 < 1d-4) .and. (s% center_he4 < 5.0d-2) .and. (s% center_c12 < 5.0d-2)) then
-    !if ((s% center_h1 < 1d-4) .and. (s% center_he4 < 5.0d-3) .and. (s% center_c12 < 5.0d-3)) then !MANOS stricter criteria for C depletion
-    !   termination_code_str(t_xtra2) = 'Depleted carbon, terminating from run_star_extras' !MANOS: changed the termination message
-    !   s% termination_code = t_xtra2
-    !   extras_finish_step = terminate
-    !endif
+    if ((s% center_h1 < 1d-4) .and. (s% center_he4 < 1.0d-4) .and. (s% center_c12 < 1.0d-2)) then !MANOS stricter criteria for C depletion
+       write(*,'(g0)') "termination code: Single star depleted carbon, terminating from run_star_extras" !MANOS: changed the termination message
+       extras_finish_step = terminate
+    endif
 
     ! define STOPPING CRITERION: stopping criterion for TAMS, low mass stars.
     !if ((s% center_h1 < 1d-2) .and. (s% initial_mass <= 0.6d0) .and. (s% star_age > 5.0d10) )then
