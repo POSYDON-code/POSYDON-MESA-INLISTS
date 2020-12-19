@@ -24,7 +24,7 @@
       !OPACITY, NETWORK, RATE, etc.
       !network
       change_net = .true.
-      new_net_name = 'approx21.net' 
+      new_net_name = 'approx21.net'
       show_net_species_info = .true.
 
       new_rotation_flag = .true.
@@ -48,7 +48,7 @@
 / ! end of star_job namelist
 
 &controls
-      zams_filename = './zams_z0.0142m2_y0.2703.data' 
+      zams_filename = './zams_z0.0142m2_y0.2703.data'
       initial_z = 1.42d-2
 
       warn_when_large_rel_run_E_err = 1d99
@@ -146,6 +146,7 @@
       angsml = 0.0d0 !
 
       !MASS LOSS
+      use_other_wind=.true. ! combination of Dutch and Reimers, with Z=Zbase for the scaling
       cool_wind_full_on_T = 0.8d4
       hot_wind_full_on_T = 1.2d4
       RGB_to_AGB_wind_switch = 1.0d-4

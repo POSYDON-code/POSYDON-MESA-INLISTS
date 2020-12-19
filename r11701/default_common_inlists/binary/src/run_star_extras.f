@@ -28,6 +28,7 @@ module run_star_extras
 
   implicit none
 
+  real(dp) :: initial_mass
   real(dp) :: original_diffusion_dt_limit
   logical :: rot_set_check = .false.
   logical :: TP_AGB_check = .false.
@@ -47,6 +48,7 @@ contains
 
     !s% other_mlt => my_other_mlt
     s% other_am_mixing => TSF
+    s% other_wind => other_set_mdot
 
     s% extras_startup => extras_startup
     s% extras_check_model => extras_check_model
@@ -59,6 +61,7 @@ contains
   !  s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
   !  s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
     s% job% warn_run_star_extras =.false.
+
 
     original_diffusion_dt_limit = s% diffusion_dt_limit
 
@@ -89,8 +92,11 @@ contains
        TP_AGB_check=.true.
     endif
 
+    initial_mass = s% star_mass ! needed for the other_set_mdot
+    write(*,*) 'intial_mass = ', initial_mass
+
     if (s% star_mass <= 10.0d0) s% cool_wind_RGB_scheme ='Reimers'
-    
+
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
     !vct30 = 1.0d-4
     !vct100 = 1.0d-3
@@ -442,7 +448,7 @@ contains
                 m_env = m_env_new
                 Dr_env = Dr_env_new
                 Renv_middle = Renv_middle_new
-                k_div_T_posydon = k_div_T_posydon_new 
+                k_div_T_posydon = k_div_T_posydon_new
                !conv_mx_top = s% cz_top_mass(k)/s% mstar !  mass coordinate of top layer
                !conv_mx_bot = s% cz_bot_mass(k)/s% mstar
                !conv_mx_top_r = r_top ! in Rsun
@@ -804,7 +810,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          logical, parameter :: dbg = .false.
          integer, intent(out) :: n_conv_regions_posydon
          !integer :: max_num_mixing_regions
-         !max_num_mixing_regions = 100 
+         !max_num_mixing_regions = 100
          !integer, intent(out), dimension (:), allocatable :: n_zones_of_region, bot_bdy, top_bdy
          !real(dp),intent(out), dimension (:), allocatable :: cz_bot_mass_posydon, cz_bot_radius_posydon
          !real(dp),intent(out), dimension (:), allocatable :: cz_top_mass_posydon, cz_top_radius_posydon
@@ -832,7 +838,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          pot_cz_bot_radius_posydon = 0.0_dp
          pot_bot_bdy = 0.0_dp
          pot_n_zones_of_region = 0
-         
+
          in_convective_region = (s% mixing_type(nz) == convective_mixing)
          if (in_convective_region) then
             pot_cz_bot_mass_posydon = s% M_center
@@ -850,7 +856,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
                   if (pot_n_zones_of_region >= min_zones_for_convective_tides) then
                     if (n_conv_regions_posydon < max_num_mixing_regions) then
                       n_conv_regions_posydon = n_conv_regions_posydon + 1
-                    end if 
+                    end if
                     cz_top_mass_posydon(n_conv_regions_posydon) = &
                       s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
                     cz_bot_mass_posydon(n_conv_regions_posydon) = pot_cz_bot_mass_posydon
@@ -859,7 +865,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
                     top_bdy(n_conv_regions_posydon) = pot_top_bdy
                     bot_bdy(n_conv_regions_posydon) = pot_bot_bdy
                     n_zones_of_region(n_conv_regions_posydon) = pot_n_zones_of_region
-                  end if 
+                  end if
                   in_convective_region = .false.
                end if
             else
@@ -878,7 +884,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
             if (pot_n_zones_of_region >= min_zones_for_convective_tides) then
               if (n_conv_regions_posydon < max_num_mixing_regions) then
                 n_conv_regions_posydon = n_conv_regions_posydon + 1
-              end if 
+              end if
               cz_top_mass_posydon(n_conv_regions_posydon) = s% mstar
               cz_top_radius_posydon(n_conv_regions_posydon) = s% r(1)/Rsun
               top_bdy(n_conv_regions_posydon) = 1
@@ -1065,6 +1071,355 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
   end do
 
   end subroutine TSF
+
+
+
+  ! the following is a re-implementation of set_mdot in star/private/winds.f90
+    ! that uses Zbase instead of Z
+
+    subroutine other_set_mdot(id, L_phot, M_phot, R_phot, T_phot, wind, ierr)
+      use chem_def
+      use utils_lib
+      integer, intent(in) :: id
+      real(dp), intent(in) :: L_phot, M_phot, R_phot, T_phot ! photosphere values (cgs)
+      real(dp), intent(out) :: wind
+      integer, intent(out) :: ierr
+      type (star_info), pointer :: s
+      integer :: k, j, h1, he4, nz, base
+      real(dp) :: max_ejection_mass, alfa, beta, &
+           X, Y, Z, Zbase, w1, w2, T_high, T_low, L1, M1, R1, T1, &
+           center_h1, center_he4, surface_h1, surface_he4, mdot, &
+           full_off, full_on, cool_wind, hot_wind, divisor
+      character (len=strlen) :: scheme
+      logical :: using_wind_scheme_mdot
+      real(dp), parameter :: Zsolar = 0.019d0 ! for Vink et al formula
+
+      logical, parameter :: dbg = .true.
+
+      include 'formats'
+
+      ierr = 0
+      call star_ptr(id, s, ierr)
+      if(ierr/=0) return
+
+      if (dbg) write(*,1) 'enter set_mdot mass_change', s% mass_change
+
+      Zbase = s% Zbase
+
+      L1 = L_phot
+      M1 = M_phot
+      T1 = T_phot
+      R1 = R_phot
+
+      h1 = s% net_iso(ih1)
+      he4 = s% net_iso(ihe4)
+      nz = s% nz
+      wind = 0
+      using_wind_scheme_mdot = .false.
+
+      if (h1 > 0) then
+         center_h1 = s% xa(h1,nz)
+         surface_h1 = s% xa(h1,1)
+      else
+         center_h1 = 0
+         surface_h1 = 0
+      end if
+      if (he4 > 0) then
+         center_he4 = s% xa(he4,nz)
+         surface_he4 = s% xa(he4,1)
+      else
+         center_he4 = 0
+         surface_he4 = 0
+      end if
+
+      !massive stars
+      if(initial_mass >= 10._dp)then
+         scheme="Dutch"
+         call eval_wind_for_scheme(scheme,wind)
+
+      !low-mass stars
+      else
+         if(T1 < s% cool_wind_full_on_T)then
+            scheme="Reimers"
+            call eval_wind_for_scheme(scheme,wind)
+         elseif(T1 > s% hot_wind_full_on_T)then
+            scheme="Dutch"
+            call eval_wind_for_scheme(scheme,wind)
+         else
+            scheme="Reimers"
+            call eval_wind_for_scheme(scheme,cool_wind)
+
+            scheme="Dutch"
+            call eval_wind_for_scheme(scheme,hot_wind)
+
+            !now combine the contributions of hot and cool winds
+            divisor = s% hot_wind_full_on_T - s% cool_wind_full_on_T
+            beta = min( (s% hot_wind_full_on_T - T1) / divisor, 1d0)
+            alfa = 1d0 - beta
+            wind = alfa*hot_wind + beta*cool_wind
+         endif
+      endif
+
+      if (dbg) then
+         write(*,1) 'final lg s% mstar_dot/(Msun/secyer)', safe_log10_cr(wind)
+         write(*,*)
+      end if
+
+    contains
+
+      subroutine eval_wind_for_scheme(scheme,wind)
+        character(len=strlen) :: scheme
+        real(dp), intent(out) :: wind
+        include 'formats'
+
+        wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
+        if (dbg) write(*,1) 'wind', wind
+        if (wind <= 0 .or. is_bad_num(wind)) then
+           ierr = -1
+           write(*,*) 'bad value for wind :', wind,L1,R1,M1
+           if (dbg) stop 'debug: bad value for wind'
+           if (s% stop_for_bad_nums) stop 'winds'
+           return
+        end if
+        X = surface_h1
+        Y = surface_he4
+        Z = Zbase ! previously 1-(X+Y)
+
+        if(dbg) write(*,*) 'XYZ=', X, Y, Z
+
+        if (scheme == 'Dutch') then
+           T_high = 11000
+           T_low = 10000
+           if (s% Dutch_scaling_factor == 0) then
+              wind = 0
+           else if (T1 <= T_low) then
+              call eval_lowT_Dutch(wind)
+           else if (T1 >= T_high) then
+              call eval_highT_Dutch(wind)
+           else ! transition
+              call eval_lowT_Dutch(w1)
+              call eval_highT_Dutch(w2)
+              alfa = (T1 - T_low)/(T_high - T_low)
+              wind = (1-alfa)*w1 + alfa*w2
+           end if
+           wind = s% Dutch_scaling_factor * wind
+        else if (scheme == 'Reimers') then
+           wind = wind * s% Reimers_scaling_factor
+           if (dbg) then
+              write(*,1) 's% Reimers_scaling_factor', s% Reimers_scaling_factor
+              write(*,1) 'Reimers_wind', wind
+              write(*,1) 'L1/Lsun', L1/Lsun
+              write(*,1) 'R1/Rsun', R1/Rsun
+              write(*,1) 'M1/Msun', M1/Msun
+              write(*,1) 'Reimers_scaling_factorReimers_scaling_factor', s% Reimers_scaling_factor
+              write(*,1) 'wind', wind
+              write(*,1) 'log10 wind', log10_cr(wind)
+              write(*,*)
+              stop 'debug: winds'
+           end if
+        else if (scheme == 'Vink') then
+           call eval_Vink_wind(wind)
+           wind = wind * s% Vink_scaling_factor
+           if (dbg) write(*,1) 'Vink_wind', wind
+        else if (scheme == 'Grafener') then
+           call eval_Grafener_wind(wind)
+           wind = wind * s% Grafener_scaling_factor
+           if (dbg) write(*,1) 'Grafener_wind', wind
+        else if (scheme == 'Blocker') then
+           call eval_blocker_wind(wind)
+           if (dbg) write(*,1) 'Blocker_wind', wind
+        else if (scheme == 'de Jager') then
+           call eval_de_Jager_wind(wind)
+           wind = s% de_Jager_scaling_factor * wind
+           if (dbg) write(*,1) 'de_Jager_wind', wind
+        else if (scheme == 'van Loon') then
+           call eval_van_Loon_wind(wind)
+           wind = s% van_Loon_scaling_factor * wind
+           if (dbg) write(*,1) 'van_Loon_wind', wind
+        else if (scheme == 'Nieuwenhuijzen') then
+           call eval_Nieuwenhuijzen_wind(wind)
+           wind = s% Nieuwenhuijzen_scaling_factor * wind
+           if (dbg) write(*,1) 'Nieuwenhuijzen_wind', wind
+        else
+           ierr = -1
+           write(*,*) 'unknown name for wind scheme : ' // trim(scheme)
+           if (dbg) stop 'debug: bad value for wind scheme'
+           return
+        end if
+
+      end subroutine eval_wind_for_scheme
+
+
+      subroutine eval_Vink_wind(w)
+        real(dp), intent(inout) :: w
+        real(dp) :: alfa, w1, w2, Teff_jump, logMdot, dT, vinf_div_vesc
+
+        ! alfa = 1 for hot side, = 0 for cool side
+        if (T1 > 27500d0) then
+           alfa = 1
+        else if (T1 < 22500d0) then
+           alfa = 0
+        else ! use Vink et al 2001, eqns 14 and 15 to set "jump" temperature
+           Teff_jump = 1d3*(61.2d0 + 2.59d0*(-13.636d0 + 0.889d0*log10_cr(Z/Zsolar)))
+           dT = 100d0
+           if (T1 > Teff_jump + dT) then
+              alfa = 1
+           else if (T1 < Teff_jump - dT) then
+              alfa = 0
+           else
+              alfa = (T1 - (Teff_jump - dT)) / (2*dT)
+           end if
+        end if
+
+
+        if(dbg) write(*,*) 'vink alfa = ', alfa, T1
+
+        if (alfa > 0) then ! eval hot side wind (eqn 24)
+           vinf_div_vesc = 2.6d0 ! this is the hot side galactic value
+           vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
+           logMdot = &
+                - 6.697d0 &
+                + 2.194d0*log10_cr(L1/Lsun/1d5) &
+                - 1.313d0*log10_cr(M1/Msun/30) &
+                - 1.226d0*log10_cr(vinf_div_vesc/2d0) &
+                + 0.933d0*log10_cr(T1/4d4) &
+                - 10.92d0*pow2(log10_cr(T1/4d4)) &
+                + 0.85d0*log10_cr(Z/Zsolar)
+           w1 = exp10_cr(logMdot)
+        else
+           w1 = 0
+        end if
+
+        if (alfa < 1) then ! eval cool side wind (eqn 25)
+           vinf_div_vesc = 1.3d0 ! this is the cool side galactic value
+           vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
+           logMdot = &
+                - 6.688d0 &
+                + 2.210d0*log10_cr(L1/Lsun/1d5) &
+                - 1.339d0*log10_cr(M1/Msun/30) &
+                - 1.601d0*log10_cr(vinf_div_vesc/2d0) &
+                + 1.07d0*log10_cr(T1/2d4) &
+                + 0.85d0*log10_cr(Z/Zsolar)
+           w2 = exp10_cr(logMdot)
+        else
+           w2 = 0
+        end if
+
+        w = alfa*w1 + (1 - alfa)*w2
+
+        if (dbg) write(*,*) 'vink wind', w
+
+      end subroutine eval_Vink_wind
+
+
+      subroutine eval_Grafener_wind(w)
+        ! Grafener, G. & Hamann, W.-R. 2008, A&A 482, 945
+        ! routine contributed by Nilou Afsari
+        real(dp), intent(inout) :: w
+        real(dp) :: w1, logMdot, gamma_edd, xsurf, beta, gammazero, lgZ
+        xsurf = surface_h1
+        gamma_edd = exp10_cr(-4.813d0)*(1+xsurf)*(L1/Lsun)*(Msun/M1)
+        lgZ = log10_cr(Z/Zsolar)
+        beta = 1.727d0 + 0.250d0*lgZ
+        gammazero = 0.326d0 - 0.301d0*lgZ - 0.045d0*lgZ*lgZ
+        logMdot = &
+             + 10.046d0 &
+             + beta*log10_cr(gamma_edd - gammazero) &
+             - 3.5d0*log10_cr(T1) &
+             + 0.42d0*log10_cr(L1/Lsun) &
+             - 0.45d0*xsurf
+        w = exp10_cr(logMdot)
+        if (dbg) write(*,*) 'grafener wind', w
+      end subroutine eval_Grafener_wind
+
+
+      subroutine eval_blocker_wind(w)
+        real(dp), intent(inout) :: w
+        w = w * s% Blocker_scaling_factor * &
+             4.83d-9 * pow_cr(M1/Msun,-2.1d0) * pow_cr(L1/Lsun,2.7d0)
+        if (dbg) write(*,*) 'blocker wind', w
+      end subroutine eval_blocker_wind
+
+
+      subroutine eval_highT_Dutch(w)
+        real(dp), intent(out) :: w
+        include 'formats'
+        if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
+           w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Z)
+           if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
+        else
+           call eval_Vink_wind(w)
+        end if
+      end subroutine eval_highT_Dutch
+
+
+      subroutine eval_lowT_Dutch(w)
+        real(dp), intent(out) :: w
+        include 'formats'
+        if (s% Dutch_wind_lowT_scheme == 'de Jager') then
+           call eval_de_Jager_wind(w)
+           if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
+        else if (s% Dutch_wind_lowT_scheme == 'van Loon') then
+           call eval_van_Loon_wind(w)
+           if (dbg) write(*,1) 'Dutch_wind = van Loon', safe_log10_cr(wind), T1, T_low, T_high
+        else if (s% Dutch_wind_lowT_scheme == 'Nieuwenhuijzen') then
+           call eval_Nieuwenhuijzen_wind(w)
+           if (dbg) write(*,1) 'Dutch_wind = Nieuwenhuijzen', safe_log10_cr(wind), T1, T_low, T_high
+        else
+           write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
+                trim(s% Dutch_wind_lowT_scheme)
+           w = 0
+        end if
+      end subroutine eval_lowT_Dutch
+
+
+      subroutine eval_de_Jager_wind(w)
+        ! de Jager, C., Nieuwenhuijzen, H., & van der Hucht, K. A. 1988, A&AS, 72, 259.
+        real(dp), intent(out) :: w
+        real(dp) :: log10w
+        include 'formats'
+        log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0
+        w = exp10_cr(log10w)
+        if (dbg) then
+           write(*,1) 'de_Jager log10 wind', log10w
+        end if
+      end subroutine eval_de_Jager_wind
+
+
+      subroutine eval_van_Loon_wind(w)
+        ! van Loon et al. 2005, A&A, 438, 273
+        real(dp), intent(out) :: w
+        real(dp) :: log10w
+        include 'formats'
+        log10w = -5.65d0 + 1.05*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)
+        w = exp10_cr(log10w)
+      end subroutine eval_van_Loon_wind
+
+
+      subroutine eval_Nieuwenhuijzen_wind(w)
+        ! Nieuwenhuijzen, H.; de Jager, C. 1990, A&A, 231, 134 (eqn 2)
+        real(dp), intent(out) :: w
+        real(dp) :: log10w
+        include 'formats'
+        log10w = -14.02d0 + &
+             1.24d0*log10_cr(L1/Lsun) + &
+             0.16d0*log10_cr(M1/Msun) + &
+             0.81d0*log10_cr(R1/Rsun)
+        w = exp10_cr(log10w)
+        if (dbg) then
+           write(*,1) 'Nieuwenhuijzen log10 wind', log10w
+        end if
+      end subroutine eval_Nieuwenhuijzen_wind
+
+    end subroutine other_set_mdot
+
+
+
+
+
+
+
+
 
   real(dp) function diffmag(rho,T,abar,zbar,ierr)
 
