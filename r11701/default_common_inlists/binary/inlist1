@@ -81,7 +81,6 @@
       logQ_limit = 58d0 ! Full extent of the EOS parameter space
       max_age = 1.4e10 ! Hubble time
 
-
       !PHYSICS
       which_atm_option = 'simple_photosphere'
       which_atm_off_table_option = 'simple_photosphere'

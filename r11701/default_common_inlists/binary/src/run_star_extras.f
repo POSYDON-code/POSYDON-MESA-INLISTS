@@ -28,7 +28,6 @@ module run_star_extras
 
   implicit none
 
-  real(dp) :: initial_mass
   real(dp) :: original_diffusion_dt_limit
   logical :: rot_set_check = .false.
   logical :: TP_AGB_check = .false.
@@ -92,8 +91,6 @@ contains
        TP_AGB_check=.true.
     endif
 
-    initial_mass = s% star_mass ! needed for the other_set_mdot
-    write(*,*) 'intial_mass = ', initial_mass
 
     if (s% star_mass <= 10.0d0) s% cool_wind_RGB_scheme ='Reimers'
 
@@ -1132,7 +1129,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       end if
 
       !massive stars
-      if(initial_mass >= 10._dp)then
+      if(s% initial_mass >= 10._dp)then
          scheme="Dutch"
          call eval_wind_for_scheme(scheme,wind)
 
