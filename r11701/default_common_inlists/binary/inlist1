@@ -152,12 +152,13 @@
       cool_wind_full_on_T = 0.8d4
       hot_wind_full_on_T = 1.2d4
       RGB_to_AGB_wind_switch = 1.0d-4
-      hot_wind_scheme = 'Dutch'
-      cool_wind_RGB_scheme ='Dutch'
-      cool_wind_AGB_scheme = 'Blocker'
+      hot_wind_scheme = 'Dutch' ! hot of all stars
+      cool_wind_RGB_scheme ='Dutch'  ! cool of high mass stars (Minit>10Msun),
+           !it gets replaced in run_star_extras by 'Reimers' for cool low mass stars
+      cool_wind_AGB_scheme = 'Blocker' ! cool for low mass stars in AGB
       Dutch_scaling_factor = 1.0d0
       Blocker_scaling_factor = 0.2d0
-      Reimers_scaling_factor = 0.1d0 ! Only used of mass <= 10Msun
+      Reimers_scaling_factor = 0.1d0
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr
 
       !DIFFUSION
