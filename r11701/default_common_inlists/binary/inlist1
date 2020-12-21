@@ -206,4 +206,8 @@
 
       delta_lgT_cntr_limit = 0.1d0
       delta_lgT_cntr_hard_limit = -1
+
+      ! for single stars stars, the control below needs to be true, so that the carbon exhaustion check happens in run_star_extras.f
+      x_logical_ctrl(1) = .false.
+
 / ! end of controls namelist
