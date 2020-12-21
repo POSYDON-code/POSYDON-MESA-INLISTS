@@ -1071,343 +1071,344 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
 
   ! the following is a re-implementation of set_mdot in star/private/winds.f90
-    ! that uses Zbase instead of Z
+  ! that uses Zbase instead of Z
 
-    subroutine other_set_mdot(id, L_phot, M_phot, R_phot, T_phot, wind, ierr)
-      use chem_def
-      use utils_lib
-      integer, intent(in) :: id
-      real(dp), intent(in) :: L_phot, M_phot, R_phot, T_phot ! photosphere values (cgs)
+  subroutine other_set_mdot(id, L_phot, M_phot, R_phot, T_phot, wind, ierr)
+    use chem_def
+    use utils_lib
+    integer, intent(in) :: id
+    real(dp), intent(in) :: L_phot, M_phot, R_phot, T_phot ! photosphere values (cgs)
+    real(dp), intent(out) :: wind
+    integer, intent(out) :: ierr
+    type (star_info), pointer :: s
+    integer :: k, j, h1, he4, nz, base
+    real(dp) :: max_ejection_mass, alfa, beta, &
+         X, Y, Z, Zbase, w1, w2, T_high, T_low, L1, M1, R1, T1, &
+         center_h1, center_he4, surface_h1, surface_he4, mdot, &
+         full_off, full_on, cool_wind, hot_wind, divisor
+    character (len=strlen) :: scheme
+    logical :: using_wind_scheme_mdot
+    real(dp), parameter :: Zsolar = 0.019d0 ! for Vink et al formula
+
+    logical, parameter :: dbg = .true.
+
+    include 'formats'
+
+    ierr = 0
+    call star_ptr(id, s, ierr)
+    if(ierr/=0) return
+
+    Zbase = s% Zbase
+
+    L1 = L_phot
+    M1 = M_phot
+    T1 = T_phot
+    R1 = R_phot
+
+    h1 = s% net_iso(ih1)
+    he4 = s% net_iso(ihe4)
+    nz = s% nz
+    wind = 0
+    using_wind_scheme_mdot = .false.
+
+    if (h1 > 0) then
+       center_h1 = s% xa(h1,nz)
+       surface_h1 = s% xa(h1,1)
+    else
+       center_h1 = 0
+       surface_h1 = 0
+    end if
+    if (he4 > 0) then
+       center_he4 = s% xa(he4,nz)
+       surface_he4 = s% xa(he4,1)
+    else
+       center_he4 = 0
+       surface_he4 = 0
+    end if
+
+    !massive stars
+    if(s% initial_mass >= 10._dp)then
+       scheme = s% hot_wind_scheme
+       call eval_wind_for_scheme(scheme,wind)
+       if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
+
+    !low-mass stars
+    else
+       if(T1 <= s% hot_wind_full_on_T)then
+          !evaluate cool wind
+          !RGB/AGB switch goes here
+          if (center_h1 < 0.01d0 .and. center_he4 < s% RGB_to_AGB_wind_switch) then
+             scheme = s% cool_wind_AGB_scheme
+             if (dbg) &
+                  write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
+                  center_h1, center_he4, s% RGB_to_AGB_wind_switch
+
+          else
+             scheme= s% cool_wind_RGB_scheme
+             if (dbg) write(*,*) 'using cool_wind_RGB_scheme: "' // trim(scheme) // '"'
+
+          endif
+          call eval_wind_for_scheme(scheme, cool_wind)
+       elseif(T1 >= s% cool_wind_full_on_T)then
+          !evaluate hot wind
+          scheme="Dutch"
+          call eval_wind_for_scheme(scheme, hot_wind)
+          if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
+
+       endif
+
+       !now we have both hot and cool wind
+
+       if(T1 < s% cool_wind_full_on_T) then
+          wind = cool_wind
+
+       elseif(T1 > s% hot_wind_full_on_T) then
+          wind = hot_wind
+
+       else
+          !now combine the contributions of hot and cool winds
+          divisor = s% hot_wind_full_on_T - s% cool_wind_full_on_T
+          beta = min( (s% hot_wind_full_on_T - T1) / divisor, 1d0)
+          alfa = 1d0 - beta
+          wind = alfa*hot_wind + beta*cool_wind
+       endif
+    endif
+
+  contains
+
+    subroutine eval_wind_for_scheme(scheme,wind)
+      character(len=strlen) :: scheme
       real(dp), intent(out) :: wind
-      integer, intent(out) :: ierr
-      type (star_info), pointer :: s
-      integer :: k, j, h1, he4, nz, base
-      real(dp) :: max_ejection_mass, alfa, beta, &
-           X, Y, Z, Zbase, w1, w2, T_high, T_low, L1, M1, R1, T1, &
-           center_h1, center_he4, surface_h1, surface_he4, mdot, &
-           full_off, full_on, cool_wind, hot_wind, divisor
-      character (len=strlen) :: scheme
-      logical :: using_wind_scheme_mdot
-      real(dp), parameter :: Zsolar = 0.019d0 ! for Vink et al formula
-
-      logical, parameter :: dbg = .true.
-
       include 'formats'
 
-      ierr = 0
-      call star_ptr(id, s, ierr)
-      if(ierr/=0) return
-
-      if (dbg) write(*,1) 'enter set_mdot mass_change', s% mass_change
-
-      Zbase = s% Zbase
-
-      L1 = L_phot
-      M1 = M_phot
-      T1 = T_phot
-      R1 = R_phot
-
-      h1 = s% net_iso(ih1)
-      he4 = s% net_iso(ihe4)
-      nz = s% nz
-      wind = 0
-      using_wind_scheme_mdot = .false.
-
-      if (h1 > 0) then
-         center_h1 = s% xa(h1,nz)
-         surface_h1 = s% xa(h1,1)
-      else
-         center_h1 = 0
-         surface_h1 = 0
+      wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
+      if (dbg) write(*,1) 'wind', wind
+      if (wind <= 0 .or. is_bad_num(wind)) then
+         ierr = -1
+         write(*,*) 'bad value for wind :', wind,L1,R1,M1
+         if (dbg) stop 'debug: bad value for wind'
+         if (s% stop_for_bad_nums) stop 'winds'
+         return
       end if
-      if (he4 > 0) then
-         center_he4 = s% xa(he4,nz)
-         surface_he4 = s% xa(he4,1)
+      X = surface_h1
+      Y = surface_he4
+      Z = Zbase ! previously 1-(X+Y)
+
+      if (scheme == 'Dutch') then
+         T_high = 11000
+         T_low = 10000
+         if (s% Dutch_scaling_factor == 0) then
+            wind = 0
+         else if (T1 <= T_low) then
+            call eval_lowT_Dutch(wind)
+         else if (T1 >= T_high) then
+            call eval_highT_Dutch(wind)
+         else ! transition
+            call eval_lowT_Dutch(w1)
+            call eval_highT_Dutch(w2)
+            alfa = (T1 - T_low)/(T_high - T_low)
+            wind = (1-alfa)*w1 + alfa*w2
+         end if
+         wind = s% Dutch_scaling_factor * wind
+         if(dbg) write(*,1) 'Dutch_wind', wind
+      else if (scheme == 'Reimers') then
+         wind = wind * s% Reimers_scaling_factor
+         if(dbg) write(*,1) 'Reimers_wind', wind
+      else if (scheme == 'Vink') then
+         call eval_Vink_wind(wind)
+         wind = wind * s% Vink_scaling_factor
+         if (dbg) write(*,1) 'Vink_wind', wind
+      else if (scheme == 'Grafener') then
+         call eval_Grafener_wind(wind)
+         wind = wind * s% Grafener_scaling_factor
+         if (dbg) write(*,1) 'Grafener_wind', wind
+      else if (scheme == 'Blocker') then
+         call eval_blocker_wind(wind)
+         if (dbg) write(*,1) 'Blocker_wind', wind
+      else if (scheme == 'de Jager') then
+         call eval_de_Jager_wind(wind)
+         wind = s% de_Jager_scaling_factor * wind
+         if (dbg) write(*,1) 'de_Jager_wind', wind
+      else if (scheme == 'van Loon') then
+         call eval_van_Loon_wind(wind)
+         wind = s% van_Loon_scaling_factor * wind
+         if (dbg) write(*,1) 'van_Loon_wind', wind
+      else if (scheme == 'Nieuwenhuijzen') then
+         call eval_Nieuwenhuijzen_wind(wind)
+         wind = s% Nieuwenhuijzen_scaling_factor * wind
+         if (dbg) write(*,1) 'Nieuwenhuijzen_wind', wind
       else
-         center_he4 = 0
-         surface_he4 = 0
+         ierr = -1
+         write(*,*) 'unknown name for wind scheme : ' // trim(scheme)
+         if (dbg) stop 'debug: bad value for wind scheme'
+         return
       end if
 
-      !massive stars
-      if(s% initial_mass >= 10._dp)then
-         scheme="Dutch"
-         call eval_wind_for_scheme(scheme,wind)
+    end subroutine eval_wind_for_scheme
 
-      !low-mass stars
-      else
-         if(T1 < s% cool_wind_full_on_T)then
-            scheme="Reimers"
-            call eval_wind_for_scheme(scheme,wind)
-         elseif(T1 > s% hot_wind_full_on_T)then
-            scheme="Dutch"
-            call eval_wind_for_scheme(scheme,wind)
+
+    subroutine eval_Vink_wind(w)
+      real(dp), intent(inout) :: w
+      real(dp) :: alfa, w1, w2, Teff_jump, logMdot, dT, vinf_div_vesc
+
+      ! alfa = 1 for hot side, = 0 for cool side
+      if (T1 > 27500d0) then
+         alfa = 1
+      else if (T1 < 22500d0) then
+         alfa = 0
+      else ! use Vink et al 2001, eqns 14 and 15 to set "jump" temperature
+         Teff_jump = 1d3*(61.2d0 + 2.59d0*(-13.636d0 + 0.889d0*log10_cr(Z/Zsolar)))
+         dT = 100d0
+         if (T1 > Teff_jump + dT) then
+            alfa = 1
+         else if (T1 < Teff_jump - dT) then
+            alfa = 0
          else
-            scheme="Reimers"
-            call eval_wind_for_scheme(scheme,cool_wind)
-
-            scheme="Dutch"
-            call eval_wind_for_scheme(scheme,hot_wind)
-
-            !now combine the contributions of hot and cool winds
-            divisor = s% hot_wind_full_on_T - s% cool_wind_full_on_T
-            beta = min( (s% hot_wind_full_on_T - T1) / divisor, 1d0)
-            alfa = 1d0 - beta
-            wind = alfa*hot_wind + beta*cool_wind
-         endif
-      endif
-
-      if (dbg) then
-         write(*,1) 'final lg s% mstar_dot/(Msun/secyer)', safe_log10_cr(wind)
-         write(*,*)
+            alfa = (T1 - (Teff_jump - dT)) / (2*dT)
+         end if
       end if
 
-    contains
 
-      subroutine eval_wind_for_scheme(scheme,wind)
-        character(len=strlen) :: scheme
-        real(dp), intent(out) :: wind
-        include 'formats'
+      if(dbg) write(*,*) 'vink alfa = ', alfa, T1
 
-        wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
-        if (dbg) write(*,1) 'wind', wind
-        if (wind <= 0 .or. is_bad_num(wind)) then
-           ierr = -1
-           write(*,*) 'bad value for wind :', wind,L1,R1,M1
-           if (dbg) stop 'debug: bad value for wind'
-           if (s% stop_for_bad_nums) stop 'winds'
-           return
-        end if
-        X = surface_h1
-        Y = surface_he4
-        Z = Zbase ! previously 1-(X+Y)
+      if (alfa > 0) then ! eval hot side wind (eqn 24)
+         vinf_div_vesc = 2.6d0 ! this is the hot side galactic value
+         vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
+         logMdot = &
+              - 6.697d0 &
+              + 2.194d0*log10_cr(L1/Lsun/1d5) &
+              - 1.313d0*log10_cr(M1/Msun/30) &
+              - 1.226d0*log10_cr(vinf_div_vesc/2d0) &
+              + 0.933d0*log10_cr(T1/4d4) &
+              - 10.92d0*pow2(log10_cr(T1/4d4)) &
+              + 0.85d0*log10_cr(Z/Zsolar)
+         w1 = exp10_cr(logMdot)
+      else
+         w1 = 0
+      end if
 
-        if(dbg) write(*,*) 'XYZ=', X, Y, Z
+      if (alfa < 1) then ! eval cool side wind (eqn 25)
+         vinf_div_vesc = 1.3d0 ! this is the cool side galactic value
+         vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
+         logMdot = &
+              - 6.688d0 &
+              + 2.210d0*log10_cr(L1/Lsun/1d5) &
+              - 1.339d0*log10_cr(M1/Msun/30) &
+              - 1.601d0*log10_cr(vinf_div_vesc/2d0) &
+              + 1.07d0*log10_cr(T1/2d4) &
+              + 0.85d0*log10_cr(Z/Zsolar)
+         w2 = exp10_cr(logMdot)
+      else
+         w2 = 0
+      end if
 
-        if (scheme == 'Dutch') then
-           T_high = 11000
-           T_low = 10000
-           if (s% Dutch_scaling_factor == 0) then
-              wind = 0
-           else if (T1 <= T_low) then
-              call eval_lowT_Dutch(wind)
-           else if (T1 >= T_high) then
-              call eval_highT_Dutch(wind)
-           else ! transition
-              call eval_lowT_Dutch(w1)
-              call eval_highT_Dutch(w2)
-              alfa = (T1 - T_low)/(T_high - T_low)
-              wind = (1-alfa)*w1 + alfa*w2
-           end if
-           wind = s% Dutch_scaling_factor * wind
-        else if (scheme == 'Reimers') then
-           wind = wind * s% Reimers_scaling_factor
-           if (dbg) then
-              write(*,1) 's% Reimers_scaling_factor', s% Reimers_scaling_factor
-              write(*,1) 'Reimers_wind', wind
-              write(*,1) 'L1/Lsun', L1/Lsun
-              write(*,1) 'R1/Rsun', R1/Rsun
-              write(*,1) 'M1/Msun', M1/Msun
-              write(*,1) 'Reimers_scaling_factorReimers_scaling_factor', s% Reimers_scaling_factor
-              write(*,1) 'wind', wind
-              write(*,1) 'log10 wind', log10_cr(wind)
-              write(*,*)
-              stop 'debug: winds'
-           end if
-        else if (scheme == 'Vink') then
-           call eval_Vink_wind(wind)
-           wind = wind * s% Vink_scaling_factor
-           if (dbg) write(*,1) 'Vink_wind', wind
-        else if (scheme == 'Grafener') then
-           call eval_Grafener_wind(wind)
-           wind = wind * s% Grafener_scaling_factor
-           if (dbg) write(*,1) 'Grafener_wind', wind
-        else if (scheme == 'Blocker') then
-           call eval_blocker_wind(wind)
-           if (dbg) write(*,1) 'Blocker_wind', wind
-        else if (scheme == 'de Jager') then
-           call eval_de_Jager_wind(wind)
-           wind = s% de_Jager_scaling_factor * wind
-           if (dbg) write(*,1) 'de_Jager_wind', wind
-        else if (scheme == 'van Loon') then
-           call eval_van_Loon_wind(wind)
-           wind = s% van_Loon_scaling_factor * wind
-           if (dbg) write(*,1) 'van_Loon_wind', wind
-        else if (scheme == 'Nieuwenhuijzen') then
-           call eval_Nieuwenhuijzen_wind(wind)
-           wind = s% Nieuwenhuijzen_scaling_factor * wind
-           if (dbg) write(*,1) 'Nieuwenhuijzen_wind', wind
-        else
-           ierr = -1
-           write(*,*) 'unknown name for wind scheme : ' // trim(scheme)
-           if (dbg) stop 'debug: bad value for wind scheme'
-           return
-        end if
+      w = alfa*w1 + (1 - alfa)*w2
 
-      end subroutine eval_wind_for_scheme
+      if (dbg) write(*,*) 'vink wind', w
+
+    end subroutine eval_Vink_wind
 
 
-      subroutine eval_Vink_wind(w)
-        real(dp), intent(inout) :: w
-        real(dp) :: alfa, w1, w2, Teff_jump, logMdot, dT, vinf_div_vesc
-
-        ! alfa = 1 for hot side, = 0 for cool side
-        if (T1 > 27500d0) then
-           alfa = 1
-        else if (T1 < 22500d0) then
-           alfa = 0
-        else ! use Vink et al 2001, eqns 14 and 15 to set "jump" temperature
-           Teff_jump = 1d3*(61.2d0 + 2.59d0*(-13.636d0 + 0.889d0*log10_cr(Z/Zsolar)))
-           dT = 100d0
-           if (T1 > Teff_jump + dT) then
-              alfa = 1
-           else if (T1 < Teff_jump - dT) then
-              alfa = 0
-           else
-              alfa = (T1 - (Teff_jump - dT)) / (2*dT)
-           end if
-        end if
-
-
-        if(dbg) write(*,*) 'vink alfa = ', alfa, T1
-
-        if (alfa > 0) then ! eval hot side wind (eqn 24)
-           vinf_div_vesc = 2.6d0 ! this is the hot side galactic value
-           vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
-           logMdot = &
-                - 6.697d0 &
-                + 2.194d0*log10_cr(L1/Lsun/1d5) &
-                - 1.313d0*log10_cr(M1/Msun/30) &
-                - 1.226d0*log10_cr(vinf_div_vesc/2d0) &
-                + 0.933d0*log10_cr(T1/4d4) &
-                - 10.92d0*pow2(log10_cr(T1/4d4)) &
-                + 0.85d0*log10_cr(Z/Zsolar)
-           w1 = exp10_cr(logMdot)
-        else
-           w1 = 0
-        end if
-
-        if (alfa < 1) then ! eval cool side wind (eqn 25)
-           vinf_div_vesc = 1.3d0 ! this is the cool side galactic value
-           vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
-           logMdot = &
-                - 6.688d0 &
-                + 2.210d0*log10_cr(L1/Lsun/1d5) &
-                - 1.339d0*log10_cr(M1/Msun/30) &
-                - 1.601d0*log10_cr(vinf_div_vesc/2d0) &
-                + 1.07d0*log10_cr(T1/2d4) &
-                + 0.85d0*log10_cr(Z/Zsolar)
-           w2 = exp10_cr(logMdot)
-        else
-           w2 = 0
-        end if
-
-        w = alfa*w1 + (1 - alfa)*w2
-
-        if (dbg) write(*,*) 'vink wind', w
-
-      end subroutine eval_Vink_wind
+    subroutine eval_Grafener_wind(w)
+      ! Grafener, G. & Hamann, W.-R. 2008, A&A 482, 945
+      ! routine contributed by Nilou Afsari
+      real(dp), intent(inout) :: w
+      real(dp) :: w1, logMdot, gamma_edd, xsurf, beta, gammazero, lgZ
+      xsurf = surface_h1
+      gamma_edd = exp10_cr(-4.813d0)*(1+xsurf)*(L1/Lsun)*(Msun/M1)
+      lgZ = log10_cr(Z/Zsolar)
+      beta = 1.727d0 + 0.250d0*lgZ
+      gammazero = 0.326d0 - 0.301d0*lgZ - 0.045d0*lgZ*lgZ
+      logMdot = &
+           + 10.046d0 &
+           + beta*log10_cr(gamma_edd - gammazero) &
+           - 3.5d0*log10_cr(T1) &
+           + 0.42d0*log10_cr(L1/Lsun) &
+           - 0.45d0*xsurf
+      w = exp10_cr(logMdot)
+      if (dbg) write(*,*) 'grafener wind', w
+    end subroutine eval_Grafener_wind
 
 
-      subroutine eval_Grafener_wind(w)
-        ! Grafener, G. & Hamann, W.-R. 2008, A&A 482, 945
-        ! routine contributed by Nilou Afsari
-        real(dp), intent(inout) :: w
-        real(dp) :: w1, logMdot, gamma_edd, xsurf, beta, gammazero, lgZ
-        xsurf = surface_h1
-        gamma_edd = exp10_cr(-4.813d0)*(1+xsurf)*(L1/Lsun)*(Msun/M1)
-        lgZ = log10_cr(Z/Zsolar)
-        beta = 1.727d0 + 0.250d0*lgZ
-        gammazero = 0.326d0 - 0.301d0*lgZ - 0.045d0*lgZ*lgZ
-        logMdot = &
-             + 10.046d0 &
-             + beta*log10_cr(gamma_edd - gammazero) &
-             - 3.5d0*log10_cr(T1) &
-             + 0.42d0*log10_cr(L1/Lsun) &
-             - 0.45d0*xsurf
-        w = exp10_cr(logMdot)
-        if (dbg) write(*,*) 'grafener wind', w
-      end subroutine eval_Grafener_wind
+    subroutine eval_blocker_wind(w)
+      real(dp), intent(inout) :: w
+      w = w * s% Blocker_scaling_factor * &
+           4.83d-9 * pow_cr(M1/Msun,-2.1d0) * pow_cr(L1/Lsun,2.7d0)
+      if (dbg) write(*,*) 'blocker wind', w
+    end subroutine eval_blocker_wind
 
 
-      subroutine eval_blocker_wind(w)
-        real(dp), intent(inout) :: w
-        w = w * s% Blocker_scaling_factor * &
-             4.83d-9 * pow_cr(M1/Msun,-2.1d0) * pow_cr(L1/Lsun,2.7d0)
-        if (dbg) write(*,*) 'blocker wind', w
-      end subroutine eval_blocker_wind
+    subroutine eval_highT_Dutch(w)
+      real(dp), intent(out) :: w
+      include 'formats'
+      if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
+         w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Z)
+         if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
+      else
+         call eval_Vink_wind(w)
+      end if
+    end subroutine eval_highT_Dutch
 
 
-      subroutine eval_highT_Dutch(w)
-        real(dp), intent(out) :: w
-        include 'formats'
-        if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
-           w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Z)
-           if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
-        else
-           call eval_Vink_wind(w)
-        end if
-      end subroutine eval_highT_Dutch
+    subroutine eval_lowT_Dutch(w)
+      real(dp), intent(out) :: w
+      include 'formats'
+      if (s% Dutch_wind_lowT_scheme == 'de Jager') then
+         call eval_de_Jager_wind(w)
+         if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
+      else if (s% Dutch_wind_lowT_scheme == 'van Loon') then
+         call eval_van_Loon_wind(w)
+         if (dbg) write(*,1) 'Dutch_wind = van Loon', safe_log10_cr(wind), T1, T_low, T_high
+      else if (s% Dutch_wind_lowT_scheme == 'Nieuwenhuijzen') then
+         call eval_Nieuwenhuijzen_wind(w)
+         if (dbg) write(*,1) 'Dutch_wind = Nieuwenhuijzen', safe_log10_cr(wind), T1, T_low, T_high
+      else
+         write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
+              trim(s% Dutch_wind_lowT_scheme)
+         w = 0
+      end if
+    end subroutine eval_lowT_Dutch
 
 
-      subroutine eval_lowT_Dutch(w)
-        real(dp), intent(out) :: w
-        include 'formats'
-        if (s% Dutch_wind_lowT_scheme == 'de Jager') then
-           call eval_de_Jager_wind(w)
-           if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
-        else if (s% Dutch_wind_lowT_scheme == 'van Loon') then
-           call eval_van_Loon_wind(w)
-           if (dbg) write(*,1) 'Dutch_wind = van Loon', safe_log10_cr(wind), T1, T_low, T_high
-        else if (s% Dutch_wind_lowT_scheme == 'Nieuwenhuijzen') then
-           call eval_Nieuwenhuijzen_wind(w)
-           if (dbg) write(*,1) 'Dutch_wind = Nieuwenhuijzen', safe_log10_cr(wind), T1, T_low, T_high
-        else
-           write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
-                trim(s% Dutch_wind_lowT_scheme)
-           w = 0
-        end if
-      end subroutine eval_lowT_Dutch
+    subroutine eval_de_Jager_wind(w)
+      ! de Jager, C., Nieuwenhuijzen, H., & van der Hucht, K. A. 1988, A&AS, 72, 259.
+      real(dp), intent(out) :: w
+      real(dp) :: log10w
+      include 'formats'
+      log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0
+      w = exp10_cr(log10w)
+      if (dbg) then
+         write(*,1) 'de_Jager log10 wind', log10w
+      end if
+    end subroutine eval_de_Jager_wind
 
 
-      subroutine eval_de_Jager_wind(w)
-        ! de Jager, C., Nieuwenhuijzen, H., & van der Hucht, K. A. 1988, A&AS, 72, 259.
-        real(dp), intent(out) :: w
-        real(dp) :: log10w
-        include 'formats'
-        log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0
-        w = exp10_cr(log10w)
-        if (dbg) then
-           write(*,1) 'de_Jager log10 wind', log10w
-        end if
-      end subroutine eval_de_Jager_wind
+    subroutine eval_van_Loon_wind(w)
+      ! van Loon et al. 2005, A&A, 438, 273
+      real(dp), intent(out) :: w
+      real(dp) :: log10w
+      include 'formats'
+      log10w = -5.65d0 + 1.05*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)
+      w = exp10_cr(log10w)
+    end subroutine eval_van_Loon_wind
 
 
-      subroutine eval_van_Loon_wind(w)
-        ! van Loon et al. 2005, A&A, 438, 273
-        real(dp), intent(out) :: w
-        real(dp) :: log10w
-        include 'formats'
-        log10w = -5.65d0 + 1.05*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)
-        w = exp10_cr(log10w)
-      end subroutine eval_van_Loon_wind
+    subroutine eval_Nieuwenhuijzen_wind(w)
+      ! Nieuwenhuijzen, H.; de Jager, C. 1990, A&A, 231, 134 (eqn 2)
+      real(dp), intent(out) :: w
+      real(dp) :: log10w
+      include 'formats'
+      log10w = -14.02d0 + &
+           1.24d0*log10_cr(L1/Lsun) + &
+           0.16d0*log10_cr(M1/Msun) + &
+           0.81d0*log10_cr(R1/Rsun)
+      w = exp10_cr(log10w)
+      if (dbg) then
+         write(*,1) 'Nieuwenhuijzen log10 wind', log10w
+      end if
+    end subroutine eval_Nieuwenhuijzen_wind
 
-
-      subroutine eval_Nieuwenhuijzen_wind(w)
-        ! Nieuwenhuijzen, H.; de Jager, C. 1990, A&A, 231, 134 (eqn 2)
-        real(dp), intent(out) :: w
-        real(dp) :: log10w
-        include 'formats'
-        log10w = -14.02d0 + &
-             1.24d0*log10_cr(L1/Lsun) + &
-             0.16d0*log10_cr(M1/Msun) + &
-             0.81d0*log10_cr(R1/Rsun)
-        w = exp10_cr(log10w)
-        if (dbg) then
-           write(*,1) 'Nieuwenhuijzen log10 wind', log10w
-        end if
-      end subroutine eval_Nieuwenhuijzen_wind
-
-    end subroutine other_set_mdot
+  end subroutine other_set_mdot
 
 
 
