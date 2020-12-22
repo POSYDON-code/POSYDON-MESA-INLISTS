@@ -191,7 +191,7 @@
       delta_XHe_cntr_limit = 0.01d0
       delta_XHe_cntr_hard_limit = -1
 
-      delta_XC_cntr_limit = 0.01d0
+      delta_XC_cntr_limit = 0.002d0
       delta_XC_cntr_hard_limit = -1
 
       !better resolution of the Henyey hook
