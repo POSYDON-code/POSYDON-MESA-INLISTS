@@ -388,7 +388,7 @@ contains
                  exit
              endif
         enddo
-        avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% q(k1:k2))
+        avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% dq(k1:k2))
      else
         avg_c_in_c_core = 0
      endif
