@@ -175,6 +175,7 @@
       he_core_boundary_h1_fraction = 1d-4
       c_core_boundary_he4_fraction = 1d-4
       o_core_boundary_c12_fraction = 0.5d0 !from Ying. Before:  1d-4
+      min_boundary_fraction = 1d-2
 
       !MESH AND TIMESTEP PARAMETERS
       mesh_delta_coeff = 1.0d0
