@@ -1129,7 +1129,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     end if
 
     !massive stars
-    if(s% initial_mass >= 7._dp)then
+    if(s% initial_mass >= 10._dp)then
        scheme = s% hot_wind_scheme
        call eval_wind_for_scheme(scheme,wind)
        if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
