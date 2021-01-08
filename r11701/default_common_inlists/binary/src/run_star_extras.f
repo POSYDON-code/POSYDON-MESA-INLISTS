@@ -1129,7 +1129,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     end if
 
     !massive stars
-    if(s% initial_mass >= 10._dp)then
+    if(s% initial_mass >= 7._dp)then
        scheme = s% hot_wind_scheme
        call eval_wind_for_scheme(scheme,wind)
        if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
@@ -1138,8 +1138,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     else
        if(T1 <= s% hot_wind_full_on_T)then
           !evaluate cool wind
-          !RGB/AGB switch goes here
-          if (center_h1 < 0.01d0 .and. center_he4 < s% RGB_to_AGB_wind_switch) then
+          !RGB/TPAGB switch goes here
+          if (s% have_done_TP) then
              scheme = s% cool_wind_AGB_scheme
              if (dbg) &
                   write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
