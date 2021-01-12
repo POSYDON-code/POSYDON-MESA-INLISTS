@@ -27,9 +27,9 @@
       new_net_name = 'approx21.net'
       show_net_species_info = .true.
 
-      #relax_tau_factor = .true.
-      #relax_to_this_tau_factor = 10
-      #dlogtau_factor = 0.05d0
+      !relax_tau_factor = .true.
+      !relax_to_this_tau_factor = 10
+      !dlogtau_factor = 0.05d0
 
       new_rotation_flag = .true.
       change_rotation_flag = .true.
