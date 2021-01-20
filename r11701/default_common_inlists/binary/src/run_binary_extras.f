@@ -78,6 +78,7 @@
          real(dp), intent(out) :: t_sync
          integer, intent(out) :: ierr
          real(dp) :: rGyr_squared , moment_of_inertia
+         real(dp) :: one_div_t_sync_conv, one_div_t_sync_rad, one_div_t_sync ! t_sync_rad, t_sync_conv
          type (binary_info), pointer :: b
          type (star_info), pointer :: s
 
@@ -102,6 +103,16 @@
                  ! eq. (11) of Hut, P. 1981, A&A, 99, 126
                  t_sync = 3.0*k_div_T(b, s,.true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                  ! invert it.
+                 !write(*,*) 'star id', s% id
+                 if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
+                   b% s1% xtra2 = 1d0/t_sync
+                   !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2
+                 else if (b% point_mass_i /= 2 .and. b% s2% id == s% id) then
+                   b% s2% xtra2 = 1d0/t_sync
+                   !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2
+                 else
+                   write(*,*) 'something is not going well with the stars IDs '
+                 end if
                  t_sync = 1d0/t_sync
                  !write(*,*) 'Hut_conv ', t_sync
         else if (sync_type == "Hut_rad") then
@@ -109,24 +120,42 @@
                  ! eq. (11) of Hut, P. 1981, A&A, 99, 126
                  t_sync = 3.0*k_div_T(b, s,.false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                  ! invert it.
+                 !write(*,*) 'star id', s% id
+                 if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
+                   b% s1% xtra1 = 1d0/t_sync
+                   !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2
+                 else if (b% point_mass_i /= 2 .and. b% s2% id == s% id) then
+                   b% s2% xtra1 = 1d0/t_sync
+                   !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2
+                 else
+                   write(*,*) 'something is not going well with the stars IDs '
+                 end if
                  t_sync = 1d0/t_sync
                  !write(*,*) 'Hut_rad ', t_sync
          else if (sync_type == "structure_dependent") then !  Checks if the core is radiative or not and uses equation from Hut_con or Hut_rad respectively (Hut word refers to the envelope status)
-                if (b% have_radiative_core(id)) then
                   !sync_type .eq. "Hut_conv"!Convective envelope + Radiative core
                   ! eq. (11) of Hut, P. 1981, A&A, 99, 126
-                  t_sync = 3.0*k_div_T(b, s,.true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  ! invert it.
-                  t_sync = 1d0/t_sync
-                  !write(*,*) 'Hut_conv!! ', t_sync
-                else
-                  !sync_type .eq. "Hut_rad"! Radiative envelope + convective core
-                  ! eq. (11) of Hut, P. 1981, A&A, 99, 126
-                  t_sync = 3.0*k_div_T(b, s,.false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  ! invert it.
-                  t_sync = 1d0/t_sync
-                  !write(*,*) 'Hut_rad ', t_sync
-                end if
+                  one_div_t_sync_conv = 3.0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  !one_div_t_sync_conv2 = 3.0*k_div_T_posydon(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  one_div_t_sync_rad = 3.0*k_div_T_posydon(b, s, .false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  !write(*,*) 'star id', s% id
+                  if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
+                    b% s1% xtra1 = 1d0/one_div_t_sync_rad
+                    b% s1% xtra2 = 1d0/one_div_t_sync_conv
+                    !write(*,*) 'two timescales ', b% s1% xtra1, b% s1% xtra2
+                  else if (b% point_mass_i /= 2 .and. b% s2% id == s% id) then
+                    b% s2% xtra1 = 1d0/one_div_t_sync_rad
+                    b% s2% xtra2 = 1d0/one_div_t_sync_conv
+                    !write(*,*) 'two timescales ', b% s2% xtra1, b% s2% xtra2
+                  else
+                     write(*,*) 'something is not going well with the stars IDs '
+                  end if
+                  !write(*,*) 'two 1/timescales ', one_div_t_sync_conv , one_div_t_sync_rad
+                  !write(*,*) 'two timescales ', b% s1% ixtra1, b% s1% ixtra2
+                  one_div_t_sync = MAX(one_div_t_sync_conv,one_div_t_sync_rad)
+                  !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad
+                  t_sync = 1d0/one_div_t_sync
+                  !write(*,*) 't_tides in years', t_sync / secyer
          else if (sync_type == "Orb_period") then ! sync on timescale of orbital period
                  t_sync = b% period ! synchronize on timescale of orbital period
          else
@@ -247,28 +276,36 @@
              if (ierr/=0) return
           end if
           a1 = f2(b% eccentricity)
-          a2 = pow_cr(1-b% eccentricity**2, 1.5d0)*f5(b% eccentricity)
+          a2 = pow_cr(1-pow2(b% eccentricity), 1.5d0)*f5(b% eccentricity)
 
           ! Tides apply only to the envelope. (Qin et al. 2018 implementation)
-          if (.not. b% have_radiative_core(id)) then ! convective core
-              !write(*,*) 'applying tides only in radiative envelope'
-              do k=1,nz
-                 if (s% mixing_type(k) /= convective_mixing) then
-                     delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
-                 else
-                     delta_j(k) = 0.0
-                 end if
-              end do
-          else
-              !write(*,*) 'applying tides only in convective regions'
-              do k=1,nz
-                 if (s% mixing_type(k) == convective_mixing) then
-                     delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
-                 else
-                     delta_j(k) = 0.0
-                 end if
-              end do
-          end if
+          !if (.not. b% have_radiative_core(id)) then ! convective core
+          !    !write(*,*) 'applying tides only in radiative envelope'
+          !    do k=1,nz
+          !       if (s% mixing_type(k) /= convective_mixing) then
+          !           delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
+          !       else
+          !           delta_j(k) = 0.0
+          !       end if
+          !    end do
+          !else
+          !    !write(*,*) 'applying tides only in convective regions'
+          !    do k=1,nz
+          !       if (s% mixing_type(k) == convective_mixing) then
+          !           delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
+          !       else
+          !           delta_j(k) = 0.0
+          !       end if
+          !    end do
+          !end if
+
+          ! Tides apply in all layers
+          ! write(*,*) 'applying tides in all layers'
+          do k=1,nz
+              delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
+          end do
+
+
           if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
              b% t_sync_1 = t_sync
           else
@@ -289,7 +326,7 @@
 
           ! Hut 1981, A&A, 99, 126, definition of f2 after eq. 11
           if (e > 0d0) then
-              f2 = 1d0 + 15d0/2d0*e**2 + 45d0/8d0*pow4(e) + 5d0/16d0*pow6(e)
+              f2 = 1d0 + 15d0/2d0 * pow2(e) + 45d0/8d0 * pow4(e) + 5d0/16d0 * pow6(e)
           end if
 
        end function f2
@@ -301,7 +338,7 @@
 
           ! Hut 1981, A&A, 99, 126, definition of f3 after eq. 11
           if (e > 0d0) then
-              f3 = 1d0 + 15d0/4d0*e**2 + 15d0/8d0*pow4(e) + 5d0/64d0*pow6(e)
+              f3 = 1d0 + 15d0/4d0*pow2(e) + 15d0/8d0 * pow4(e) + 5d0/64d0 * pow6(e)
           end if
 
        end function f3
@@ -314,7 +351,7 @@
 
           ! Hut 1981, A&A, 99, 126, definition of f4 after eq. 11
           if (e > 0d0) then
-              f4 = 1d0 + 3d0/2d0*e**2 + 1d0/8d0*pow4(e)
+              f4 = 1d0 + 3d0/2d0 * pow2(e) + 1d0/8d0 * pow4(e)
           end if
 
        end function f4
@@ -327,10 +364,32 @@
 
           ! Hut 1981, A&A, 99, 126, definition of f5 after eq. 11
           if (e > 0d0) then
-              f5 = 1d0 + 3d0*e**2 + 3d0/8d0*pow4(e)
+              f5 = 1d0 + 3d0*pow2(e) + 3d0/8d0 * pow4(e)
           end if
 
        end function f5
+
+       real(dp) function mass_conv_core(s)
+           type (star_info), pointer :: s
+           integer :: j, nz, k
+           real(dp) :: dm_limit
+           include 'formats'
+           mass_conv_core = 0
+           dm_limit = s% conv_core_gap_dq_limit*s% xmstar
+           nz = s% nz
+           do j = 1, s% n_conv_regions
+              ! ignore possible small gap at center
+              if (s% cz_bot_mass(j) <= s% m(nz) + dm_limit) then
+                 mass_conv_core = s% cz_top_mass(j)/Msun
+                 ! jump over small gaps
+                 do k = j+1, s% n_conv_regions
+                    if (s% cz_bot_mass(k) - s% cz_top_mass(k-1) >= dm_limit) exit
+                    mass_conv_core = s% cz_top_mass(k)/Msun
+                 end do
+                 exit
+              end if
+           end do
+        end function mass_conv_core
 
 
       real(dp) function k_div_T(b, s, has_convective_envelope)
@@ -369,10 +428,10 @@
                    exit
                 end if
              end do
-             tau_conv = 0.431*pow_cr(m_env*r_env* &
-                (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+             tau_conv = 0.431_dp*pow_cr(m_env*r_env* &
+                (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,one_third) * secyer
              P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
-             f_conv = min(1.0d0, (P_tid/(2d0*tau_conv))**b% tidal_reduction)
+             f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv),b% tidal_reduction))
 
              k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
           else ! radiative envelope
@@ -385,15 +444,15 @@
              Xs = s% xa(h1,1)
              ! E2 is different for H-rich and He stars (Qin et al. 2018)
              if (Xs < 0.4d0) then ! HeStar
-                E2 = 10**(-0.93)*(s% r(i)/r_phot)**(6.7)! HeStars
+                E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot,6.7_dp)! HeStars
              else
-                E2 = 10**(-0.42)*(s% r(i)/r_phot)**(7.5)! H-rich stars
+                E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot,7.5_dp)! H-rich stars
              !write(*,*) E2, s% r(i)
              end if
              if (isnan(E2)) then  !maybe this won't be used.
                  k_div_T = 1d-20
              else
-                k_div_T = sqrt(standard_cgrav*m*r_phot**2/pow5(osep)/(Msun/pow3(Rsun)))
+                k_div_T = sqrt(standard_cgrav*m*r_phot*r_phot/pow5(osep)/(Msun/pow3(Rsun)))
                 k_div_T = k_div_T*pow_cr(1d0+qratio,5d0/6d0)
                 k_div_T = k_div_T * E2
              end if
@@ -401,19 +460,250 @@
 
       end function k_div_T
 
+      subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy, top_bdy, &
+      cz_bot_mass_posydon, cz_bot_radius_posydon, cz_top_mass_posydon, cz_top_radius_posydon)
+         type (star_info), pointer :: s
+         ! integer, intent(out) :: ierr
+
+         logical :: in_convective_region
+         integer :: k, j, nz
+         logical, parameter :: dbg = .false.
+         integer, intent(out) :: n_conv_regions_posydon
+         !integer :: max_num_mixing_regions
+         !max_num_mixing_regions = 100 
+         !integer, intent(out), dimension (:), allocatable :: n_zones_of_region, bot_bdy, top_bdy
+         !real(dp),intent(out), dimension (:), allocatable :: cz_bot_mass_posydon, cz_bot_radius_posydon
+         !real(dp),intent(out), dimension (:), allocatable :: cz_top_mass_posydon, cz_top_radius_posydon
+         integer :: min_zones_for_convective_tides
+         integer ::  pot_n_zones_of_region, pot_bot_bdy, pot_top_bdy
+         real(dp) :: pot_cz_bot_mass_posydon, pot_cz_bot_radius_posydon
+         integer, intent(out), dimension (max_num_mixing_regions) :: n_zones_of_region, bot_bdy, top_bdy
+         real(dp),intent(out), dimension (max_num_mixing_regions) :: cz_bot_mass_posydon
+         real(dp),intent(out) :: cz_bot_radius_posydon(max_num_mixing_regions)
+         real(dp),intent(out), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
+
+         include 'formats'
+         !ierr = 0
+         min_zones_for_convective_tides = 10
+         nz = s% nz
+         n_zones_of_region(:)=0
+         bot_bdy(:)=0
+         top_bdy(:)=0
+         cz_bot_mass_posydon(:)=0.0
+         cz_bot_radius_posydon(:)=0.0
+         cz_top_mass_posydon(:)=0.0
+         cz_top_radius_posydon(:)=0.0
+         n_conv_regions_posydon = 0
+         pot_cz_bot_mass_posydon = 0.0
+         pot_cz_bot_radius_posydon = 0.0
+         pot_bot_bdy = 0.0
+         pot_n_zones_of_region = 0
+         
+         in_convective_region = (s% mixing_type(nz) == convective_mixing)
+         if (in_convective_region) then
+            pot_cz_bot_mass_posydon = s% M_center
+            pot_cz_bot_radius_posydon = 0.0
+            pot_bot_bdy = nz
+         end if
+
+         !write(*,*) 'initial in_convective_region', in_convective_region
+
+         do k=nz-1, 2, -1
+            if (in_convective_region) then
+               if (s% mixing_type(k) /= convective_mixing) then ! top of convective region
+                  pot_top_bdy = k
+                  pot_n_zones_of_region = pot_bot_bdy - pot_top_bdy
+                  if (pot_n_zones_of_region >= min_zones_for_convective_tides) then
+                    if (n_conv_regions_posydon < max_num_mixing_regions) then
+                      n_conv_regions_posydon = n_conv_regions_posydon + 1
+                    end if 
+                    cz_top_mass_posydon(n_conv_regions_posydon) = &
+                      s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
+                    cz_bot_mass_posydon(n_conv_regions_posydon) = pot_cz_bot_mass_posydon
+                    cz_top_radius_posydon(n_conv_regions_posydon) = s% r(k)/Rsun
+                    cz_bot_radius_posydon(n_conv_regions_posydon) = pot_cz_bot_radius_posydon
+                    top_bdy(n_conv_regions_posydon) = pot_top_bdy
+                    bot_bdy(n_conv_regions_posydon) = pot_bot_bdy
+                    n_zones_of_region(n_conv_regions_posydon) = pot_n_zones_of_region
+                  end if 
+                  in_convective_region = .false.
+               end if
+            else
+               if (s% mixing_type(k) == convective_mixing) then ! bottom of convective region
+                  pot_cz_bot_mass_posydon = &
+                    s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
+                  pot_cz_bot_radius_posydon = s% r(k)/Rsun
+                  pot_bot_bdy = k
+                  in_convective_region = .true.
+               end if
+            end if
+         end do
+         if (in_convective_region) then
+            pot_top_bdy = 1
+            pot_n_zones_of_region = pot_bot_bdy - pot_top_bdy
+            if (pot_n_zones_of_region >= min_zones_for_convective_tides) then
+              if (n_conv_regions_posydon < max_num_mixing_regions) then
+                n_conv_regions_posydon = n_conv_regions_posydon + 1
+              end if 
+              cz_top_mass_posydon(n_conv_regions_posydon) = s% mstar
+              cz_top_radius_posydon(n_conv_regions_posydon) = s% r(1)/Rsun
+              top_bdy(n_conv_regions_posydon) = 1
+              cz_bot_mass_posydon(n_conv_regions_posydon) = pot_cz_bot_mass_posydon
+              cz_bot_radius_posydon(n_conv_regions_posydon) = pot_cz_bot_radius_posydon
+              bot_bdy(n_conv_regions_posydon) = pot_bot_bdy
+              n_zones_of_region(n_conv_regions_posydon) = pot_n_zones_of_region
+           end if
+         end if
+
+          !write(*,*)
+          !write(*,2) 'set_mixing_info n_conv_regions_posydon', n_conv_regions_posydon
+          !do j = 1, n_conv_regions_posydon
+          !   write(*,2) 'conv region', j, cz_bot_mass_posydon(j)/Msun, cz_top_mass_posydon(j)/Msun
+          !   write(*,2) 'conv region', j, cz_bot_radius_posydon(j), cz_top_radius_posydon(j)
+          !end do
+          !write(*,*)
+      end subroutine loop_conv_layers
+
+      real(dp) function k_div_T_posydon(b, s, conv_layer_calculation)
+         type(binary_info), pointer :: b
+         type(star_info), pointer :: s
+         !logical, intent(in) :: has_convective_envelope
+         logical, intent(in) :: conv_layer_calculation
+
+         integer :: k,i, h1, top_bound_zone, bot_bound_zone
+         real(dp) :: osep, qratio, m, r_phot,porb, m_env, Dr_env, Renv_middle, tau_conv, P_tid, f_conv,E2, Xs, m_conv_core
+         real(dp) :: k_div_T_posydon_new, conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r ,omega_conv_region,r_top, r_bottom
+         integer :: n_conv_regions_posydon
+         integer,  dimension (max_num_mixing_regions) :: n_zones_of_region, bot_bdy, top_bdy
+         real(dp), dimension (max_num_mixing_regions) :: cz_bot_mass_posydon
+         real(dp) :: cz_bot_radius_posydon(max_num_mixing_regions)
+         real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
+
+         ! k/T computed as in Hurley, J., Tout, C., Pols, O. 2002, MNRAS, 329, 897
+         ! Kudos to Francesca Valsecchi for help implementing and testing this
+
+          k_div_T_posydon = 0d0
+
+          osep = b% separation
+          qratio = b% m(b% a_i) / b% m(b% d_i)
+          if (is_donor(b, s)) then
+             m = b% m(b% d_i)
+             r_phot = b% r(b% d_i)
+          else
+             qratio = 1.0/qratio
+             m = b% m(b% a_i)
+             r_phot = b% r(b% a_i)
+          end if
+          porb = b% period
+
+          if (conv_layer_calculation) then
+            m_conv_core = mass_conv_core(s)
+            !write(*,'(g0)') 'm_conv_core', m_conv_core
+            !write(*,'(g0)') "s% nz, s% n_conv_regions, s% num_conv_boundaries", s% nz, s% n_conv_regions, s% num_conv_boundaries
+            !do k_boundary = 1, s% num_conv_boundaries
+            !   write(*,'(g0)') "k_boundary, s% conv_bdy_loc(k_boundary), s% top_conv_bdy(k_boundary)", &
+            !   k_boundary, s% conv_bdy_loc(k_boundary), s% top_conv_bdy(k_boundary)
+            !end do
+            !do k=1, s% n_conv_regions
+            !   top_k = 2 * s% n_conv_regions -2*(k-1)
+            !   bot_k = 2 * s% n_conv_regions -2*(k-1) -1
+            !   write(*,'(g0)') "trying with k in n_conv_regions", k, top_k, &
+            !   s% top_conv_bdy(top_k),s% r(s% conv_bdy_loc(top_k))/Rsun,&
+            !   bot_k, &
+            !   s% top_conv_bdy(bot_k), s% r(s% conv_bdy_loc(bot_k))/ Rsun
+            !end do
+            n_zones_of_region(:)=0
+            bot_bdy(:)=0
+            top_bdy(:)=0
+            cz_bot_mass_posydon(:)=0.0
+            cz_bot_radius_posydon(:)=0.0
+            cz_top_mass_posydon(:)=0.0
+            cz_top_radius_posydon(:)=0.0
+            n_conv_regions_posydon = 0
+
+            call loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy, top_bdy, &
+      cz_bot_mass_posydon, cz_bot_radius_posydon, cz_top_mass_posydon, cz_top_radius_posydon)
+
+            if (n_conv_regions_posydon > 0) then
+              do k=1, n_conv_regions_posydon ! from inside out
+                m_env = 0.0
+                Dr_env = 0.0
+                Renv_middle = 0.0
+                if ((cz_bot_mass_posydon(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
+                    m_env = (cz_top_mass_posydon(k) - cz_bot_mass_posydon(k)) / Msun
+                    Dr_env = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k)  !depth of the convective layer, length of the eddie
+                    ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
+                    ! and to (R-Renv) term in eq. 4 of Rasio et al. 1996  (different notation)
+                    Renv_middle = (cz_top_radius_posydon(k) + cz_bot_radius_posydon(k) )*0.5d0  !middle of the convective layer
+                    ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
+                    ! and to the Renv in eq. 4 of Rasio et al. 1996
+                    ! where it represented the base of the convective layer (different notation)
+                    tau_conv = 0.431_dp*pow_cr(m_env*Dr_env* &
+                       Renv_middle/3d0/s% L_phot,1.0d0/3.0d0) * secyer
+                    P_tid = 1d0/abs(1d0/porb-s% omega(top_bdy(k))/(2d0*pi))
+                    f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv), b% tidal_reduction))
+                    !write(*,'(g0)') 'porb, p_from_omega, f_conv = ', porb, &
+   !1                / (s% omega(top_bdy(k))/(2d0*pi)), &
+   !1                /(s% omega_avg_surf/(2d0*pi)), f_conv
+                    k_div_T_posydon_new = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
+                    !write(*,'(g0)') 'tau_conv, K/T = ', tau_conv, k_div_T_posydon_new, m_env, (m/Msun)
+                    if (k_div_T_posydon_new >= k_div_T_posydon) then
+                      k_div_T_posydon = k_div_T_posydon_new
+                      !write(*,'(g0)') 'M_env, DR_env, Renv_middle, omega_conv_region in conv region ', k ,' is ', &
+                       ! m_env, Dr_env, Renv_middle, s% omega(top_bdy(k)), 'spanning number of zones = ', &
+                        !top_bdy(k) , bot_bdy(k), &
+                        !n_zones_of_region(k)
+                    end if
+                end if
+              end do
+            end if
+          else ! assuming a radiative star
+           ! New fitting E2 (Qin et al. 2018)
+             do i = s% nz, 1, -1
+                if (s% brunt_N2(i) >= 0) exit
+             end do
+             !write(*,*) i
+	     if (i == 0.0) then ! expected in a fully convective star
+	     	E2 = 1d-99
+	     else
+	     	h1 = s% net_iso(ih1)
+		Xs = s% xa(h1,1)
+	     	! E2 is different for H-rich and He stars (Qin et al. 2018)
+	     	if (Xs < 0.4d0) then ! HeStar
+		    E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot, 6.7_dp)! HeStars
+	     	else
+		    E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot, 7.5_dp)! H-rich stars
+	     	!write(*,*) E2, s% r(i)
+	     	end if
+	     end if
+	     
+             if (isnan(E2)) then  !maybe this won't be used.
+                 k_div_T_posydon = 1d-99
+             else
+                k_div_T_posydon = sqrt(standard_cgrav*m*r_phot*r_phot/pow5(osep)/(Msun/pow3(Rsun)))
+                k_div_T_posydon = k_div_T_posydon*pow_cr(1d0+qratio,5d0/6d0)
+                k_div_T_posydon = k_div_T_posydon * E2
+             end if
+          end if
+
+      end function k_div_T_posydon
+
+
+
+
       real(dp) function acc_radius(b, m_acc) !Calculates Sch. radius of compact object (or surface radius in case of NS) in cm
           type(binary_info), pointer :: b
           real(dp) :: m_acc, a
           real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
 
-          if (m_acc/Msun < 2.50) then ! NS
-            !Radius refernces for NS: 
-	    ! 1) Miller, M. C., Lamb, F. K., Dittmann, A. J., et al. 2019, ApJL, 887, L2
-	    ! 2) Riley, T. E., Watts, A. L., Bogdanov, S., et al., 2019, ApJL, 887, L21
-	    ! 3) Landry, P., Essick, R., & Chatziioannou, K. 2020
-	    ! 4) E.R. Most, L.R. Weih, L. Rezzolla and J. Schaffner-Bielich, 2018, Phys. Rev. Lett. 120, 261103
-	    ! 5) Abbott, B. P., Abbott, R., Abbott, T. D., et al. 2020, ApJL, 892, L3
-            acc_radius = 12.5 * 10 ** 5 !in cm
+          if (m_acc/Msun <= 2.50) then ! NS
+            !Radius refernces for NS:
+            ! 1) Miller, M. C., Lamb, F. K., Dittmann, A. J., et al. 2019, ApJL, 887, L2
+            ! 2) Riley, T. E., Watts, A. L., Bogdanov, S., et al., 2019, ApJL, 887, L21
+            ! 3) Landry, P., Essick, R., & Chatziioannou, K. 2020
+            ! 4) E.R. Most, L.R. Weih, L. Rezzolla and J. Schaffner-Bielich, 2018, Phys. Rev. Lett. 120, 261103
+            ! 5) Abbott, B. P., Abbott, R., Abbott, T. D., et al. 2020, ApJL, 892, L3
+            acc_radius = 12.5E5_dp !* 10 ** 5 !in cm
           else ! Event horizon for Kerr-BH
             ! this part is only relevant for BH accretors
             if (b% initial_bh_spin < 0d0) then
@@ -424,25 +714,26 @@
                write(*,*) "initial_bh_spin is larger than one. It has been set to one."
             end if
             ! compute isco radius from eq. 2.21 of Bardeen et al. (1972), ApJ, 178, 347
-            Z1 = 1d0 + pow_cr(1d0 - b% initial_bh_spin**2,one_third) &
+            Z1 = 1d0 + pow_cr(1d0 - pow2(b% initial_bh_spin),one_third) &
                * (pow_cr(1d0 + b% initial_bh_spin,one_third) + pow_cr(1d0 - b% initial_bh_spin,one_third))
-            Z2 = sqrt(3d0*b% initial_bh_spin**2 + Z1**2)
+            Z2 = sqrt(3d0*pow2(b% initial_bh_spin) + pow2(Z1))
             r_isco = 3d0 + Z2 - sqrt((3d0 - Z1)*(3d0 + Z1 + 2d0*Z2))
             ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
             ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
             ! zero spin (r_isco = sqrt(6)).
-	    
-	     if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
+
+	     if (initial_mass(2) > 2.5_dp) then ! If it was already a BH then take the initial mass m2
 		eq_initial_bh_mass = b% eq_initial_bh_mass
-	     else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5Msun as eq_initial_mass
-	       eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
+	     else if (initial_mass(2) <= 2.5_dp) then! If it was initially a NS then take 2.5Msun as eq_initial_mass
+	       eq_initial_bh_mass = 2.5_dp * Msun * sqrt(r_isco/6d0)
 	     end if
-	    
+
             a = sqrt(two_thirds) &
-                 *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass)) &
-                 *(4 - sqrt(18*(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)*eq_initial_bh_mass))**2 - 2))
+              *(eq_initial_bh_mass/min(b% m(b% point_mass_i),sqrt(6d0)* eq_initial_bh_mass)) &
+              *(4._dp - sqrt(18._dp*pow2(eq_initial_bh_mass/ &
+              min(b% m(b% point_mass_i),sqrt(6d0)* eq_initial_bh_mass)) - 2._dp))
             !Podsiadlowski et al. (2003) assuming a initially non-rotating BH
-            acc_radius = (1 + sqrt(1 - a ** 2)) * b% s_donor% cgrav(1) * m_acc / clight ** 2
+            acc_radius = (1.0_dp + sqrt(1.0_dp - a*a)) * b% s_donor% cgrav(1) * m_acc/pow2(clight)
           end if
       end function acc_radius
 
@@ -461,7 +752,7 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-         if (b% m(2)/Msun >= 2.50) then ! M2 >= 2.5 Msol for BHs
+         if (b% m(2)/Msun > 2.50_dp) then ! M2 > 2.5 Msol for BHs
              ! this part is only relevant for BH accretors
              if (b% initial_bh_spin < 0d0) then
                 b% initial_bh_spin = 0d0
@@ -471,26 +762,26 @@
                 write(*,*) "initial_bh_spin is larger than one. It has been set to one."
              end if
              ! compute isco radius from eq. 2.21 of Bardeen et al. (1972), ApJ, 178, 347
-             Z1 = 1d0 + pow_cr(1d0 - b% initial_bh_spin**2,one_third) &
+             Z1 = 1d0 + pow_cr(1d0 - pow2(b% initial_bh_spin),one_third) &
                 * (pow_cr(1d0 + b% initial_bh_spin,one_third) + pow_cr(1d0 - b% initial_bh_spin,one_third))
-             Z2 = sqrt(3d0*b% initial_bh_spin**2 + Z1**2)
+             Z2 = sqrt(3d0*pow2(b% initial_bh_spin) + pow2(Z1))
              r_isco = 3d0 + Z2 - sqrt((3d0 - Z1)*(3d0 + Z1 + 2d0*Z2))
              ! compute equivalent mass at zero spin from eq. (3+1/2) (ie. the equation between (3) and (4))
              ! of Bardeen (1970), Nature, 226, 65, taking values with subscript zero to correspond to
              ! zero spin (r_isco = sqrt(6)).
-	     
-             if (initial_mass(2) > 2.5) then ! If it was already a BH then take the initial mass m2
+
+             if (initial_mass(2) > 2.5_dp) then ! If it was already a BH then take the initial mass m2
                 eq_initial_bh_mass = b% eq_initial_bh_mass
-             else if (initial_mass(2) <= 2.5) then! If it was initially a NS then take 2.5 as eq_initial_mass
-               eq_initial_bh_mass = 2.5 * Msun * sqrt(r_isco/6d0)
+             else if (initial_mass(2) <= 2.5_dp) then! If it was initially a NS then take 2.5 as eq_initial_mass
+               eq_initial_bh_mass = 2.5_dp * Msun * sqrt(r_isco/6d0)
              end if
-	     
+
              !! mdot_edd_eta for BH following Podsiadlowski, Rappaport & Han (2003), MNRAS, 341, 385
-             mdot_edd_eta = 1d0 &
-                      - sqrt(1d0 - (min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass))**2)
+             mdot_edd_eta = 1d0 - sqrt(1d0 - &
+                   pow2(min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass)))
          else ! NS
              !! mdot_edd_eta for NS accretors
-             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (clight ** 2 * acc_radius(b, b% m(2)))
+             mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (pow2(clight) * acc_radius(b, b% m(2)))
          end if
          mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
                   /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
@@ -501,7 +792,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 2
+         how_many_extra_binary_history_columns = 6
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -514,7 +805,14 @@
          integer, intent(out) :: ierr
          integer:: i_don, i_acc
          real(dp) :: beta, trap_rad, mdot_edd, accretor_radius
-         ierr = 0
+         !read(dp) :: t_sync_rad_1, t_sync_conv_1, t_sync_rad21, t_sync_conv_2
+
+          ierr = 0
+          !t_sync_rad_1 = 0.0
+          !t_sync_conv_2 = 0.0
+          !t_sync_rad_1 = 0.
+          !t_sync_conv_2 = 0.0
+
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
             return
@@ -523,10 +821,10 @@
          call my_mdot_edd(binary_id,mdot_edd,ierr)
 
          if (b% point_mass_i == 0) then ! if there is no compact object then trappping radius is 0
-           trap_rad = 0.0
-           accretor_radius = 0.0
-         else ! King & Begelman 1999 eq. 1: accretor is star 2
-           trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+           trap_rad = 0.0_dp
+           accretor_radius = 0.0_dp
+         else ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
+           trap_rad = 0.5_dp*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
            accretor_radius = acc_radius(b, b% m(2))
          end if
 
@@ -534,6 +832,33 @@
          vals(1) = trap_rad/Rsun ! in Rsun units
          names(2) = 'acc_radius'
          vals(2) = accretor_radius ! in cm units
+
+       !if (b% point_mass_i /= 1) then
+       !   moment_of_inertia = dot_product(s% i_rot(:s% nz), s% dm_bar(:s%nz))
+       !   rGyr_squared = (moment_of_inertia/(m*r_phot*r_phot))
+       !   t_sync_rad_1 = 3.0*k_div_T_posydon(b, s, .false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+       !   t_sync_conv_1 = 3.0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+       !else
+       !   t_sync_rad_1 = nan
+        names(3) = 't_sync_rad_1'
+        names(4) = 't_sync_conv_1'
+        names(5) = 't_sync_rad_2'
+        names(6) = 't_sync_conv_2'
+        if (b% point_mass_i /= 1) then
+          vals(3) = b% s1% xtra1
+          vals(4) = b% s1% xtra2
+        else
+          vals(3) = -1.0d0
+          vals(4) = -1.0d0
+        end if
+        if (b% point_mass_i /= 2) then
+           vals(5) = b% s2% xtra1
+           vals(6) = b% s2% xtra2
+        else
+          vals(5) = -1.0d0
+          vals(6) = -1.0d0
+        end if
+         !write(*,*) "synchr timescales: ", b% s1% xtra1, b% s1% xtra2, b% s2% xtra1, b% s2% xtra2
       end subroutine data_for_extra_binary_history_columns
 
 
@@ -547,7 +872,18 @@
             return
          end if
 
-
+         if (.not. restart) then
+            ! extras are used to store the two tidal sychronization timescales (rad/conv) for each star.
+            ! -1 if they are point masses
+            if (b% point_mass_i /= 1) then
+              b% s1% xtra1 = -1.0d0 ! t_sync_rad_1
+              b% s1% xtra2 = -1.0d0 ! t_sync_conv_1
+            end if
+            if (b% point_mass_i /= 2) then
+              b% s2% xtra1 = -1.0d0 ! t_sync_rad_2
+              b% s2% xtra2 = -1.0d0 ! t_sync_conv_2
+            end if
+         end if
          extras_binary_startup = keep_going
       end function  extras_binary_startup
 
@@ -567,13 +903,13 @@
 
 
        if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
-          if (b% s1% center_h1 < 1d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+          if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
              i_don = 1
              i_acc = 2
                if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784 * q ** 1.05 * exp(-0.188*q) + 1.004)
-                  d_l2 = b% rl(i_don) * (3.334 * q ** 0.514 * exp(-0.052*q) + 1.308)
+                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp) * exp_cr(-0.052_dp*q) + 1.308_dp)
                   !Condition to stop when star overflows L2
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
@@ -588,8 +924,8 @@
 
                else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811 * q ** 0.82788069*exp(-0.01572339*q) + 1.36176161)
-                  d_l2 = b% rl(i_don) * (-0.04029713 * q ** 0.862143 * exp(-0.04049814*q) + 1.88325644)
+                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
                      write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
@@ -605,13 +941,13 @@
        end if
 
        if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
-          if (b% s2% center_h1 < 1d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+          if (b% s2% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
              i_don = 2
              i_acc = 1
                if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784 * q ** 1.05 * exp(-0.188*q) + 1.004)
-                  d_l2 = b% rl(i_don) * (3.334 * q ** 0.514 * exp(-0.052*q) + 1.308)
+                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q, 1.05_dp) * exp_cr(-0.188_dp * q) + 1.004_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q,  0.514_dp) * exp_cr(-0.052_dp * q) + 1.308_dp)
                   !Condition to stop when star overflows L2
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
@@ -626,8 +962,8 @@
 
                else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811 * q ** 0.82788069*exp(-0.01572339*q) + 1.36176161)
-                  d_l2 = b% rl(i_don) * (-0.04029713 * q ** 0.862143 * exp(-0.04049814*q) + 1.88325644)
+                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_check_model = terminate
                      write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
@@ -642,13 +978,14 @@
           end if
        end if
 
-       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1d-10))) then
+       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
+         .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
          if (b% point_mass_i/=1) then
            i_don = 1
          else
            i_don = 2
          end if
-          ! Binary evolution         
+          ! Binary evolution
           b% do_jdot_mb = .true.
           b% do_jdot_gr = .true.
           b% do_jdot_ml = .true.
@@ -680,8 +1017,8 @@
 
          if (b% point_mass_i == 0) then
             ! Check for simultaneous RLOF from both stars after TAMS of one star
-            if (b% s2% center_h1 < 1d-6 .or. b% s1% center_h1 < 1d-6) then
-                if (b% rl_relative_gap(1) > 0.0 .and. b% rl_relative_gap(2) > 0.0) then
+            if (b% s2% center_h1 < 1.0d-6 .or. b% s1% center_h1 < 1.0d-6) then
+                if (b% rl_relative_gap(1) > 0.0_dp .and. b% rl_relative_gap(2) > 0.0_dp) then
                   extras_binary_finish_step = terminate
                   write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and at least one of them is off MS"
                 end if
@@ -690,10 +1027,10 @@
 
 
          !remove gradL_composition term after MS, it can cause the convective helium core to recede
-         if (b% point_mass_i /= 1 .and. b% s1% center_h1 < 1d-6) then
+         if (b% point_mass_i /= 1 .and. b% s1% center_h1 < 1.0d-6) then
             b% s1% num_cells_for_smooth_gradL_composition_term = 0
          end if
-         if (b% point_mass_i /= 2 .and. b% s2% center_h1 < 1d-6) then
+         if (b% point_mass_i /= 2 .and. b% s2% center_h1 < 1.0d-6) then
             b% s2% num_cells_for_smooth_gradL_composition_term = 0
          end if
 
@@ -707,8 +1044,8 @@
          if (b% point_mass_i == 2) then
            call my_mdot_edd(binary_id,mdot_edd,ierr)
 
-           !King & Begelman 1999 eq. 1
-           trap_rad = 0.5*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+           ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
+           trap_rad = 0.5_dp*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
 
            !check if mass transfer rate reached maximun, assume unstable regime if it happens
             if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
@@ -720,7 +1057,7 @@
 
          ! check for termination due to carbon depletion or off center neon ignition for primary
          if (b% point_mass_i /= 1) then
-            if (b% s1% center_c12 < 1d-2 .and. b% s1% center_he4 < 1d-6) then
+            if (b% s1% center_c12 < 1.0d-2 .and. b% s1% center_he4 < 1.0d-6) then
                   write(*,'(g0)') "termination code: Primary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
@@ -744,7 +1081,7 @@
 
          ! check for termination due to carbon depletion or off center neon ignition for secondary
          if (b% point_mass_i /= 2) then
-            if (b% s2% center_c12 < 1d-2 .and. b% s2% center_he4 < 1d-6) then
+            if (b% s2% center_c12 < 1.0d-2 .and. b% s2% center_he4 < 1.0d-6) then
                   write(*,'(g0)') "termination code: Secondary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
@@ -752,12 +1089,12 @@
                ! check if neon is by far greatest source of energy
                is_ne_biggest = .true.
                do i=1, num_categories
-                  if(i /= i_burn_ne .and. b% s2% L_by_category(i_burn_ne) < 10*b% s2% L_by_category(i)) then
+                  if(i /= i_burn_ne .and. b% s2% L_by_category(i_burn_ne) < 10._dp*b% s2% L_by_category(i)) then
                      is_ne_biggest = .false.
                      exit
                   end if
                end do
-               if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01) then
+               if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01_dp) then
                      write(*,'(g0)') "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
                         b% s2% max_eps_z_m
                      extras_binary_finish_step = terminate
@@ -808,16 +1145,27 @@
             end if
            !write(*,*) "still using: ", b% mdot_scheme
 
-            if (b% model_number == 1 ) then ! Saving initial_profiles
-               write(*,*) "saving initial profiles"
+            !if (b% model_number == 1 ) then ! Saving initial_profiles
+            !   write(*,*) "saving initial profiles"
+            !   if (b% point_mass_i /= 1) then
+            !        call star_write_profile_info(b% s1% id, "LOGS1/initial_profile.data", b% s1% id, ierr)
+            !   end if
+            !   if (ierr /= 0) return ! failure in profile
+            !   if (b% point_mass_i /= 2) then
+            !        call star_write_profile_info(b% s2% id, "LOGS2/initial_profile.data", b% s2% id, ierr)
+            !   end if
+            !   if (ierr /= 0) return ! failure in profile
+            !end if
+            if (b% model_number == 1 ) then ! Saving initial_models
+               write(*,*) "saving initial models"
                if (b% point_mass_i /= 1) then
-                    call star_write_profile_info(b% s1% id, "LOGS1/initial_profile.data", b% s1% id, ierr)
+                    call star_write_model(b% s1% id, "initial_star1.mod",  ierr)
                end if
-               if (ierr /= 0) return ! failure in profile
+               if (ierr /= 0) return ! failure 
                if (b% point_mass_i /= 2) then
-                    call star_write_profile_info(b% s2% id, "LOGS2/initial_profile.data", b% s2% id, ierr)
+                    call star_write_model(b% s2% id, "initial_star2.mod",  ierr)
                end if
-               if (ierr /= 0) return ! failure in profile
+               if (ierr /= 0) return ! failure 
             end if
          end if
 
