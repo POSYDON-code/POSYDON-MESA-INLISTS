@@ -258,7 +258,10 @@ contains
       real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
     real(dp) :: h1, he4, c12, o16, he_core_mass_1cent,  he_core_mass_10cent, he_core_mass_30cent
     real(dp) ::  lambda_CE_1cent, lambda_CE_10cent, lambda_CE_30cent
-    real(dp), pointer :: adjusted_energy(:)
+    !real(dp), pointer :: adjusted_energy(:)
+    integer :: nz
+    nz = s% nz
+    real(dp),  dimension (nz) :: adjusted_energy
     real(dp) :: rec_energy_HII_to_HI, &
                 rec_energy_HeII_to_HeI, &
                 rec_energy_HeIII_to_HeII, &
@@ -479,7 +482,8 @@ contains
    ! lambda_CE calculation for different core definitions.
    sticking_to_energy_without_recombination_corr = .false.
    ! get energy from the EOS and adjust the different contributions from recombination/dissociation to internal energy
-   allocate(adjusted_energy(s% nz))
+   !allocate(adjusted_energy(s% nz))
+   adjusted_energy(:)=0.0
    do k=1, s% nz
       ! the following lines compute the fractions of HI, HII, HeI, HeII and HeIII
       ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
@@ -569,7 +573,7 @@ contains
    names(17) = 'lambda_CE_30cent'
    vals(17) = lambda_CE_30cent
 
-   deallocate(adjusted_energy)
+   !deallocate(adjusted_energy)
 
 
    ! M_CO core:
@@ -596,12 +600,14 @@ contains
 
   real(dp) function lambda_CE(s, adjusted_energy, he_core_mass_CE)
       type (star_info), pointer :: s
-      integer :: k
-      real(dp) :: E_bind, E_bind_shell
+      integer :: k, nz
+      real(dp) :: E_bind, E_bind_shell, he_core_mass_CE
+      nz = s% nz
+      real(dp),  dimension (nz) :: adjusted_energy
 
       E_bind = 0.0d0
       E_bind_shell = 0.0
-      do k=1,s% nz
+      do k=1, nz
          if (s% m(k) > (he_core_mass_CE)) then !envelope is defined to be H-rich
             E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/s% r(k))
             E_bind = E_bind+ E_bind_shell
@@ -625,7 +631,7 @@ contains
      get_ion_info = ionization_res(id)
    end function get_ion_info
 
-  real(dp) function mass_conv_core(s, E_bind, he_core_mass)
+  real(dp) function mass_conv_core(s)
       type (star_info), pointer :: s
       integer :: j, nz, k
       real(dp) :: dm_limit
