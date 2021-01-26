@@ -87,12 +87,12 @@ contains
 
     if (.not. s% job% extras_lpar(1)) rot_set_check = .true.
 
-    if(s% initial_mass < 10.0d0 .and. s% initial_mass >= 0.6d0)then
+    if(s% initial_mass < 8.0d0 .and. s% initial_mass >= 0.6d0)then
        TP_AGB_check=.true.
     endif
 
 
-    if (s% star_mass <= 10.0d0) s% cool_wind_RGB_scheme ='Reimers'
+    if (s% star_mass <= 8.0d0) s% cool_wind_RGB_scheme ='Reimers'
 
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
     !vct30 = 1.0d-4
@@ -608,7 +608,7 @@ contains
 
     ! late AGB
     if(late_AGB_check)then
-       if (s% initial_mass < 10.0d0 .and. s% he_core_mass/s% star_mass > 0.9d0) then
+       if (s% initial_mass < 8.0d0 .and. s% he_core_mass/s% star_mass > 0.9d0) then
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
           write(*,*) 'now at late AGB phase, model number ', s% model_number
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
