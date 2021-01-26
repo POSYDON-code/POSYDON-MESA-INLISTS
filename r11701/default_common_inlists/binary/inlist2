@@ -177,9 +177,9 @@
 
       !CORE MASS DEFINITION
       he_core_boundary_h1_fraction = 1d-2
-      c_core_boundary_he4_fraction = 5d-2
-      o_core_boundary_c12_fraction = 5d-2
-      min_boundary_fraction = 5d-2
+      c_core_boundary_he4_fraction = 1d-1
+      o_core_boundary_c12_fraction = 1d-1
+      min_boundary_fraction = 1d-1
 
       !MESH AND TIMESTEP PARAMETERS
       mesh_delta_coeff = 1.0d0
