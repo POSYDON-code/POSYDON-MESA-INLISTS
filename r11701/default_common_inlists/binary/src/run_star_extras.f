@@ -274,6 +274,7 @@ contains
     integer :: co_core_k
     logical :: sticking_to_energy_without_recombination_corr
     real(dp) :: XplusY_CO_core_mass_threshold
+    logical :: have_30_value, have_10_value, have_1_value, have_co_value
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -549,23 +550,36 @@ contains
    he_core_mass_10cent = 0.0
    he_core_mass_30cent = 0.0
    !for MS stars = he core is 0, lambda calculated for whole star
+   !for He stars = he core is whole star, lambda calculated for whole star
 
    h1 = s% net_iso(ih1)
    he4 = s% net_iso(ihe4)
+   have_30_value = .false.
+   have_10_value = .false.
+   have_1_value = .false.
    if (h1 /= 0 .and. he4 /= 0) then
      do k=1, s% nz
+      if (.not. have_30_value) then
         if (s% xa(h1,k) <=  0.3d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_30cent = s% m(k)
+          have_30_value = .true.
         end if
+      end if
+      if (.not. have_10_value) then
         if (s% xa(h1,k) <= 0.1d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_10cent = s% m(k)
+          have_10_value = .true.
         end if
+      end if
+      if (.not. have_1_value) then
         if (s% xa(h1,k) <= 0.01d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_1cent = s% m(k)
+          have_1_value = .true.
         end if
+      end if
      end do
    end if
 
@@ -591,15 +605,17 @@ contains
    co_core_k = 0
    co_core_mass = 0.0d0
    co_core_radius = 0.0d0
+   have_co_value = .false.
    if (c12 /= 0 .and. o16 /= 0) then
      do k=1, s% nz
+      if (.not. have_co_value) then
         if (((s% xa(h1,k) + s% xa(he4,k))  <= XplusY_CO_core_mass_threshold) .and. &
           ((s% xa(c12,k) + s% xa(o16,k))  >= XplusY_CO_core_mass_threshold)) then
           call set_core_info(s, k, co_core_k, &
           co_core_mass, co_core_radius)
-          !co_core_mass = s% m(k) / Msun
-          !co_core_radius = s% r(k) / Rsun
+          have_co_value = .true.
         end if
+      end if
      end do
    end if
 
@@ -616,15 +632,19 @@ contains
       real(dp) :: E_bind, E_bind_shell, he_core_mass_CE
       real(dp) :: adjusted_energy(:)
 
-      E_bind = 0.0d0
-      E_bind_shell = 0.0d0
-      do k=1, s% nz
-         if (s% m(k) > (he_core_mass_CE)) then !envelope is defined to be H-rich
-            E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/(s% r(k))
-            E_bind = E_bind+ E_bind_shell
-         end if
-      end do
-      lambda_CE = - s% cgrav(1) * (s% m(1)) * ((s% m(1)) - he_core_mass_CE)/(E_bind * s% r(1))
+      if (s% m(1) <= (he_core_mass_CE)) then
+         lambda_CE = 1d99
+      else
+         E_bind = 0.0d0
+         E_bind_shell = 0.0d0
+         do k=1, s% nz
+            if (s% m(k) > (he_core_mass_CE)) then !envelope is defined to be H-rich
+               E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/(s% r(k))
+               E_bind = E_bind+ E_bind_shell
+            end if
+         end do
+         lambda_CE = - s% cgrav(1) * (s% m(1)) * ((s% m(1)) - he_core_mass_CE)/(E_bind * s% r(1))
+      end if
    end function lambda_CE
 
    real(dp) function get_ion_info(s,id,k)
@@ -734,17 +754,6 @@ contains
          interp2(s% r(k)*s% r(k)*s% r(k), s% r(k+1)*s% r(k+1)*s% r(k+1)),1d0/3d0)/Rsun
 
       contains
-
-      real(dp) function interp3(f0, f1, f2)
-         real(dp), intent(in) :: f0, f1, f2
-         real(dp) :: fmin, fmax
-         fmin = min(f0,f1,f2)
-         fmax = max(f0,f1,f2)
-         interp3 = (f1*(x-x0)*(x-x2)*(x0-x2)-&
-               (x-x1)*(f0*(x-x2)*(x1-x2) + (x-x0)*(x0-x1)*x2))/ &
-                  ((x0-x1)*(x0-x2)*(-x1+x2))
-         interp3 = min(fmax, max(fmin, interp3))
-      end function interp3
 
       real(dp) function interp2(f0, f1)
          real(dp), intent(in) :: f0, f1
