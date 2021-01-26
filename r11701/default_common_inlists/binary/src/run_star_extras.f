@@ -230,7 +230,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 18
+    how_many_extra_history_columns = 19
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -266,6 +266,7 @@ contains
                 frac_HI, frac_HII, &
                 frac_HeI, frac_HeII, frac_HeIII, &
                 avg_charge_He, energy_comp
+    real(dp) :: co_core_mass, co_core_radius
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -582,11 +583,14 @@ contains
         if (((s% xa(h1,k) + s% xa(he4,k))  <= XplusY_CO_core_mass_threshold) .and. &
           ((s% xa(c12,k) + s% xa(c12,k))  >= XplusY_CO_core_mass_threshold)) then
           co_core_mass = s% m(k) / Msun
+          co_core_radius = s% r(k) / Rsun
      end do
    end if
 
    names(18) = 'co_core_mass'
    vals(18) = co_core_mass
+   names(19) = 'co_core_radius'
+   vals(19) = co_core_radius
 
   end subroutine data_for_extra_history_columns
 
