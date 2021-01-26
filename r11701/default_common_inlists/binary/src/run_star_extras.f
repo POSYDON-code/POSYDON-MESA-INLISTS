@@ -25,6 +25,9 @@ module run_star_extras
   use star_def
   use const_def
   use crlibm_lib
+  use chem_def
+  use ionization_def
+  use num_lib, only: find0
 
   implicit none
 
@@ -256,7 +259,8 @@ contains
       real(dp), dimension (max_num_mixing_regions) :: cz_bot_mass_posydon
       real(dp) :: cz_bot_radius_posydon(max_num_mixing_regions)
       real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
-    real(dp) :: h1, he4, c12, o16, he_core_mass_1cent,  he_core_mass_10cent, he_core_mass_30cent
+    integer :: h1, he4, c12, o16
+    real(dp) :: he_core_mass_1cent,  he_core_mass_10cent, he_core_mass_30cent
     real(dp) ::  lambda_CE_1cent, lambda_CE_10cent, lambda_CE_30cent
     real(dp),  dimension (:), allocatable ::  adjusted_energy
     real(dp) :: rec_energy_HII_to_HI, &
@@ -267,6 +271,9 @@ contains
                 frac_HeI, frac_HeII, frac_HeIII, &
                 avg_charge_He, energy_comp
     real(dp) :: co_core_mass, co_core_radius
+    integer :: co_core_k
+    logical :: sticking_to_energy_without_recombination_corr
+    real(dp) :: XplusY_CO_core_mass_threshold
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -531,7 +538,7 @@ contains
 
    end do
 
-   if (sticking_to_energy_without_recombination_corr == .false.)
+   if (sticking_to_energy_without_recombination_corr) then
       do k=1, s% nz
           adjusted_energy(k) = s% energy(k)
       end do
@@ -550,12 +557,15 @@ contains
         if (s% xa(h1,k) <=  0.3d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_30cent = s% m(k)
-        else if (s% xa(h1,k) <= 0.1d0 .and. &
+        end if
+        if (s% xa(h1,k) <= 0.1d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_10cent = s% m(k)
-        else (s% xa(h1,k) <= 0.01d0 .and. &
+        end if
+        if (s% xa(h1,k) <= 0.01d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_1cent = s% m(k)
+        end if
      end do
    end if
 
@@ -578,16 +588,18 @@ contains
    o16 = s% net_iso(io16)
    XplusY_CO_core_mass_threshold = 0.1d0
 
+   co_core_k = 0
    co_core_mass = 0.0d0
    co_core_radius = 0.0d0
    if (c12 /= 0 .and. o16 /= 0) then
      do k=1, s% nz
         if (((s% xa(h1,k) + s% xa(he4,k))  <= XplusY_CO_core_mass_threshold) .and. &
           ((s% xa(c12,k) + s% xa(o16,k))  >= XplusY_CO_core_mass_threshold)) then
-          set_core_info(s, k, co_core_k, &
+          call set_core_info(s, k, co_core_k, &
           co_core_mass, co_core_radius)
           !co_core_mass = s% m(k) / Msun
           !co_core_radius = s% r(k) / Rsun
+        end if
      end do
    end if
 
@@ -600,19 +612,19 @@ contains
 
   real(dp) function lambda_CE(s, adjusted_energy, he_core_mass_CE)
       type (star_info), pointer :: s
-      integer :: k, nz
+      integer :: k
       real(dp) :: E_bind, E_bind_shell, he_core_mass_CE
       real(dp) :: adjusted_energy(:)
 
       E_bind = 0.0d0
       E_bind_shell = 0.0d0
-      do k=1, nz
+      do k=1, s% nz
          if (s% m(k) > (he_core_mass_CE)) then !envelope is defined to be H-rich
-            E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/s% r(k))
+            E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/(s% r(k))
             E_bind = E_bind+ E_bind_shell
          end if
       end do
-      lambda_CE = - s% cgrav(1) * s% m(1) * (s% m(1) - he_core_mass_CE)/(E_bind * s% r(1)) #lambda of envelope
+      lambda_CE = - s% cgrav(1) * (s% m(1)) * ((s% m(1)) - he_core_mass_CE)/(E_bind * s% r(1))
    end function lambda_CE
 
    real(dp) function get_ion_info(s,id,k)
@@ -847,7 +859,7 @@ contains
     use atm_lib, only: atm_option, atm_option_str
     use kap_def, only: kap_lowT_option, lowT_AESOPUS
     integer, intent(in) :: id, id_extra
-    integer :: ierr
+    integer :: ierr, i
     real(dp) :: envelope_mass_fraction, L_He, L_tot, min_center_h1_for_diff, &
          critmass, feh, rot_full_off, rot_full_on, frac2
     real(dp), parameter :: huge_dt_limit = 3.15d16 ! ~1 Gyr
@@ -1813,6 +1825,25 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
      xi= sqrt_cr(3.14159d0/3d0)*log_cr(z)/3d0 + 2d0*log_cr(1.32d0+2.33d0/sqrt_cr(xgamma))/3d0-0.484d0*rm23/ctmp
      sige3 = 8.630d21*rme/(z*ctmp*xi)
   end function sige3
+
+  integer function k_for_q(s, q)
+         ! return k s.t. q(k) >= q > q(k)-dq(k)
+         type (star_info), pointer :: s
+         real(dp), intent(in) :: q
+         integer :: k, nz
+         nz = s% nz
+         if (q >= 1) then
+            k_for_q = 1; return
+         else if (q <= s% q(nz)) then
+            k_for_q = nz; return
+         end if
+         do k = 1, nz-1
+            if (q > s% q(k+1)) then
+               k_for_q = k; return
+            end if
+         end do
+         k_for_q = nz
+  end function k_for_q
 
 
 end module run_star_extras
