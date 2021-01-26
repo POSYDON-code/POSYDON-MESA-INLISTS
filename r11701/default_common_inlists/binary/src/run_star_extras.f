@@ -25,6 +25,9 @@ module run_star_extras
   use star_def
   use const_def
   use crlibm_lib
+  use chem_def
+  use ionization_def
+  use num_lib, only: find0
 
   implicit none
 
@@ -230,7 +233,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 14
+    how_many_extra_history_columns = 19
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -256,7 +259,22 @@ contains
       real(dp), dimension (max_num_mixing_regions) :: cz_bot_mass_posydon
       real(dp) :: cz_bot_radius_posydon(max_num_mixing_regions)
       real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
-
+    integer :: h1, he4, c12, o16
+    real(dp) :: he_core_mass_1cent,  he_core_mass_10cent, he_core_mass_30cent
+    real(dp) ::  lambda_CE_1cent, lambda_CE_10cent, lambda_CE_30cent
+    real(dp),  dimension (:), allocatable ::  adjusted_energy
+    real(dp) :: rec_energy_HII_to_HI, &
+                rec_energy_HeII_to_HeI, &
+                rec_energy_HeIII_to_HeII, &
+                diss_energy_H2, &
+                frac_HI, frac_HII, &
+                frac_HeI, frac_HeII, frac_HeIII, &
+                avg_charge_He, energy_comp
+    real(dp) :: co_core_mass, co_core_radius
+    integer :: co_core_k
+    logical :: sticking_to_energy_without_recombination_corr
+    real(dp) :: XplusY_CO_core_mass_threshold
+    logical :: have_30_value, have_10_value, have_1_value, have_co_value
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -466,7 +484,287 @@ contains
     vals(14) = Renv_middle !in solar units
 
 
+   ! lambda_CE calculation for different core definitions.
+   sticking_to_energy_without_recombination_corr = .false.
+   ! get energy from the EOS and adjust the different contributions from recombination/dissociation to internal energy
+   allocate(adjusted_energy(s% nz))
+   adjusted_energy=0.0d0
+   do k=1, s% nz
+      ! the following lines compute the fractions of HI, HII, HeI, HeII and HeIII
+      ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
+      ! this file can be checked for additional ionization output available
+      frac_HI = get_ion_info(s,ion_ifneut_H,k)
+      frac_HII = 1 - frac_HI
+
+      ! ionization module provides neutral fraction and average charge of He.
+      ! use these two to compute the mass fractions of HeI and HeII
+      frac_HeI = get_ion_info(s,ion_ifneut_He,k)
+      avg_charge_He = get_ion_info(s,ion_iZ_He,k)
+      ! the following is the solution to the equations
+      !   avg_charge_He = 2*fracHeIII + 1*fracHeII
+      !               1 = fracHeI + fracHeII + fracHeIII
+      frac_HeII = 2d0 - 2d0*frac_HeI - avg_charge_He
+      frac_HeIII = 1d0 - frac_HeII - frac_HeI
+
+      ! recombination energies from https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html
+      rec_energy_HII_to_HI = avo*13.59843449d0*frac_HII*ev2erg*s% X(k)
+      diss_energy_H2 = avo*4.52d0/2d0*ev2erg*s% X(k)
+      rec_energy_HeII_to_HeI = avo*24.58738880d0*(frac_HeII+frac_HeIII)*ev2erg*s% Y(k)/4d0
+      rec_energy_HeIII_to_HeII = avo*54.4177650d0*frac_HeIII*ev2erg*s% Y(k)/4d0
+
+      adjusted_energy(k) = s% energy(k) &
+                           - rec_energy_HII_to_HI &
+                           - rec_energy_HeII_to_HeI &
+                           - rec_energy_HeIII_to_HeII &
+                           - diss_energy_H2
+
+       if (adjusted_energy(k) < 0d0 .or. adjusted_energy(k) > s% energy(k)) then
+          write(*,*) "Error when computing adjusted energy in CE, ", &
+             "s% energy(k):", s% energy(k), " adjusted_energy, ", adjusted_energy(k)
+             sticking_to_energy_without_recombination_corr = .true.
+             stop
+       end if
+
+      if(.false.) then
+         ! for debug, check the mismatch between the EOS energy and that of a gas+radiation
+         energy_comp = 3*avo*boltzm*s% T(k)/(2*s% mu(k)) + crad*pow4(s% T(k))/s% rho(k) &
+                       + rec_energy_HII_to_HI &
+                       + rec_energy_HeII_to_HeI &
+                       + rec_energy_HeIII_to_HeII &
+                       + diss_energy_H2
+
+         write(*,*) "compare energies", k, s%m(k)/Msun, s% energy(k), energy_comp, &
+            (s% energy(k)-energy_comp)/s% energy(k)
+      end if
+
+   end do
+
+   if (sticking_to_energy_without_recombination_corr) then
+      do k=1, s% nz
+          adjusted_energy(k) = s% energy(k)
+      end do
+   end if
+
+   ! to do. lambda_CEE calculation for He star envelope too.s
+   he_core_mass_1cent = 0.0
+   he_core_mass_10cent = 0.0
+   he_core_mass_30cent = 0.0
+   !for MS stars = he core is 0, lambda calculated for whole star
+   !for He stars = he core is whole star, lambda calculated for whole star
+
+   h1 = s% net_iso(ih1)
+   he4 = s% net_iso(ihe4)
+   have_30_value = .false.
+   have_10_value = .false.
+   have_1_value = .false.
+   if (h1 /= 0 .and. he4 /= 0) then
+     do k=1, s% nz
+      if (.not. have_30_value) then
+        if (s% xa(h1,k) <=  0.3d0 .and. &
+          s% xa(he4,k) >= 0.1d0) then
+          he_core_mass_30cent = s% m(k)
+          have_30_value = .true.
+        end if
+      end if
+      if (.not. have_10_value) then
+        if (s% xa(h1,k) <= 0.1d0 .and. &
+          s% xa(he4,k) >= 0.1d0) then
+          he_core_mass_10cent = s% m(k)
+          have_10_value = .true.
+        end if
+      end if
+      if (.not. have_1_value) then
+        if (s% xa(h1,k) <= 0.01d0 .and. &
+          s% xa(he4,k) >= 0.1d0) then
+          he_core_mass_1cent = s% m(k)
+          have_1_value = .true.
+        end if
+      end if
+     end do
+   end if
+
+   lambda_CE_1cent = lambda_CE(s,adjusted_energy, he_core_mass_1cent)
+   lambda_CE_10cent = lambda_CE(s,adjusted_energy, he_core_mass_10cent)
+   lambda_CE_30cent = lambda_CE(s,adjusted_energy, he_core_mass_30cent)
+
+   names(15) = 'lambda_CE_1cent'
+   vals(15) = lambda_CE_1cent
+   names(16) = 'lambda_CE_10cent'
+   vals(16) = lambda_CE_10cent
+   names(17) = 'lambda_CE_30cent'
+   vals(17) = lambda_CE_30cent
+
+   deallocate(adjusted_energy)
+
+
+   ! CO core:
+   c12 = s% net_iso(ic12)
+   o16 = s% net_iso(io16)
+   XplusY_CO_core_mass_threshold = 0.1d0
+
+   co_core_k = 0
+   co_core_mass = 0.0d0
+   co_core_radius = 0.0d0
+   have_co_value = .false.
+   if (c12 /= 0 .and. o16 /= 0) then
+     do k=1, s% nz
+      if (.not. have_co_value) then
+        if (((s% xa(h1,k) + s% xa(he4,k))  <= XplusY_CO_core_mass_threshold) .and. &
+          ((s% xa(c12,k) + s% xa(o16,k))  >= XplusY_CO_core_mass_threshold)) then
+          call set_core_info(s, k, co_core_k, &
+          co_core_mass, co_core_radius)
+          have_co_value = .true.
+        end if
+      end if
+     end do
+   end if
+
+   names(18) = 'co_core_mass'
+   vals(18) = co_core_mass
+   names(19) = 'co_core_radius'
+   vals(19) = co_core_radius
+
   end subroutine data_for_extra_history_columns
+
+  real(dp) function lambda_CE(s, adjusted_energy, he_core_mass_CE)
+      type (star_info), pointer :: s
+      integer :: k
+      real(dp) :: E_bind, E_bind_shell, he_core_mass_CE
+      real(dp) :: adjusted_energy(:)
+
+      if (s% m(1) <= (he_core_mass_CE)) then
+         lambda_CE = 1d99
+      else
+         E_bind = 0.0d0
+         E_bind_shell = 0.0d0
+         do k=1, s% nz
+            if (s% m(k) > (he_core_mass_CE)) then !envelope is defined to be H-rich
+               E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/(s% r(k))
+               E_bind = E_bind+ E_bind_shell
+            end if
+         end do
+         lambda_CE = - s% cgrav(1) * (s% m(1)) * ((s% m(1)) - he_core_mass_CE)/(E_bind * s% r(1))
+      end if
+   end function lambda_CE
+
+   real(dp) function get_ion_info(s,id,k)
+     use ionization_def, only: num_ion_vals
+     use ionization_lib, only: eval_ionization
+     integer, intent(in) :: id, k
+     integer :: ierr
+     real(dp) :: ionization_res(num_ion_vals)
+     type (star_info), pointer :: s
+     ierr = 0
+     call eval_ionization( &
+          1d0 - (s% X(k) + s% Y(k)), s% X(k), s% Rho(k), s% lnd(k)/ln10, &
+          s% T(k), s% lnT(k)/ln10, ionization_res, ierr)
+     if (ierr /= 0) ionization_res = 0
+     get_ion_info = ionization_res(id)
+   end function get_ion_info
+
+
+   ! simpler version of the same function at star/private/report.f90
+   subroutine set_core_info(s, k, &
+         core_k, core_m, core_r)
+      type (star_info), pointer :: s
+      integer, intent(in) :: k
+      integer, intent(out) :: core_k
+      real(dp), intent(out) :: &
+         core_m, core_r
+
+      integer :: j, jm1, j00
+      real(dp) :: dm1, d00, qm1, q00, core_q, &
+         core_lgP, core_g, core_X, core_Y, core_edv_H, core_edv_He, &
+         core_scale_height, core_dlnX_dr, core_dlnY_dr, core_dlnRho_dr
+
+      include 'formats'
+
+      if (k == 1) then
+         core_q = 1d0
+      else
+         jm1 = maxloc(s% xa(:,k-1), dim=1)
+         j00 = maxloc(s% xa(:,k), dim=1)
+         qm1 = s% q(k-1) - 0.5d0*s% dq(k-1) ! center of k-1
+         q00 = s% q(k) - 0.5d0*s% dq(k) ! center of k
+         dm1 = s% xa(j00,k-1) - s% xa(jm1,k-1)
+         d00 = s% xa(j00,k) - s% xa(jm1,k)
+         if (dm1*d00 > 0d0) then
+            write(*,2) 'bad args for set_core_info', k, dm1, d00
+            call mesa_error(__FILE__,__LINE__)
+            core_q = 0.5d0*(qm1 + q00)
+         else if (dm1 == 0d0 .and. d00 == 0d0) then
+            core_q = 0.5d0*(qm1 + q00)
+         else if (dm1 == 0d0) then
+            core_q = qm1
+         else if (d00 == 0d0) then
+            core_q = q00
+         else
+            core_q = find0(qm1, dm1, q00, d00)
+         end if
+      end if
+
+      call get_info_at_q(s, core_q, &
+         core_k, core_m, core_r)
+
+   end subroutine set_core_info
+
+
+   subroutine get_info_at_q(s, bdy_q, &
+         kbdy, bdy_m, bdy_r)
+
+      type (star_info), pointer :: s
+      real(dp), intent(in) :: bdy_q
+      integer, intent(out) :: kbdy
+      real(dp), intent(out) :: &
+         bdy_m, bdy_r
+
+      real(dp) :: x, x0, x1, x2, alfa, beta, bdy_omega_crit
+      integer :: k, ii, klo, khi
+
+      include 'formats'
+
+      bdy_m=0; bdy_r=0;
+      kbdy = 0
+
+      if (bdy_q <= 0) return
+      k = k_for_q(s,bdy_q)
+      if (k >= s% nz) then
+         kbdy = s% nz
+         return
+      end if
+      if (k <= 1) then
+         bdy_m = s% star_mass
+         bdy_r = s% r(1)/Rsun
+         kbdy = 1
+         return
+      end if
+
+      kbdy = k+1
+
+      bdy_m = (s% M_center + s% xmstar*bdy_q)/Msun
+
+      x = s% q(k-1) - bdy_q
+      x0 = s% dq(k-1)/2
+      x1 = s% dq(k)/2 + s% dq(k-1)
+      x2 = s% dq(k+1)/2 + s% dq(k) + s% dq(k-1)
+
+      alfa = max(0d0, min(1d0, (bdy_q - s% q(k+1))/s% dq(k)))
+
+      bdy_r = pow_cr( &
+         interp2(s% r(k)*s% r(k)*s% r(k), s% r(k+1)*s% r(k+1)*s% r(k+1)),1d0/3d0)/Rsun
+
+      contains
+
+      real(dp) function interp2(f0, f1)
+         real(dp), intent(in) :: f0, f1
+         interp2 = alfa*f0 + (1-alfa)*f1
+      end function interp2
+
+   end subroutine get_info_at_q
+
+
+
+
 
   real(dp) function mass_conv_core(s)
       type (star_info), pointer :: s
@@ -570,7 +868,7 @@ contains
     use atm_lib, only: atm_option, atm_option_str
     use kap_def, only: kap_lowT_option, lowT_AESOPUS
     integer, intent(in) :: id, id_extra
-    integer :: ierr
+    integer :: ierr, i
     real(dp) :: envelope_mass_fraction, L_He, L_tot, min_center_h1_for_diff, &
          critmass, feh, rot_full_off, rot_full_on, frac2
     real(dp), parameter :: huge_dt_limit = 3.15d16 ! ~1 Gyr
@@ -1536,6 +1834,25 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
      xi= sqrt_cr(3.14159d0/3d0)*log_cr(z)/3d0 + 2d0*log_cr(1.32d0+2.33d0/sqrt_cr(xgamma))/3d0-0.484d0*rm23/ctmp
      sige3 = 8.630d21*rme/(z*ctmp*xi)
   end function sige3
+
+  integer function k_for_q(s, q)
+         ! return k s.t. q(k) >= q > q(k)-dq(k)
+         type (star_info), pointer :: s
+         real(dp), intent(in) :: q
+         integer :: k, nz
+         nz = s% nz
+         if (q >= 1) then
+            k_for_q = 1; return
+         else if (q <= s% q(nz)) then
+            k_for_q = nz; return
+         end if
+         do k = 1, nz-1
+            if (q > s% q(k+1)) then
+               k_for_q = k; return
+            end if
+         end do
+         k_for_q = nz
+  end function k_for_q
 
 
 end module run_star_extras
