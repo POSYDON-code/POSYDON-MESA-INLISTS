@@ -258,10 +258,7 @@ contains
       real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
     real(dp) :: h1, he4, c12, o16, he_core_mass_1cent,  he_core_mass_10cent, he_core_mass_30cent
     real(dp) ::  lambda_CE_1cent, lambda_CE_10cent, lambda_CE_30cent
-    !real(dp), pointer :: adjusted_energy(:)
-    integer :: nz
-    nz = s% nz
-    real(dp),  dimension (nz) :: adjusted_energy
+    real(dp),  dimension (:), allocatable ::  adjusted_energy
     real(dp) :: rec_energy_HII_to_HI, &
                 rec_energy_HeII_to_HeI, &
                 rec_energy_HeIII_to_HeII, &
@@ -482,8 +479,8 @@ contains
    ! lambda_CE calculation for different core definitions.
    sticking_to_energy_without_recombination_corr = .false.
    ! get energy from the EOS and adjust the different contributions from recombination/dissociation to internal energy
-   !allocate(adjusted_energy(s% nz))
-   adjusted_energy(:)=0.0
+   allocate(adjusted_energy(s% nz))
+   !adjusted_energy(:)=0.0
    do k=1, s% nz
       ! the following lines compute the fractions of HI, HII, HeI, HeII and HeIII
       ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
@@ -573,19 +570,20 @@ contains
    names(17) = 'lambda_CE_30cent'
    vals(17) = lambda_CE_30cent
 
-   !deallocate(adjusted_energy)
+   deallocate(adjusted_energy)
 
 
-   ! M_CO core:
+   ! CO core:
    c12 = s% net_iso(ic12)
    o16 = s% net_iso(io16)
    XplusY_CO_core_mass_threshold = 0.1
 
    co_core_mass = 0.0
+   co_core_radius = 0.0
    if (c12 /= 0 .and. o16 /= 0) then
      do k=1, s% nz
         if (((s% xa(h1,k) + s% xa(he4,k))  <= XplusY_CO_core_mass_threshold) .and. &
-          ((s% xa(c12,k) + s% xa(c12,k))  >= XplusY_CO_core_mass_threshold)) then
+          ((s% xa(c12,k) + s% xa(o16,k))  >= XplusY_CO_core_mass_threshold)) then
           co_core_mass = s% m(k) / Msun
           co_core_radius = s% r(k) / Rsun
      end do
@@ -602,8 +600,7 @@ contains
       type (star_info), pointer :: s
       integer :: k, nz
       real(dp) :: E_bind, E_bind_shell, he_core_mass_CE
-      nz = s% nz
-      real(dp),  dimension (nz) :: adjusted_energy
+      real(dp) :: adjusted_energy(:)
 
       E_bind = 0.0d0
       E_bind_shell = 0.0
