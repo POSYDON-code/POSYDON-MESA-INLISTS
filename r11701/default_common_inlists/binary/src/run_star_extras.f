@@ -230,7 +230,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 14
+    how_many_extra_history_columns = 18
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -256,7 +256,16 @@ contains
       real(dp), dimension (max_num_mixing_regions) :: cz_bot_mass_posydon
       real(dp) :: cz_bot_radius_posydon(max_num_mixing_regions)
       real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
-
+    real(dp) :: h1, he4, c12, o16, he_core_mass_1cent,  he_core_mass_10cent, he_core_mass_30cent
+    real(dp) ::  lambda_CE_1cent, lambda_CE_10cent, lambda_CE_30cent
+    real(dp), pointer :: adjusted_energy(:)
+    real(dp) :: rec_energy_HII_to_HI, &
+                rec_energy_HeII_to_HeI, &
+                rec_energy_HeIII_to_HeII, &
+                diss_energy_H2, &
+                frac_HI, frac_HII, &
+                frac_HeI, frac_HeII, frac_HeIII, &
+                avg_charge_He, energy_comp
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -466,9 +475,153 @@ contains
     vals(14) = Renv_middle !in solar units
 
 
+   ! lambda_CE calculation for different core definitions.
+   sticking_to_energy_without_recombination_corr = .false.
+   ! get energy from the EOS and adjust the different contributions from recombination/dissociation to internal energy
+   allocate(adjusted_energy(s% nz))
+   do k=1, s% nz
+      ! the following lines compute the fractions of HI, HII, HeI, HeII and HeIII
+      ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
+      ! this file can be checked for additional ionization output available
+      frac_HI = get_ion_info(s,ion_ifneut_H,k)
+      frac_HII = 1 - frac_HI
+
+      ! ionization module provides neutral fraction and average charge of He.
+      ! use these two to compute the mass fractions of HeI and HeII
+      frac_HeI = get_ion_info(s,ion_ifneut_He,k)
+      avg_charge_He = get_ion_info(s,ion_iZ_He,k)
+      ! the following is the solution to the equations
+      !   avg_charge_He = 2*fracHeIII + 1*fracHeII
+      !               1 = fracHeI + fracHeII + fracHeIII
+      frac_HeII = 2 - 2*frac_HeI - avg_charge_He
+      frac_HeIII = 1 - frac_HeII - frac_HeI
+
+      ! recombination energies from https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html
+      rec_energy_HII_to_HI = avo*13.59843449*frac_HII*ev2erg*s% X(k)
+      diss_energy_H2 = avo*4.52d0/2d0*ev2erg*s% X(k)
+      rec_energy_HeII_to_HeI = avo*24.58738880*(frac_HeII+frac_HeIII)*ev2erg*s% Y(k)/4d0
+      rec_energy_HeIII_to_HeII = avo*54.4177650*frac_HeIII*ev2erg*s% Y(k)/4d0
+
+      adjusted_energy(k) = s% energy(k) &
+                           - rec_energy_HII_to_HI &
+                           - rec_energy_HeII_to_HeI &
+                           - rec_energy_HeIII_to_HeII &
+                           - diss_energy_H2
+
+       if (adjusted_energy(k) < 0d0 .or. adjusted_energy(k) > s% energy(k)) then
+          write(*,*) "Error when computing adjusted energy in CE, ", &
+             "s% energy(k):", s% energy(k), " adjusted_energy, ", adjusted_energy(k)
+             sticking_to_energy_without_recombination_corr = .true.
+             stop
+       end if
+
+      if(.false.) then
+         ! for debug, check the mismatch between the EOS energy and that of a gas+radiation
+         energy_comp = 3*avo*boltzm*s% T(k)/(2*s% mu(k)) + crad*pow4(s% T(k))/s% rho(k) &
+                       + rec_energy_HII_to_HI &
+                       + rec_energy_HeII_to_HeI &
+                       + rec_energy_HeIII_to_HeII &
+                       + diss_energy_H2
+
+         write(*,*) "compare energies", k, s%m(k)/Msun, s% energy(k), energy_comp, &
+            (s% energy(k)-energy_comp)/s% energy(k)
+      end if
+
+   end do
+
+   if (sticking_to_energy_without_recombination_corr == .false.)
+      do k=1, s% nz
+          adjusted_energy(k) = s% energy(k)
+      end do
+   end if
+
+   ! to do. lambda_CEE calculation for He star envelope too.s
+   he_core_mass_1cent = 0.0
+   he_core_mass_10cent = 0.0
+   he_core_mass_30cent = 0.0
+   !for MS stars = he core is 0, lambda calculated for whole star
+
+   h1 = s% net_iso(ih1)
+   he4 = s% net_iso(ihe4)
+   if (h1 /= 0 .and. he4 /= 0) then
+     do k=1, s% nz
+        if (s% xa(h1,k) <=  0.3 .and. &
+          s% xa(he4,k) >= 0.1) then
+          he_core_mass_30cent = s% m(k)
+        else if (s% xa(h1,k) <= 0.1 .and. &
+          s% xa(he4,k) >= 0.1) then
+          he_core_mass_10cent = s% m(k)
+        else (s% xa(h1,k) <= 0.01 .and. &
+          s% xa(he4,k) >= 0.1) then
+          he_core_mass_1cent = s% m(k)
+     end do
+   end if
+
+   lambda_CE_1cent = lambda_CE(s,adjusted_energy, he_core_mass_1cent)
+   lambda_CE_10cent = lambda_CE(s,adjusted_energy, he_core_mass_10cent)
+   lambda_CE_30cent = lambda_CE(s,adjusted_energy, he_core_mass_30cent)
+
+   names(15) = 'lambda_CE_1cent'
+   vals(15) = lambda_CE_1cent
+   names(16) = 'lambda_CE_10cent'
+   vals(16) = lambda_CE_10cent
+   names(17) = 'lambda_CE_30cent'
+   vals(17) = lambda_CE_30cent
+
+   deallocate(adjusted_energy)
+
+
+   ! M_CO core:
+   c12 = s% net_iso(ic12)
+   o16 = s% net_iso(io16)
+   XplusY_CO_core_mass_threshold = 0.1
+
+   co_core_mass = 0.0
+   if (c12 /= 0 .and. o16 /= 0) then
+     do k=1, s% nz
+        if (((s% xa(h1,k) + s% xa(he4,k))  <= XplusY_CO_core_mass_threshold) .and. &
+          ((s% xa(c12,k) + s% xa(c12,k))  >= XplusY_CO_core_mass_threshold)) then
+          co_core_mass = s% m(k) / Msun
+     end do
+   end if
+
+   names(18) = 'co_core_mass'
+   vals(18) = co_core_mass
+
   end subroutine data_for_extra_history_columns
 
-  real(dp) function mass_conv_core(s)
+  real(dp) function lambda_CE(s, adjusted_energy, he_core_mass_CE)
+      type (star_info), pointer :: s
+      integer :: k
+      real(dp) :: E_bind, E_bind_shell
+
+      E_bind = 0.0d0
+      E_bind_shell = 0.0
+      do k=1,s% nz
+         if (s% m(k) > (he_core_mass_CE)) then !envelope is defined to be H-rich
+            E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/s% r(k))
+            E_bind = E_bind+ E_bind_shell
+         end if
+      end do
+      lambda_CE = - s% cgrav(1) * s% m(1) * (s% m(1) - he_core_mass_CE)/(E_bind * s% r(1)) #lambda of envelope
+   end function lambda_CE
+
+   real(dp) function get_ion_info(s,id,k)
+     use ionization_def, only: num_ion_vals
+     use ionization_lib, only: eval_ionization
+     integer, intent(in) :: id, k
+     integer :: ierr
+     real(dp) :: ionization_res(num_ion_vals)
+     type (star_info), pointer :: s
+     ierr = 0
+     call eval_ionization( &
+          1d0 - (s% X(k) + s% Y(k)), s% X(k), s% Rho(k), s% lnd(k)/ln10, &
+          s% T(k), s% lnT(k)/ln10, ionization_res, ierr)
+     if (ierr /= 0) ionization_res = 0
+     get_ion_info = ionization_res(id)
+   end function get_ion_info
+
+  real(dp) function mass_conv_core(s, E_bind, he_core_mass)
       type (star_info), pointer :: s
       integer :: j, nz, k
       real(dp) :: dm_limit
