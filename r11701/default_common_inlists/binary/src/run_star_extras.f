@@ -87,12 +87,12 @@ contains
 
     if (.not. s% job% extras_lpar(1)) rot_set_check = .true.
 
-    if(s% initial_mass < 10.0d0 .and. s% initial_mass >= 0.6d0)then
+    if(s% initial_mass < 8.0d0 .and. s% initial_mass >= 0.6d0)then
        TP_AGB_check=.true.
     endif
 
 
-    if (s% star_mass <= 10.0d0) s% cool_wind_RGB_scheme ='Reimers'
+    if (s% star_mass <= 8.0d0) s% cool_wind_RGB_scheme ='Reimers'
 
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
     !vct30 = 1.0d-4
@@ -854,7 +854,7 @@ contains
     real(dp), parameter :: new_varcontrol_target = 1d-3
     real(dp), parameter :: Zsol = 0.0142_dp
     type (star_info), pointer :: s
-    logical :: diff_test1, diff_test2, diff_test3
+    logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest
     character (len=strlen) :: photoname, stuff
 
     ierr = 0
@@ -885,7 +885,7 @@ contains
 
     ! late AGB
     if(late_AGB_check)then
-       if (s% initial_mass < 10.0d0 .and. s% he_core_mass/s% star_mass > 0.9d0) then
+       if (s% initial_mass < 8.0d0 .and. s% he_core_mass/s% star_mass > 0.9d0) then
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
           write(*,*) 'now at late AGB phase, model number ', s% model_number
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
@@ -935,10 +935,25 @@ contains
     ! MANOS: All stopping criteria are in run_binary_extras.f but we also use one here too for single star runs only
     ! define STOPPING CRITERION: stopping criterion for C burning exhaustion, massive stars.
     !if ((s% center_h1 < 1d-4) .and. (s% center_he4 < 5.0d-2) .and. (s% center_c12 < 5.0d-2)) then
-    if(s% x_logical_ctrl(1)) then !check for central carbon here for single stars.
+    if(s% x_logical_ctrl(1)) then !check for central carbon depletion or neon off center ignition, only in case we run single stars.
       if ((s% center_h1 < 1d-4) .and. (s% center_he4 < 1.0d-4) .and. (s% center_c12 < 1.0d-2)) then !MANOS stricter criteria for C depletion
         write(*,'(g0)') "termination code: Single star depleted carbon, terminating from run_star_extras" !MANOS: changed the termination message
         extras_finish_step = terminate
+      else
+        ! check if neon is by far greatest source of energy
+        is_ne_biggest = .true.
+        do i=1, num_categories
+           if(i /= i_burn_ne .and.  s% L_by_category(i_burn_ne) < 10* s% L_by_category(i)) then
+              is_ne_biggest = .false.
+              exit
+           end if
+        end do
+        if (is_ne_biggest .and. s% max_eps_z_m/s% xmstar > 0.01) then
+              write(*,'(g0)') "offcenter neon ignition for single at q=",  s% max_eps_z_m/ s% xmstar, &
+               s% max_eps_z_m
+              extras_finish_step = terminate
+              write(*,'(g0)') "termination code: Single star offcenter neon ignition, terminating from run_star_extras"
+        end if
       endif
     endif
 
