@@ -480,7 +480,7 @@ contains
    sticking_to_energy_without_recombination_corr = .false.
    ! get energy from the EOS and adjust the different contributions from recombination/dissociation to internal energy
    allocate(adjusted_energy(s% nz))
-   !adjusted_energy(:)=0.0
+   adjusted_energy=0.0d0
    do k=1, s% nz
       ! the following lines compute the fractions of HI, HII, HeI, HeII and HeIII
       ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
@@ -495,14 +495,14 @@ contains
       ! the following is the solution to the equations
       !   avg_charge_He = 2*fracHeIII + 1*fracHeII
       !               1 = fracHeI + fracHeII + fracHeIII
-      frac_HeII = 2 - 2*frac_HeI - avg_charge_He
-      frac_HeIII = 1 - frac_HeII - frac_HeI
+      frac_HeII = 2d0 - 2d0*frac_HeI - avg_charge_He
+      frac_HeIII = 1d0 - frac_HeII - frac_HeI
 
       ! recombination energies from https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html
-      rec_energy_HII_to_HI = avo*13.59843449*frac_HII*ev2erg*s% X(k)
+      rec_energy_HII_to_HI = avo*13.59843449d0*frac_HII*ev2erg*s% X(k)
       diss_energy_H2 = avo*4.52d0/2d0*ev2erg*s% X(k)
-      rec_energy_HeII_to_HeI = avo*24.58738880*(frac_HeII+frac_HeIII)*ev2erg*s% Y(k)/4d0
-      rec_energy_HeIII_to_HeII = avo*54.4177650*frac_HeIII*ev2erg*s% Y(k)/4d0
+      rec_energy_HeII_to_HeI = avo*24.58738880d0*(frac_HeII+frac_HeIII)*ev2erg*s% Y(k)/4d0
+      rec_energy_HeIII_to_HeII = avo*54.4177650d0*frac_HeIII*ev2erg*s% Y(k)/4d0
 
       adjusted_energy(k) = s% energy(k) &
                            - rec_energy_HII_to_HI &
@@ -547,14 +547,14 @@ contains
    he4 = s% net_iso(ihe4)
    if (h1 /= 0 .and. he4 /= 0) then
      do k=1, s% nz
-        if (s% xa(h1,k) <=  0.3 .and. &
-          s% xa(he4,k) >= 0.1) then
+        if (s% xa(h1,k) <=  0.3d0 .and. &
+          s% xa(he4,k) >= 0.1d0) then
           he_core_mass_30cent = s% m(k)
-        else if (s% xa(h1,k) <= 0.1 .and. &
-          s% xa(he4,k) >= 0.1) then
+        else if (s% xa(h1,k) <= 0.1d0 .and. &
+          s% xa(he4,k) >= 0.1d0) then
           he_core_mass_10cent = s% m(k)
-        else (s% xa(h1,k) <= 0.01 .and. &
-          s% xa(he4,k) >= 0.1) then
+        else (s% xa(h1,k) <= 0.01d0 .and. &
+          s% xa(he4,k) >= 0.1d0) then
           he_core_mass_1cent = s% m(k)
      end do
    end if
@@ -576,16 +576,18 @@ contains
    ! CO core:
    c12 = s% net_iso(ic12)
    o16 = s% net_iso(io16)
-   XplusY_CO_core_mass_threshold = 0.1
+   XplusY_CO_core_mass_threshold = 0.1d0
 
-   co_core_mass = 0.0
-   co_core_radius = 0.0
+   co_core_mass = 0.0d0
+   co_core_radius = 0.0d0
    if (c12 /= 0 .and. o16 /= 0) then
      do k=1, s% nz
         if (((s% xa(h1,k) + s% xa(he4,k))  <= XplusY_CO_core_mass_threshold) .and. &
           ((s% xa(c12,k) + s% xa(o16,k))  >= XplusY_CO_core_mass_threshold)) then
-          co_core_mass = s% m(k) / Msun
-          co_core_radius = s% r(k) / Rsun
+          set_core_info(s, k, co_core_k, &
+          co_core_mass, co_core_radius)
+          !co_core_mass = s% m(k) / Msun
+          !co_core_radius = s% r(k) / Rsun
      end do
    end if
 
@@ -603,7 +605,7 @@ contains
       real(dp) :: adjusted_energy(:)
 
       E_bind = 0.0d0
-      E_bind_shell = 0.0
+      E_bind_shell = 0.0d0
       do k=1, nz
          if (s% m(k) > (he_core_mass_CE)) then !envelope is defined to be H-rich
             E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/s% r(k))
@@ -627,6 +629,121 @@ contains
      if (ierr /= 0) ionization_res = 0
      get_ion_info = ionization_res(id)
    end function get_ion_info
+
+
+   ! simpler version of the same function at star/private/report.f90
+   subroutine set_core_info(s, k, &
+         core_k, core_m, core_r)
+      type (star_info), pointer :: s
+      integer, intent(in) :: k
+      integer, intent(out) :: core_k
+      real(dp), intent(out) :: &
+         core_m, core_r
+
+      integer :: j, jm1, j00
+      real(dp) :: dm1, d00, qm1, q00, core_q, &
+         core_lgP, core_g, core_X, core_Y, core_edv_H, core_edv_He, &
+         core_scale_height, core_dlnX_dr, core_dlnY_dr, core_dlnRho_dr
+
+      include 'formats'
+
+      if (k == 1) then
+         core_q = 1d0
+      else
+         jm1 = maxloc(s% xa(:,k-1), dim=1)
+         j00 = maxloc(s% xa(:,k), dim=1)
+         qm1 = s% q(k-1) - 0.5d0*s% dq(k-1) ! center of k-1
+         q00 = s% q(k) - 0.5d0*s% dq(k) ! center of k
+         dm1 = s% xa(j00,k-1) - s% xa(jm1,k-1)
+         d00 = s% xa(j00,k) - s% xa(jm1,k)
+         if (dm1*d00 > 0d0) then
+            write(*,2) 'bad args for set_core_info', k, dm1, d00
+            call mesa_error(__FILE__,__LINE__)
+            core_q = 0.5d0*(qm1 + q00)
+         else if (dm1 == 0d0 .and. d00 == 0d0) then
+            core_q = 0.5d0*(qm1 + q00)
+         else if (dm1 == 0d0) then
+            core_q = qm1
+         else if (d00 == 0d0) then
+            core_q = q00
+         else
+            core_q = find0(qm1, dm1, q00, d00)
+         end if
+      end if
+
+      call get_info_at_q(s, core_q, &
+         core_k, core_m, core_r)
+
+   end subroutine set_core_info
+
+
+   subroutine get_info_at_q(s, bdy_q, &
+         kbdy, bdy_m, bdy_r)
+
+      type (star_info), pointer :: s
+      real(dp), intent(in) :: bdy_q
+      integer, intent(out) :: kbdy
+      real(dp), intent(out) :: &
+         bdy_m, bdy_r
+
+      real(dp) :: x, x0, x1, x2, alfa, beta, bdy_omega_crit
+      integer :: k, ii, klo, khi
+
+      include 'formats'
+
+      bdy_m=0; bdy_r=0;
+      kbdy = 0
+
+      if (bdy_q <= 0) return
+      k = k_for_q(s,bdy_q)
+      if (k >= s% nz) then
+         kbdy = s% nz
+         return
+      end if
+      if (k <= 1) then
+         bdy_m = s% star_mass
+         bdy_r = s% r(1)/Rsun
+         kbdy = 1
+         return
+      end if
+
+      kbdy = k+1
+
+      bdy_m = (s% M_center + s% xmstar*bdy_q)/Msun
+
+      x = s% q(k-1) - bdy_q
+      x0 = s% dq(k-1)/2
+      x1 = s% dq(k)/2 + s% dq(k-1)
+      x2 = s% dq(k+1)/2 + s% dq(k) + s% dq(k-1)
+
+      alfa = max(0d0, min(1d0, (bdy_q - s% q(k+1))/s% dq(k)))
+
+      bdy_r = pow_cr( &
+         interp2(s% r(k)*s% r(k)*s% r(k), s% r(k+1)*s% r(k+1)*s% r(k+1)),1d0/3d0)/Rsun
+
+      contains
+
+      real(dp) function interp3(f0, f1, f2)
+         real(dp), intent(in) :: f0, f1, f2
+         real(dp) :: fmin, fmax
+         fmin = min(f0,f1,f2)
+         fmax = max(f0,f1,f2)
+         interp3 = (f1*(x-x0)*(x-x2)*(x0-x2)-&
+               (x-x1)*(f0*(x-x2)*(x1-x2) + (x-x0)*(x0-x1)*x2))/ &
+                  ((x0-x1)*(x0-x2)*(-x1+x2))
+         interp3 = min(fmax, max(fmin, interp3))
+      end function interp3
+
+      real(dp) function interp2(f0, f1)
+         real(dp), intent(in) :: f0, f1
+         interp2 = alfa*f0 + (1-alfa)*f1
+      end function interp2
+
+   end subroutine get_info_at_q
+
+
+
+
 
   real(dp) function mass_conv_core(s)
       type (star_info), pointer :: s
