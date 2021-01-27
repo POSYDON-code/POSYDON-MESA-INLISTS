@@ -522,7 +522,6 @@ contains
           write(*,*) "Error when computing adjusted energy in CE, ", &
              "s% energy(k):", s% energy(k), " adjusted_energy, ", adjusted_energy(k)
              sticking_to_energy_without_recombination_corr = .true.
-             stop
        end if
 
       if(.false.) then
