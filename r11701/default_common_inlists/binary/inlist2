@@ -185,7 +185,7 @@
       mesh_delta_coeff = 1.0d0
       convective_bdy_weight = 0.5d0
       varcontrol_target = 1d-3
-      !max_timestep_factor = 1.1d0
+      max_timestep_factor = 1.1d0
       max_allowed_nz = 20000
       max_dq = 1d-3
 
