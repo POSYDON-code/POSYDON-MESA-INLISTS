@@ -217,6 +217,7 @@
       delta_lgRho_cntr_limit = 0.005   ! default 0.05
       delta_lgRho_limit = 0.1          ! default 1.0
 
+      delta_lgL_He_limit = 0.1
 
 ! time step resolution on fuel depletion
       delta_lg_XH_cntr_limit = 0.01d0
