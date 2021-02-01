@@ -81,7 +81,7 @@
       write_profiles_flag = .false.
 
       !WHEN TO STOP
-      gamma_center_limit = 170 ! Crystallization begins ==> white dwarf
+      gamma_center_limit = 10 ! Crystallization begins ==> white dwarf
       logQ_limit = 58d0 ! Full extent of the EOS parameter space
       max_age = 1.4e10 ! Hubble time
 
@@ -185,8 +185,9 @@
       mesh_delta_coeff = 1.0d0
       convective_bdy_weight = 0.5d0
       varcontrol_target = 1d-3
-      max_timestep_factor = 1.5d0
+      !max_timestep_factor = 1.1d0
       max_allowed_nz = 20000
+      max_dq = 1d-3
 
       newton_iterations_limit = 20
 
@@ -200,16 +201,51 @@
       delta_XC_cntr_hard_limit = -1
 
       !better resolution of the Henyey hook
-      delta_lg_XH_cntr_max = -1.0d0
-      delta_lg_XH_cntr_min = -3.0d0
-      delta_lg_XH_cntr_limit = 0.1d0
-      delta_lg_XH_cntr_hard_limit = -1
+      !delta_lg_XH_cntr_max = -1.0d0
+      !delta_lg_XH_cntr_min = -3.0d0
+      !delta_lg_XH_cntr_limit = 0.1d0
+      !delta_lg_XH_cntr_hard_limit = -1
 
-      delta_lg_XHe_cntr_max = -1.0d0
-      delta_lg_XHe_cntr_min = -3.0d0
-      delta_lg_XHe_cntr_limit = 0.1d0
-      delta_lg_XHe_cntr_hard_limit = -1
+      !delta_lg_XHe_cntr_max = -1.0d0
+      !delta_lg_XHe_cntr_min = -3.0d0
+      !delta_lg_XHe_cntr_limit = 0.1d0
+      !delta_lg_XHe_cntr_hard_limit = -1
 
-      delta_lgT_cntr_limit = 0.1d0
-      delta_lgT_cntr_hard_limit = -1
-/ ! end of controls namelist
+! From Frank's suggestions
+      delta_lgT_cntr_limit   = 0.001   ! default 0.01
+      delta_lgT_limit = 0.05d0         ! default 0.5
+      delta_lgRho_cntr_limit = 0.005   ! default 0.05
+      delta_lgRho_limit = 0.1          ! default 1.0
+
+
+! time step resolution on fuel depletion
+      delta_lg_XH_cntr_limit = 0.01d0
+      delta_lg_XH_cntr_max   = 0.0d0
+      delta_lg_XH_cntr_min   = -4.0d0
+      delta_lg_XH_cntr_hard_limit = 0.02d0
+      delta_lg_XHe_cntr_limit = 0.01d0
+      delta_lg_XHe_cntr_max   = 0.0d0
+      delta_lg_XHe_cntr_min   = -4.0d0
+      delta_lg_XHe_cntr_hard_limit = 0.02d0
+      delta_lg_XC_cntr_limit = 0.01d0
+      delta_lg_XC_cntr_max   = 0.0d0
+      delta_lg_XC_cntr_min   = -2.0d0 ! -3.0d0
+      delta_lg_XC_cntr_hard_limit = 0.02d0
+      delta_lg_XO_cntr_limit = 0.01d0
+      delta_lg_XO_cntr_max   = 0.0d0
+      delta_lg_XO_cntr_min   = -3.0d0
+      delta_lg_XO_cntr_hard_limit = 0.02d0
+
+! limit changes in the timestep
+     timestep_factor_for_retries = 0.75
+
+! HRD, Radius resolution
+delta_HR_ds_L = 0.125
+ delta_HR_ds_Teff = 2.0
+    !### delta_HR_limit
+    !### delta_HR_hard_limit
+    ! limit for dHR (negative means no limit)
+    !     dHR = sqrt((delta_HR_ds_L*dlgL)**2 + (delta_HR_ds_Teff*dlgTeff)**2)
+ delta_HR_limit = 0.05
+ delta_HR_hard_limit = 0.1
+ / ! end of controls namelist

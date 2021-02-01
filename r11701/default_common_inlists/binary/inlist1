@@ -81,7 +81,7 @@
       write_profiles_flag = .false.
 
       !WHEN TO STOP
-      gamma_center_limit = 170 ! Crystallization begins ==> white dwarf
+      gamma_center_limit = 10 ! Crystallization begins ==> white dwarf
       logQ_limit = 58d0 ! Full extent of the EOS parameter space
       max_age = 1.4e10 ! Hubble time
 
@@ -178,7 +178,7 @@
       !CORE MASS DEFINITION
       he_core_boundary_h1_fraction = 1d-2
       c_core_boundary_he4_fraction = 1d-1
-      o_core_boundary_c12_fraction = 1d-1 
+      o_core_boundary_c12_fraction = 1d-1
       min_boundary_fraction = 1d-1
 
       !MESH AND TIMESTEP PARAMETERS
@@ -187,6 +187,7 @@
       varcontrol_target = 1d-3
       !max_timestep_factor = 1.1d0
       max_allowed_nz = 20000
+      max_dq = 1d-3
 
       newton_iterations_limit = 20
 
@@ -210,8 +211,11 @@
       !delta_lg_XHe_cntr_limit = 0.1d0
       !delta_lg_XHe_cntr_hard_limit = -1
 
-      delta_lgT_cntr_limit = 0.1d0
-      delta_lgT_cntr_hard_limit = -1
+! From Frank's suggestions
+      delta_lgT_cntr_limit   = 0.001   ! default 0.01
+      delta_lgT_limit = 0.05d0         ! default 0.5
+      delta_lgRho_cntr_limit = 0.005   ! default 0.05
+      delta_lgRho_limit = 0.1          ! default 1.0
 
 
 ! time step resolution on fuel depletion
@@ -233,11 +237,19 @@
       delta_lg_XO_cntr_hard_limit = 0.02d0
 
 ! limit changes in the timestep
-     min_timestep_factor         = 0.8d0
-     max_timestep_factor         = 1.05d0
      timestep_factor_for_retries = 0.75
 
+! HRD, Radius resolution
+delta_HR_ds_L = 0.125
+ delta_HR_ds_Teff = 2.0
+    !### delta_HR_limit
+    !### delta_HR_hard_limit
+    ! limit for dHR (negative means no limit)
+    !     dHR = sqrt((delta_HR_ds_L*dlgL)**2 + (delta_HR_ds_Teff*dlgTeff)**2)
+ delta_HR_limit = 0.05
+ delta_HR_hard_limit = 0.1
+
       ! for single stars stars, the control below needs to be true, so that the carbon exhaustion check happens in run_star_extras.f
-      x_logical_ctrl(1) = .true.
+      x_logical_ctrl(1) = .false.
 
 / ! end of controls namelist
