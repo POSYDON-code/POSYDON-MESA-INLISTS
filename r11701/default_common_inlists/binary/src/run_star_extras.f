@@ -233,7 +233,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 19
+    how_many_extra_history_columns = 20
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -261,7 +261,7 @@ contains
       real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
     integer :: h1, he4, c12, o16
     real(dp) :: he_core_mass_1cent,  he_core_mass_10cent, he_core_mass_30cent
-    real(dp) ::  lambda_CE_1cent, lambda_CE_10cent, lambda_CE_30cent
+    real(dp) ::  lambda_CE_1cent, lambda_CE_10cent, lambda_CE_30cent, lambda_CE_pure_He_star_10cent
     real(dp),  dimension (:), allocatable ::  adjusted_energy
     real(dp) :: rec_energy_HII_to_HI, &
                 rec_energy_HeII_to_HeI, &
@@ -593,8 +593,6 @@ contains
    names(17) = 'lambda_CE_30cent'
    vals(17) = lambda_CE_30cent
 
-   deallocate(adjusted_energy)
-
 
    ! CO core:
    c12 = s% net_iso(ic12)
@@ -623,26 +621,30 @@ contains
    names(19) = 'co_core_radius'
    vals(19) = co_core_radius
 
+   lambda_CE_pure_He_star_10cent = lambda_CE(s,adjusted_energy, co_core_mass)
+   names(20) = 'lambda_CE_pure_He_star_10cent'
+   vals(20) = lambda_CE_pure_He_star_10cent
+   deallocate(adjusted_energy)
   end subroutine data_for_extra_history_columns
 
-  real(dp) function lambda_CE(s, adjusted_energy, he_core_mass_CE)
+  real(dp) function lambda_CE(s, adjusted_energy, star_core_mass_CE)
       type (star_info), pointer :: s
       integer :: k
-      real(dp) :: E_bind, E_bind_shell, he_core_mass_CE
+      real(dp) :: E_bind, E_bind_shell, star_core_mass_CE
       real(dp) :: adjusted_energy(:)
 
-      if (s% m(1) <= (he_core_mass_CE)) then
+      if (s% m(1) <= (star_core_mass_CE)) then
          lambda_CE = 1d99
       else
          E_bind = 0.0d0
          E_bind_shell = 0.0d0
          do k=1, s% nz
-            if (s% m(k) > (he_core_mass_CE)) then !envelope is defined to be H-rich
+            if (s% m(k) > (star_core_mass_CE)) then !envelope is defined to be H-rich
                E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/(s% r(k))
                E_bind = E_bind+ E_bind_shell
             end if
          end do
-         lambda_CE = - s% cgrav(1) * (s% m(1)) * ((s% m(1)) - he_core_mass_CE)/(E_bind * s% r(1))
+         lambda_CE = - s% cgrav(1) * (s% m(1)) * ((s% m(1)) - star_core_mass_CE)/(E_bind * s% r(1))
       end if
    end function lambda_CE
 
