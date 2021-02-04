@@ -212,10 +212,10 @@
       !delta_lg_XHe_cntr_hard_limit = -1
 
 ! From Frank's suggestions
-      !delta_lgT_cntr_limit   = 0.001   ! default 0.01
-      !delta_lgT_limit = 0.05d0         ! default 0.5
-      !delta_lgRho_cntr_limit = 0.005   ! default 0.05
-      !delta_lgRho_limit = 0.1          ! default 1.0
+      delta_lgT_cntr_limit   = 0.005   ! default 0.01
+      delta_lgT_limit = 0.025d0         ! default 0.5
+      delta_lgRho_cntr_limit = 0.025   ! default 0.05
+      delta_lgRho_limit = 0.5          ! default 1.0
 
       delta_lgL_He_limit = 0.1
 
