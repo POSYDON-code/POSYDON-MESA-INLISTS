@@ -185,9 +185,9 @@
       mesh_delta_coeff = 1.0d0
       convective_bdy_weight = 0.5d0
       varcontrol_target = 1d-3
-      max_timestep_factor = 1.1d0
-      max_allowed_nz = 20000
-      max_dq = 1d-3
+      max_timestep_factor = 1.05d0
+      max_allowed_nz = 50000
+      max_dq = 5d-4
 
       newton_iterations_limit = 20
 
@@ -251,6 +251,6 @@ delta_HR_ds_L = 0.125
  delta_HR_hard_limit = 0.1
 
       ! for single stars stars, the control below needs to be true, so that the carbon exhaustion check happens in run_star_extras.f
-      x_logical_ctrl(1) = .false.
+      x_logical_ctrl(1) = .true.
 
 / ! end of controls namelist
