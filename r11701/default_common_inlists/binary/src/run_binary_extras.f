@@ -470,7 +470,7 @@
          logical, parameter :: dbg = .false.
          integer, intent(out) :: n_conv_regions_posydon
          !integer :: max_num_mixing_regions
-         !max_num_mixing_regions = 100 
+         !max_num_mixing_regions = 100
          !integer, intent(out), dimension (:), allocatable :: n_zones_of_region, bot_bdy, top_bdy
          !real(dp),intent(out), dimension (:), allocatable :: cz_bot_mass_posydon, cz_bot_radius_posydon
          !real(dp),intent(out), dimension (:), allocatable :: cz_top_mass_posydon, cz_top_radius_posydon
@@ -498,7 +498,7 @@
          pot_cz_bot_radius_posydon = 0.0
          pot_bot_bdy = 0.0
          pot_n_zones_of_region = 0
-         
+
          in_convective_region = (s% mixing_type(nz) == convective_mixing)
          if (in_convective_region) then
             pot_cz_bot_mass_posydon = s% M_center
@@ -516,7 +516,7 @@
                   if (pot_n_zones_of_region >= min_zones_for_convective_tides) then
                     if (n_conv_regions_posydon < max_num_mixing_regions) then
                       n_conv_regions_posydon = n_conv_regions_posydon + 1
-                    end if 
+                    end if
                     cz_top_mass_posydon(n_conv_regions_posydon) = &
                       s% M_center + (s% q(k) - s% cz_bdy_dq(k))*s% xmstar
                     cz_bot_mass_posydon(n_conv_regions_posydon) = pot_cz_bot_mass_posydon
@@ -525,7 +525,7 @@
                     top_bdy(n_conv_regions_posydon) = pot_top_bdy
                     bot_bdy(n_conv_regions_posydon) = pot_bot_bdy
                     n_zones_of_region(n_conv_regions_posydon) = pot_n_zones_of_region
-                  end if 
+                  end if
                   in_convective_region = .false.
                end if
             else
@@ -544,7 +544,7 @@
             if (pot_n_zones_of_region >= min_zones_for_convective_tides) then
               if (n_conv_regions_posydon < max_num_mixing_regions) then
                 n_conv_regions_posydon = n_conv_regions_posydon + 1
-              end if 
+              end if
               cz_top_mass_posydon(n_conv_regions_posydon) = s% mstar
               cz_top_radius_posydon(n_conv_regions_posydon) = s% r(1)/Rsun
               top_bdy(n_conv_regions_posydon) = 1
@@ -676,7 +676,7 @@
 	     	!write(*,*) E2, s% r(i)
 	     	end if
 	     end if
-	     
+
              if (isnan(E2)) then  !maybe this won't be used.
                  k_div_T_posydon = 1d-99
              else
@@ -1055,51 +1055,51 @@
             end if
           end if
 
-         ! check for termination due to carbon depletion or off center neon ignition for primary
+         ! check for termination due to carbon depletion
          if (b% point_mass_i /= 1) then
             if (b% s1% center_c12 < 1.0d-2 .and. b% s1% center_he4 < 1.0d-6) then
                   write(*,'(g0)') "termination code: Primary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
-            else
-               ! check if neon is by far greatest source of energy
-               is_ne_biggest = .true.
-               do i=1, num_categories
-                  if(i /= i_burn_ne .and. b% s1% L_by_category(i_burn_ne) < 10*b% s1% L_by_category(i)) then
-                     is_ne_biggest = .false.
-                     exit
-                  end if
-               end do
-               if (is_ne_biggest .and. b% s1% max_eps_z_m/b% s1% xmstar > 0.01) then
-                     write(*,'(g0)') "offcenter neon ignition for primary at q=",  b% s1% max_eps_z_m/b% s1% xmstar, &
-                        b% s1% max_eps_z_m
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') "termination code: offcenter neon ignition for primary"
-               end if
+            !else
+            !   ! check if neon is by far greatest source of energy
+            !   is_ne_biggest = .true.
+            !   do i=1, num_categories
+            !      if(i /= i_burn_ne .and. b% s1% L_by_category(i_burn_ne) < 10*b% s1% L_by_category(i)) then
+            !         is_ne_biggest = .false.
+            !         exit
+            !      end if
+            !   end do
+            !   if (is_ne_biggest .and. b% s1% max_eps_z_m/b% s1% xmstar > 0.01) then
+            !         write(*,'(g0)') "offcenter neon ignition for primary at q=",  b% s1% max_eps_z_m/b% s1% xmstar, &
+            !            b% s1% max_eps_z_m
+            !         extras_binary_finish_step = terminate
+            !         write(*,'(g0)') "termination code: offcenter neon ignition for primary"
+            !   end if
             end if
          end if
 
-         ! check for termination due to carbon depletion or off center neon ignition for secondary
+         ! check for termination due to carbon depletion
          if (b% point_mass_i /= 2) then
             if (b% s2% center_c12 < 1.0d-2 .and. b% s2% center_he4 < 1.0d-6) then
                   write(*,'(g0)') "termination code: Secondary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
-            else
-               ! check if neon is by far greatest source of energy
-               is_ne_biggest = .true.
-               do i=1, num_categories
-                  if(i /= i_burn_ne .and. b% s2% L_by_category(i_burn_ne) < 10._dp*b% s2% L_by_category(i)) then
-                     is_ne_biggest = .false.
-                     exit
-                  end if
-               end do
-               if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01_dp) then
-                     write(*,'(g0)') "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
-                        b% s2% max_eps_z_m
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') "termination code: offcenter neon ignition for secondary"
-               end if
+            !else
+            !   ! check if neon is by far greatest source of energy
+            !   is_ne_biggest = .true.
+            !   do i=1, num_categories
+            !      if(i /= i_burn_ne .and. b% s2% L_by_category(i_burn_ne) < 10._dp*b% s2% L_by_category(i)) then
+            !         is_ne_biggest = .false.
+            !         exit
+            !      end if
+            !   end do
+            !   if (is_ne_biggest .and. b% s2% max_eps_z_m/b% s2% xmstar > 0.01_dp) then
+            !         write(*,'(g0)') "offcenter neon ignition for secondary at q=",  b% s2% max_eps_z_m/b% s2% xmstar, &
+            !            b% s2% max_eps_z_m
+            !         extras_binary_finish_step = terminate
+            !         write(*,'(g0)') "termination code: offcenter neon ignition for secondary"
+            !   end if
             end if
          end if
 
@@ -1161,11 +1161,11 @@
                if (b% point_mass_i /= 1) then
                     call star_write_model(b% s1% id, "initial_star1.mod",  ierr)
                end if
-               if (ierr /= 0) return ! failure 
+               if (ierr /= 0) return ! failure
                if (b% point_mass_i /= 2) then
                     call star_write_model(b% s2% id, "initial_star2.mod",  ierr)
                end if
-               if (ierr /= 0) return ! failure 
+               if (ierr /= 0) return ! failure
             end if
          end if
 

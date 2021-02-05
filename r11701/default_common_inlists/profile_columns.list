@@ -280,7 +280,7 @@
    he4
    c12
    !n14
-   !o16
+   o16
 
    !add_log_abundances ! this adds log10 of all of the isos that are in the current net
    ! NOTE: you can list specific isotopes by giving their names (from chem_def)
