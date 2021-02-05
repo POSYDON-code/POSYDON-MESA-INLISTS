@@ -634,12 +634,12 @@ contains
       real(dp) :: adjusted_energy(:)
 
       if (s% m(1) <= (star_core_mass_CE)) then
-         lambda_CE = 1d99
+         lambda_CE = 1d99 ! no envelope, so immediately have a "succesfull envelope ejection"
       else
          E_bind = 0.0d0
          E_bind_shell = 0.0d0
          do k=1, s% nz
-            if (s% m(k) > (star_core_mass_CE)) then !envelope is defined to be H-rich
+            if (s% m(k) > (star_core_mass_CE)) then !envelope is defined as everything above star_core_mass_CE.
                E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/(s% r(k))
                E_bind = E_bind+ E_bind_shell
             end if
