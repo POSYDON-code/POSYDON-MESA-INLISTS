@@ -101,7 +101,7 @@
          if (sync_type == "Hut_conv") then
                  !sync_type .eq. "Hut_conv"!Convective envelope + Radiative core
                  ! eq. (11) of Hut, P. 1981, A&A, 99, 126
-                 t_sync = 3.0*k_div_T(b, s,.true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                 t_sync = 3.0d0*k_div_T(b, s,.true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                  ! invert it.
                  !write(*,*) 'star id', s% id
                  if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
@@ -135,9 +135,9 @@
          else if (sync_type == "structure_dependent") then !  Checks if the core is radiative or not and uses equation from Hut_con or Hut_rad respectively (Hut word refers to the envelope status)
                   !sync_type .eq. "Hut_conv"!Convective envelope + Radiative core
                   ! eq. (11) of Hut, P. 1981, A&A, 99, 126
-                  one_div_t_sync_conv = 3.0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  !one_div_t_sync_conv2 = 3.0*k_div_T_posydon(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
-                  one_div_t_sync_rad = 3.0*k_div_T_posydon(b, s, .false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  one_div_t_sync_conv = 3.0d0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  !one_div_t_sync_conv2 = 3.0d0*k_div_T_posydon(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  one_div_t_sync_rad = 3.0d0*k_div_T_posydon(b, s, .false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   !write(*,*) 'star id', s% id
                   if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
                     b% s1% xtra1 = 1d0/one_div_t_sync_rad
@@ -374,7 +374,7 @@
            integer :: j, nz, k
            real(dp) :: dm_limit
            include 'formats'
-           mass_conv_core = 0
+           mass_conv_core = 0.0d0
            dm_limit = s% conv_core_gap_dq_limit*s% xmstar
            nz = s% nz
            do j = 1, s% n_conv_regions
@@ -411,7 +411,7 @@
              m = b% m(b% d_i)
              r_phot = b% r(b% d_i)
           else
-             qratio = 1.0/qratio
+             qratio = 1.0d0/qratio
              m = b% m(b% a_i)
              r_phot = b% r(b% a_i)
           end if
@@ -428,7 +428,7 @@
                    exit
                 end if
              end do
-             tau_conv = 0.431_dp*pow_cr(m_env*r_env* &
+             tau_conv = 0.431d0*pow_cr(m_env*r_env* &
                 (r_phot/Rsun-r_env/2d0)/3d0/s% L_phot,one_third) * secyer
              P_tid = 1d0/abs(1d0/porb-s% omega_avg_surf/(2d0*pi))
              f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv),b% tidal_reduction))
@@ -489,20 +489,20 @@
          n_zones_of_region(:)=0
          bot_bdy(:)=0
          top_bdy(:)=0
-         cz_bot_mass_posydon(:)=0.0
-         cz_bot_radius_posydon(:)=0.0
-         cz_top_mass_posydon(:)=0.0
-         cz_top_radius_posydon(:)=0.0
+         cz_bot_mass_posydon(:)=0.0d0
+         cz_bot_radius_posydon(:)=0.0d0
+         cz_top_mass_posydon(:)=0.0d0
+         cz_top_radius_posydon(:)=0.0d0
          n_conv_regions_posydon = 0
-         pot_cz_bot_mass_posydon = 0.0
-         pot_cz_bot_radius_posydon = 0.0
-         pot_bot_bdy = 0.0
+         pot_cz_bot_mass_posydon = 0.0d0
+         pot_cz_bot_radius_posydon = 0.0d0
+         pot_bot_bdy = 0
          pot_n_zones_of_region = 0
 
          in_convective_region = (s% mixing_type(nz) == convective_mixing)
          if (in_convective_region) then
             pot_cz_bot_mass_posydon = s% M_center
-            pot_cz_bot_radius_posydon = 0.0
+            pot_cz_bot_radius_posydon = 0.0d0
             pot_bot_bdy = nz
          end if
 
@@ -590,7 +590,7 @@
              m = b% m(b% d_i)
              r_phot = b% r(b% d_i)
           else
-             qratio = 1.0/qratio
+             qratio = 1.0d0/qratio
              m = b% m(b% a_i)
              r_phot = b% r(b% a_i)
           end if
@@ -615,10 +615,10 @@
             n_zones_of_region(:)=0
             bot_bdy(:)=0
             top_bdy(:)=0
-            cz_bot_mass_posydon(:)=0.0
-            cz_bot_radius_posydon(:)=0.0
-            cz_top_mass_posydon(:)=0.0
-            cz_top_radius_posydon(:)=0.0
+            cz_bot_mass_posydon(:)=0.0d0
+            cz_bot_radius_posydon(:)=0.0d0
+            cz_top_mass_posydon(:)=0.0d0
+            cz_top_radius_posydon(:)=0.0d0
             n_conv_regions_posydon = 0
 
             call loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy, top_bdy, &
@@ -626,9 +626,9 @@
 
             if (n_conv_regions_posydon > 0) then
               do k=1, n_conv_regions_posydon ! from inside out
-                m_env = 0.0
-                Dr_env = 0.0
-                Renv_middle = 0.0
+                m_env = 0.0d0
+                Dr_env = 0.0d0
+                Renv_middle = 0.0d0
                 if ((cz_bot_mass_posydon(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
                     m_env = (cz_top_mass_posydon(k) - cz_bot_mass_posydon(k)) / Msun
                     Dr_env = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k)  !depth of the convective layer, length of the eddie
@@ -660,10 +660,10 @@
           else ! assuming a radiative star
            ! New fitting E2 (Qin et al. 2018)
              do i = s% nz, 1, -1
-                if (s% brunt_N2(i) >= 0) exit
+                if (s% brunt_N2(i) >= 0d0) exit
              end do
              !write(*,*) i
-	     if (i == 0.0) then ! expected in a fully convective star
+	     if (i == 0) then ! expected in a fully convective star
 	     	E2 = 1d-99
 	     else
 	     	h1 = s% net_iso(ih1)
@@ -696,7 +696,7 @@
           real(dp) :: m_acc, a
           real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
 
-          if (m_acc/Msun <= 2.50) then ! NS
+          if (m_acc/Msun <= 2.50d0) then ! NS
             !Radius refernces for NS:
             ! 1) Miller, M. C., Lamb, F. K., Dittmann, A. J., et al. 2019, ApJL, 887, L2
             ! 2) Riley, T. E., Watts, A. L., Bogdanov, S., et al., 2019, ApJL, 887, L21
