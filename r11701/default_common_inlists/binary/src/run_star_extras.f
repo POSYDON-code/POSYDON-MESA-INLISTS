@@ -408,7 +408,7 @@ contains
         enddo
         avg_c_in_c_core = dot_product(s% xa(j,k1:k2),s% dq(k1:k2))/sum(s% dq(k1:k2))
      else
-        avg_c_in_c_core = 0
+        avg_c_in_c_core = 0.0d0
      endif
      names(11) = "avg_c_in_c_core"
      vals(11) = avg_c_in_c_core
@@ -494,7 +494,7 @@ contains
       ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
       ! this file can be checked for additional ionization output available
       frac_HI = get_ion_info(s,ion_ifneut_H,k)
-      frac_HII = 1 - frac_HI
+      frac_HII = 1.0d0 - frac_HI
 
       ! ionization module provides neutral fraction and average charge of He.
       ! use these two to compute the mass fractions of HeI and HeII
@@ -526,7 +526,7 @@ contains
 
       if(.false.) then
          ! for debug, check the mismatch between the EOS energy and that of a gas+radiation
-         energy_comp = 3*avo*boltzm*s% T(k)/(2*s% mu(k)) + crad*pow4(s% T(k))/s% rho(k) &
+         energy_comp = 3.0d0*avo*boltzm*s% T(k)/(2*s% mu(k)) + crad*pow4(s% T(k))/s% rho(k) &
                        + rec_energy_HII_to_HI &
                        + rec_energy_HeII_to_HeI &
                        + rec_energy_HeIII_to_HeII &
@@ -545,9 +545,9 @@ contains
    end if
 
    ! to do. lambda_CEE calculation for He star envelope too.s
-   he_core_mass_1cent = 0.0
-   he_core_mass_10cent = 0.0
-   he_core_mass_30cent = 0.0
+   he_core_mass_1cent = 0.0d0
+   he_core_mass_10cent = 0.0d0
+   he_core_mass_30cent = 0.0d0
    !for MS stars = he core is 0, lambda calculated for whole star
    !for He stars = he core is whole star, lambda calculated for whole star
 
@@ -724,10 +724,10 @@ contains
 
       include 'formats'
 
-      bdy_m=0; bdy_r=0;
+      bdy_m=0.0d0; bdy_r=0.0d0;
       kbdy = 0
 
-      if (bdy_q <= 0) return
+      if (bdy_q <= 0.0d0) return
       k = k_for_q(s,bdy_q)
       if (k >= s% nz) then
          kbdy = s% nz
@@ -745,9 +745,9 @@ contains
       bdy_m = (s% M_center + s% xmstar*bdy_q)/Msun
 
       x = s% q(k-1) - bdy_q
-      x0 = s% dq(k-1)/2
+      x0 = s% dq(k-1)/2.0d0
       x1 = s% dq(k)/2 + s% dq(k-1)
-      x2 = s% dq(k+1)/2 + s% dq(k) + s% dq(k-1)
+      x2 = s% dq(k+1)/2.0d0 + s% dq(k) + s% dq(k-1)
 
       alfa = max(0d0, min(1d0, (bdy_q - s% q(k+1))/s% dq(k)))
 
@@ -758,7 +758,7 @@ contains
 
       real(dp) function interp2(f0, f1)
          real(dp), intent(in) :: f0, f1
-         interp2 = alfa*f0 + (1-alfa)*f1
+         interp2 = alfa*f0 + (1.0d0-alfa)*f1
       end function interp2
 
    end subroutine get_info_at_q
@@ -772,7 +772,7 @@ contains
       integer :: j, nz, k
       real(dp) :: dm_limit
       include 'formats'
-      mass_conv_core = 0
+      mass_conv_core = 0.0d0
       dm_limit = s% conv_core_gap_dq_limit*s% xmstar
       nz = s% nz
       do j = 1, s% n_conv_regions
@@ -895,10 +895,10 @@ contains
        call star_write_model(id, 'TPAGB.mod', ierr)
        photoname = 'photos/TPAGB_photo'
        call star_save_for_restart(id, photoname, ierr)
-       s% delta_lgTeff_limit = -1
-       s% delta_lgTeff_hard_limit = -1
-       s% delta_lgL_limit = -1
-       s% delta_lgL_hard_limit = -1
+       s% delta_lgTeff_limit = -1d0
+       s% delta_lgTeff_hard_limit = -1d0
+       s% delta_lgL_limit = -1d0
+       s% delta_lgL_hard_limit = -1d0
        s% Blocker_scaling_factor = 2.0d0
        !s% varcontrol_target = 2.0d0*s% varcontrol_target
        write(*,*) ' varcontrol_target = ', s% varcontrol_target
@@ -926,7 +926,7 @@ contains
           photoname = 'photos/pAGB_photo'
           call star_save_for_restart(id, photoname, ierr)
           if(s% job% extras_lpar(2))then
-             s% max_abar_for_burning = -1
+             s% max_abar_for_burning = -1.0d0
              write(*,*) 'turn off burning for post-AGB'
           endif
           !s% do_element_diffusion = .true.
@@ -1424,22 +1424,22 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     h1 = s% net_iso(ih1)
     he4 = s% net_iso(ihe4)
     nz = s% nz
-    wind = 0
+    wind = 0.0d0
     using_wind_scheme_mdot = .false.
 
     if (h1 > 0) then
        center_h1 = s% xa(h1,nz)
        surface_h1 = s% xa(h1,1)
     else
-       center_h1 = 0
-       surface_h1 = 0
+       center_h1 = 0.0d0
+       surface_h1 = 0.0d0
     end if
-    if (he4 > 0) then
+    if (he4 > 0.0d0) then
        center_he4 = s% xa(he4,nz)
        surface_he4 = s% xa(he4,1)
     else
-       center_he4 = 0
-       surface_he4 = 0
+       center_he4 = 0.0d0
+       surface_he4 = 0.0d0
     end if
 
     !massive stars
@@ -1499,7 +1499,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
       wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
       if (dbg) write(*,1) 'wind', wind
-      if (wind <= 0 .or. is_bad_num(wind)) then
+      if (wind <= 0.0d0 .or. is_bad_num(wind)) then
          ierr = -1
          write(*,*) 'bad value for wind :', wind,L1,R1,M1
          if (dbg) stop 'debug: bad value for wind'
@@ -1511,10 +1511,10 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       Z = Zbase ! previously 1-(X+Y)
 
       if (scheme == 'Dutch') then
-         T_high = 11000
-         T_low = 10000
+         T_high = 11000.0d0
+         T_low = 10000.0d0
          if (s% Dutch_scaling_factor == 0) then
-            wind = 0
+            wind = 0.0d0
          else if (T1 <= T_low) then
             call eval_lowT_Dutch(wind)
          else if (T1 >= T_high) then
@@ -1587,20 +1587,20 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
       if(dbg) write(*,*) 'vink alfa = ', alfa, T1
 
-      if (alfa > 0) then ! eval hot side wind (eqn 24)
+      if (alfa > 0.0d0) then ! eval hot side wind (eqn 24)
          vinf_div_vesc = 2.6d0 ! this is the hot side galactic value
          vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
          logMdot = &
               - 6.697d0 &
               + 2.194d0*log10_cr(L1/Lsun/1d5) &
-              - 1.313d0*log10_cr(M1/Msun/30) &
+              - 1.313d0*log10_cr(M1/Msun/30d0) &
               - 1.226d0*log10_cr(vinf_div_vesc/2d0) &
               + 0.933d0*log10_cr(T1/4d4) &
               - 10.92d0*pow2(log10_cr(T1/4d4)) &
               + 0.85d0*log10_cr(Z/Zsolar)
          w1 = exp10_cr(logMdot)
       else
-         w1 = 0
+         w1 = 0d0
       end if
 
       if (alfa < 1) then ! eval cool side wind (eqn 25)
@@ -1609,16 +1609,16 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          logMdot = &
               - 6.688d0 &
               + 2.210d0*log10_cr(L1/Lsun/1d5) &
-              - 1.339d0*log10_cr(M1/Msun/30) &
+              - 1.339d0*log10_cr(M1/Msun/30d0) &
               - 1.601d0*log10_cr(vinf_div_vesc/2d0) &
               + 1.07d0*log10_cr(T1/2d4) &
               + 0.85d0*log10_cr(Z/Zsolar)
          w2 = exp10_cr(logMdot)
       else
-         w2 = 0
+         w2 = 0d0
       end if
 
-      w = alfa*w1 + (1 - alfa)*w2
+      w = alfa*w1 + (1d0 - alfa)*w2
 
       if (dbg) write(*,*) 'vink wind', w
 
@@ -1681,7 +1681,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       else
          write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
               trim(s% Dutch_wind_lowT_scheme)
-         w = 0
+         w = 0d0
       end if
     end subroutine eval_lowT_Dutch
 
@@ -1704,7 +1704,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = -5.65d0 + 1.05*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)
+      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)
       w = exp10_cr(log10w)
     end subroutine eval_van_Loon_wind
 
@@ -1842,7 +1842,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          real(dp), intent(in) :: q
          integer :: k, nz
          nz = s% nz
-         if (q >= 1) then
+         if (q >= 1.0d0) then
             k_for_q = 1; return
          else if (q <= s% q(nz)) then
             k_for_q = nz; return
