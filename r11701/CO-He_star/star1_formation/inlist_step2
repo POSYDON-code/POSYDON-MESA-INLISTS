@@ -17,9 +17,14 @@
 
       initial_zfracs = 6
 
+      relax_initial_Z = .true.
+      new_Z = 1.42d-2
+
 / ! end of star_job namelist
 
 &controls
+      !initial_z = 1.42d-2
+      !Zbase = 0.0142
 
       photo_directory = 'photos'
       log_directory = 'LOGS'
@@ -30,7 +35,9 @@
       photo_interval = 0
 
       use_other_wind=.false.
-      wind_scheme = ''
+      hot_wind_scheme = ''
+      cool_wind_RGB_scheme = ''
+      cool_wind_AGB_scheme = ''
       mass_change = 0d0
 
 / ! end of controls namelist

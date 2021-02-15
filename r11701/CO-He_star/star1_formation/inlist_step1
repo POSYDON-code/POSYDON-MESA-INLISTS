@@ -16,6 +16,10 @@
 / ! end of star_job namelist
 
 &controls
+        zams_filename = "zams_z2m2_y28.data"
+        initial_z = 0.02d0
+        Zbase = 0.02d0
+
         photo_directory = 'photos'
         log_directory = 'LOGS'
         history_interval = 1
@@ -28,8 +32,6 @@
          accrete_same_as_surface = .false.
          accrete_given_mass_fractions = .true.
 
-         !MLT_option = 'Mihalas'  !consistent with psydon inlists
-
          ! PURE HE
          ! set target uniform composition for relax_initial_to_xaccrete
          num_accretion_species = 1
@@ -40,7 +42,9 @@
          xa_central_lower_limit(1) = 1.0
 
          use_other_wind=.false.
-         wind_scheme = ''
+         hot_wind_scheme = ''
+         cool_wind_RGB_scheme = ''
+         cool_wind_AGB_scheme = ''
          mass_change = 0d0
 
 / ! end of controls namelist
