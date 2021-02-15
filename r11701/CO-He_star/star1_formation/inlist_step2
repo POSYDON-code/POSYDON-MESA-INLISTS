@@ -35,9 +35,9 @@
       photo_interval = 0
 
       use_other_wind=.false.
-      hot_wind_scheme = ''
-      cool_wind_RGB_scheme = ''
-      cool_wind_AGB_scheme = ''
+      hot_wind_scheme = ' '
+      cool_wind_RGB_scheme = ' '
+      cool_wind_AGB_scheme = ' '
       mass_change = 0d0
 
 / ! end of controls namelist
