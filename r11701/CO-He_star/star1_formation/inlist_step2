@@ -19,6 +19,9 @@
 
       relax_initial_Z = .true.
       new_Z = 1.42d-2
+      
+      set_rates_preference = .false. # off for relaxtion 
+      new_rates_preference = 2
 
 / ! end of star_job namelist
 
