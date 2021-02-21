@@ -19,6 +19,9 @@
 
       relax_initial_Z = .true.
       new_Z = 1.42d-2
+      
+      set_rates_preference = .false. # off for relaxtion 
+      new_rates_preference = 2
 
 / ! end of star_job namelist
 
@@ -35,9 +38,9 @@
       photo_interval = 0
 
       use_other_wind=.false.
-      hot_wind_scheme = ''
-      cool_wind_RGB_scheme = ''
-      cool_wind_AGB_scheme = ''
+      hot_wind_scheme = ' '
+      cool_wind_RGB_scheme = ' '
+      cool_wind_AGB_scheme = ' '
       mass_change = 0d0
 
 / ! end of controls namelist
