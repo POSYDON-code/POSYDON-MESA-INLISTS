@@ -40,6 +40,6 @@
       cool_wind_AGB_scheme = ' '
       mass_change = 0d0
 
-      s% x_logical_ctrl(2) = .true.
+      x_logical_ctrl(2) = .true. ! this is only for inlist_step1 of He star formation
 
 / ! end of controls namelist
