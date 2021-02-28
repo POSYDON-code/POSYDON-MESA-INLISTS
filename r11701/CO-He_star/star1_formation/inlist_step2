@@ -19,7 +19,7 @@
 
       relax_initial_Z = .true.
       new_Z = 1.42d-2
-      
+
 / ! end of star_job namelist
 
 &controls
@@ -39,5 +39,7 @@
       cool_wind_RGB_scheme = ' '
       cool_wind_AGB_scheme = ' '
       mass_change = 0d0
+
+      x_logical_ctrl(2) = .true. ! this is only for inlist_step1 of He star formation
 
 / ! end of controls namelist
