@@ -252,5 +252,7 @@ delta_HR_ds_L = 0.125d0
 
       ! for single stars stars, the control below needs to be true, so that the carbon exhaustion check happens in run_star_extras.f
       x_logical_ctrl(1) = .false.
+      ! for formation of He single stars, before they later evolve in a CO-HeMS binary or in a He Star 
+      x_logical_ctrl(2) = .false.
 
 / ! end of controls namelist
