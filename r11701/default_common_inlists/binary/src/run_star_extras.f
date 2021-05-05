@@ -233,7 +233,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 20
+    how_many_extra_history_columns = 26
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -551,6 +551,10 @@ contains
    !for MS stars = he core is 0, lambda calculated for whole star
    !for He stars = he core is whole star, lambda calculated for whole star
 
+   he_core_radius_1cent = 0.0d0
+   he_core_radius_10cent = 0.0d0
+   he_core_radius_30cent = 0.0d0
+
    h1 = s% net_iso(ih1)
    he4 = s% net_iso(ihe4)
    have_30_value = .false.
@@ -562,6 +566,7 @@ contains
         if (s% xa(h1,k) <=  0.3d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_30cent = s% m(k)
+          he_core_radius_30cent = s% r(k)
           have_30_value = .true.
         end if
       end if
@@ -569,6 +574,7 @@ contains
         if (s% xa(h1,k) <= 0.1d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_10cent = s% m(k)
+          he_core_radius_10cent = s% r(k)
           have_10_value = .true.
         end if
       end if
@@ -576,6 +582,7 @@ contains
         if (s% xa(h1,k) <= 0.01d0 .and. &
           s% xa(he4,k) >= 0.1d0) then
           he_core_mass_1cent = s% m(k)
+          he_core_radius_1cent = s% r(k)
           have_1_value = .true.
         end if
       end if
@@ -592,7 +599,6 @@ contains
    vals(16) = lambda_CE_10cent
    names(17) = 'lambda_CE_30cent'
    vals(17) = lambda_CE_30cent
-
 
    ! CO core:
    c12 = s% net_iso(ic12)
@@ -624,6 +630,22 @@ contains
    lambda_CE_pure_He_star_10cent = lambda_CE(s,adjusted_energy, co_core_mass)
    names(20) = 'lambda_CE_pure_He_star_10cent'
    vals(20) = lambda_CE_pure_He_star_10cent
+
+
+   names(21) = 'he_core_mass_1cent'
+   vals(21) = he_core_mass_1cent
+   names(22) = 'he_core_mass_10cent'
+   vals(22) = he_core_mass_10cent
+   names(23) = 'he_core_mass_30cent'
+   vals(23) = he_core_mass_30cent
+   names(24) = 'he_core_radius_1cent'
+   vals(24) = he_core_radius_1cent
+   names(25) = 'he_core_radius_10cent'
+   vals(25) = he_core_radius_10cent
+   names(26) = 'he_core_radius_30cent'
+   vals(26) = he_core_radius_30cent
+
+
    deallocate(adjusted_energy)
   end subroutine data_for_extra_history_columns
 
