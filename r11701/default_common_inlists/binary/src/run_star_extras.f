@@ -1021,8 +1021,9 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    !write(*,*) "going in loop 3", id
-    !call star_write_profile_info(id, "LOGS_test/final_profileC.data", id, ierr)
+    if(s% x_logical_ctrl(1)) then !check for central carbon depletion, only in case we run single stars.
+      call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+    endif
   end subroutine extras_after_evolve
 
 
