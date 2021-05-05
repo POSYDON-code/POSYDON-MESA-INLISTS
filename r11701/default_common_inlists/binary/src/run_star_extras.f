@@ -1022,7 +1022,7 @@ contains
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
     if(s% x_logical_ctrl(1)) then !check for central carbon depletion, only in case we run single stars.
-      call star_write_profile_info(id, "LOGS/final_profile.data", id, ierr)
+      call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
     endif
   end subroutine extras_after_evolve
 
