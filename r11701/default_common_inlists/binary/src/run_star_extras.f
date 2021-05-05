@@ -261,6 +261,7 @@ contains
       real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
     integer :: h1, he4, c12, o16
     real(dp) :: he_core_mass_1cent,  he_core_mass_10cent, he_core_mass_30cent
+    real(dp) :: he_core_radius_1cent, he_core_radius_10cent, he_core_radius_30cent
     real(dp) ::  lambda_CE_1cent, lambda_CE_10cent, lambda_CE_30cent, lambda_CE_pure_He_star_10cent
     real(dp),  dimension (:), allocatable ::  adjusted_energy
     real(dp) :: rec_energy_HII_to_HI, &
