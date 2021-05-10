@@ -17,7 +17,7 @@
 
       ! set initial age and model number to 0 again
       set_initial_age = .true.
-      initial_age = 0.0
+      initial_age = 0.0d0
       set_initial_model_number = .true.
       initial_model_number = 0
 
@@ -34,7 +34,7 @@
       new_rotation_flag = .true.
       change_rotation_flag = .true.
       set_initial_surface_rotation_v = .true.
-      new_surface_rotation_v = 0
+      new_surface_rotation_v = 0.0d0
       num_steps_to_relax_rotation = 50
 
       !use jina
@@ -81,7 +81,7 @@
       write_profiles_flag = .false.
 
       !WHEN TO STOP
-      gamma_center_limit = 10 ! Crystallization begins ==> white dwarf
+      gamma_center_limit = 10d0 ! Crystallization begins ==> white dwarf
       logQ_limit = 58d0 ! Full extent of the EOS parameter space
       max_age = 1.4e10 ! Hubble time
 
@@ -111,7 +111,7 @@
       use_Type2_opacities = .true.
       kap_Type2_full_off_X = 1.0d-3
       kap_Type2_full_on_X = 1.0d-6
-      Zbase = 0.0142 ! To be changed, when metallicity will change
+      Zbase = 0.0142d0 ! To be changed, when metallicity will change
       cubic_interpolation_in_X = .true.
       cubic_interpolation_in_Z = .true.
 
@@ -120,24 +120,24 @@
       w_div_wcrit_max = 0.9d0
 
       max_mdot_redo_cnt = 200 !DEF: 0 (explicit).
-      surf_avg_tau_min = 0 !DEF: 1
-      surf_avg_tau = 10 !DEF: 100
-      min_years_dt_for_redo_mdot = 0 !DEF:0
+      surf_avg_tau_min = 0.0 !DEF: 1
+      surf_avg_tau = 10.0 !DEF: 100
+      min_years_dt_for_redo_mdot = 0.0 !DEF:0
       surf_w_div_w_crit_limit = 0.99d0 !DEF:0.99
       surf_w_div_w_crit_tol = 0.05d0 !DEF:0.05
       rotational_mdot_boost_fac = 1d10 !DEF:1d5
       rotational_mdot_kh_fac = 1d10 !DEF: 0.3d0
-      mdot_revise_factor = 1.2 !DEF:1.1
-      implicit_mdot_boost = 0.1 !DEF:0.1
-      max_mdot_jump_for_rotation = 10  ! for smooth transition from mass accretion to mass loss
+      mdot_revise_factor = 1.2d0 !DEF:1.1
+      implicit_mdot_boost = 0.1d0 !DEF:0.1
+      max_mdot_jump_for_rotation = 10.0d0  ! for smooth transition from mass accretion to mass loss
 
-      D_visc_factor = 0.0
-      D_ST_factor = 0.0
-      D_SH_factor = 0.0 !this is different from MIST2
-      D_GSF_factor = 1.0
-      D_ES_factor = 1.0
-      D_SSI_factor = 1.0
-      D_DSI_factor = 1.0
+      D_visc_factor = 0.0d0
+      D_ST_factor = 0.0d0
+      D_SH_factor = 0.0d0 !this is different from MIST2
+      D_GSF_factor = 1.0d0
+      D_ES_factor = 1.0d0
+      D_SSI_factor = 1.0d0
+      D_DSI_factor = 1.0d0
       am_D_mix_factor = 0.0333333d0 ! f_c in Heger+2000
       am_gradmu_factor = 0.05d0 !f_mu = 0.05 in Heger+2000, 0.1 in Yoon+2006
 
@@ -170,8 +170,8 @@
       diffusion_dt_limit = 3.15d9 !seconds
       diffusion_min_T_at_surface = 1.0d3
       diffusion_min_dq_at_surface = 1.0d-3
-      diffusion_gamma_full_on = 165
-      diffusion_gamma_full_off = 175
+      diffusion_gamma_full_on = 165d0
+      diffusion_gamma_full_off = 175d0
       diffusion_use_full_net = .true.
       do_Ne22_sedimentation_heating = .true.
 
@@ -185,9 +185,9 @@
       mesh_delta_coeff = 1.0d0
       convective_bdy_weight = 0.5d0
       varcontrol_target = 1d-3
-      max_timestep_factor = 1.1d0
+      max_timestep_factor = 1.2d0
       max_allowed_nz = 20000
-      max_dq = 1d-3
+      max_dq = 2d-3
 
       newton_iterations_limit = 20
 
@@ -212,18 +212,18 @@
       !delta_lg_XHe_cntr_hard_limit = -1
 
 ! From Frank's suggestions
-      delta_lgT_cntr_limit   = 0.001   ! default 0.01
-      delta_lgT_limit = 0.05d0         ! default 0.5
-      delta_lgRho_cntr_limit = 0.005   ! default 0.05
-      delta_lgRho_limit = 0.1          ! default 1.0
+      delta_lgT_cntr_limit   = 0.005d0   ! default 0.01
+      delta_lgT_limit = 0.025d0         ! default 0.5
+      delta_lgRho_cntr_limit = 0.025d0   ! default 0.05
+      delta_lgRho_limit = 0.5d0          ! default 1.0
 
-      delta_lgL_He_limit = 0.1
+      delta_lgL_He_limit = 0.1d0
 
 ! time step resolution on fuel depletion
-      delta_lg_XH_cntr_limit = 0.01d0
-      delta_lg_XH_cntr_max   = 0.0d0
-      delta_lg_XH_cntr_min   = -4.0d0
-      delta_lg_XH_cntr_hard_limit = 0.02d0
+      !delta_lg_XH_cntr_limit = 0.01d0
+      !delta_lg_XH_cntr_max   = 0.0d0
+      !delta_lg_XH_cntr_min   = -4.0d0
+      !delta_lg_XH_cntr_hard_limit = 0.02d0
       delta_lg_XHe_cntr_limit = 0.01d0
       delta_lg_XHe_cntr_max   = 0.0d0
       delta_lg_XHe_cntr_min   = -4.0d0
@@ -238,19 +238,21 @@
       delta_lg_XO_cntr_hard_limit = 0.02d0
 
 ! limit changes in the timestep
-     timestep_factor_for_retries = 0.75
+     timestep_factor_for_retries = 0.75d0
 
 ! HRD, Radius resolution
-delta_HR_ds_L = 0.125
- delta_HR_ds_Teff = 2.0
+delta_HR_ds_L = 0.125d0
+ delta_HR_ds_Teff = 2.0d0
     !### delta_HR_limit
     !### delta_HR_hard_limit
     ! limit for dHR (negative means no limit)
     !     dHR = sqrt((delta_HR_ds_L*dlgL)**2 + (delta_HR_ds_Teff*dlgTeff)**2)
- delta_HR_limit = 0.05
- delta_HR_hard_limit = 0.1
+ delta_HR_limit = 0.1d0
+ delta_HR_hard_limit = 0.2d0
 
       ! for single stars stars, the control below needs to be true, so that the carbon exhaustion check happens in run_star_extras.f
       x_logical_ctrl(1) = .false.
+      ! for formation of He single stars, before they later evolve in a CO-HeMS binary or in a He Star 
+      x_logical_ctrl(2) = .false.
 
 / ! end of controls namelist

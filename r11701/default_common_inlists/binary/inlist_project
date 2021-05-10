@@ -35,7 +35,7 @@
    fm = 5d-3 !DEF: 1d-2
    fj = 8d-3 !DEF: 1d-3
    fj_hard = 1d-2 !DEF: 1d-2
-   dt_softening_factor = 0.4
+   dt_softening_factor = 0.4d0
 
    limit_retention_by_mdot_edd = .false.
    implicit_scheme_tolerance = 1d-4
@@ -48,7 +48,7 @@
 
    min_mdot_for_implicit = 1d-9
    roche_min_mdot = 1d-10
-   accretor_overflow_terminate = 100
+   accretor_overflow_terminate = 100d0
    terminate_if_L2_overflow = .false. ! L2 oveflow check changes between Marchant et al. 2016 and Misra et al. 2020 for MS or postMS star respectively, in run_binary_extras.f
 
 
