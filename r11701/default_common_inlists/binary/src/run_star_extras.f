@@ -1428,7 +1428,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     type (star_info), pointer :: s
     integer :: k, j, h1, he4, nz, base
     real(dp) :: max_ejection_mass, alfa, beta, &
-         X, Y, Z, Zbase, w1, w2, T_high, T_low, L1, M1, R1, T1, &
+         X, Y, Z, Zbase, Zsurf, w1, w2, T_high, T_low, L1, M1, R1, T1, &
          center_h1, center_he4, surface_h1, surface_he4, mdot, &
          full_off, full_on, cool_wind, hot_wind, divisor
     character (len=strlen) :: scheme
@@ -1538,6 +1538,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       X = surface_h1
       Y = surface_he4
       Z = Zbase ! previously 1-(X+Y)
+      Zsurf = 1.0_dp - (X+Y)
 
       if (scheme == 'Dutch') then
          T_high = 11000.0d0
@@ -1588,6 +1589,16 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if (dbg) stop 'debug: bad value for wind scheme'
          return
       end if
+
+      if(s% x_logical_ctrl(3)) then ! Belczynski+2010 LBV2 winds (eq. 8) with factor 1
+        if ((s% center_h1 < 1.0d-4) ) then  ! postMS
+            if ((s% L(1)/Lsun > 6.0d5) .and. &
+              (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5) > 1.0d0)) then ! Humphreys-Davidson limit
+              wind  = 1.0d-4
+              if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
+            endif
+        endif
+     endif
 
     end subroutine eval_wind_for_scheme
 
@@ -1687,7 +1698,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       include 'formats'
       if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
-         w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Z)
+         w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
       else
          call eval_Vink_wind(w)
