@@ -1538,6 +1538,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       X = surface_h1
       Y = surface_he4
       Z = Zbase ! previously 1-(X+Y)
+      Zsurf = 1.0_dp - (X+Y)
 
       if (scheme == 'Dutch') then
          T_high = 11000.0d0
@@ -1687,7 +1688,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       include 'formats'
       if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
-         w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Z)
+         w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
       else
          call eval_Vink_wind(w)
