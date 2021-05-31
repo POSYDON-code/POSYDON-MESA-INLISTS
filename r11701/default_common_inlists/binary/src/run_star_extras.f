@@ -1433,7 +1433,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          full_off, full_on, cool_wind, hot_wind, divisor
     character (len=strlen) :: scheme
     logical :: using_wind_scheme_mdot
-    real(dp), parameter :: Zsolar = 0.019d0 ! for Vink et al formula
+    real(dp), parameter :: Zsolar = 0.0142d0 ! for Vink et al formula
 
     logical, parameter :: dbg = .false.
 
