@@ -247,7 +247,7 @@ delta_HR_ds_L = 0.25d0
     !### delta_HR_hard_limit
     ! limit for dHR (negative means no limit)
     !     dHR = sqrt((delta_HR_ds_L*dlgL)**2 + (delta_HR_ds_Teff*dlgTeff)**2)
- delta_HR_limit = 0.0005d0
+ delta_HR_limit = 0.005d0
  delta_HR_hard_limit = 0.04d0
 
       ! for single stars stars, the control below needs to be true, so that the carbon exhaustion check happens in run_star_extras.f
