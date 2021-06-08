@@ -257,10 +257,10 @@ delta_HR_ds_L = 0.25d0
       ! Turn on eq.8 Belczynski+2010 LBV2 winds  with factor 1 (10-4 Msun/yr) to replace other winds for postMS stars in Humphreys-Davidson limit
       x_logical_ctrl(3) = .false.
 
-delta_lg_star_mass_limit = 1d-3 !def 5d-3
+delta_lg_star_mass_limit = 5d-4 !def 5d-3
 delta_lg_star_mass_hard_limit = -1
 
-delta_mdot_atol = 2d-5 !def 1d-3
+delta_mdot_atol = 1d-5 !def 1d-3
 delta_mdot_rtol = 0.03d0
 delta_mdot_limit = 1
 
