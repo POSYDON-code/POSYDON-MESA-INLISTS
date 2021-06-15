@@ -1005,7 +1005,8 @@ contains
       if ((s% center_h1 < 1d-4) .and. (s% center_he4 < 1.0d-4) .and. (s% center_c12 < 1.0d-2)) then
         write(*,'(g0)') "termination code: Single star depleted carbon, terminating from run_star_extras"
         extras_finish_step = terminate
-      elif ((s% center_h1 < 1d-6) .and. (s% initial_mass <= 0.9d0) .and. (s% star_age > 2.0d10) )then
+      endif
+      if ((s% center_h1 < 1d-6) .and. (s% initial_mass <= 0.9d0) .and. (s% star_age > 2.0d10) )then
           ! stopping criterion for TAMS, low mass stars.
          termination_code_str(t_xtra2) = &
            'termination code: Single, low-mass star depleted hydrogen, terminating from run_star_extras'
