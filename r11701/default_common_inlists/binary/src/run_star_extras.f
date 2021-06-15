@@ -109,7 +109,11 @@ contains
     !   s% varcontrol_target = vct100
     !endif
 
-
+    if(s% x_logical_ctrl(1)) then
+          ! For single stars we allow to go beyong Hubble time,
+          ! to reach TAMS of low mass stars
+          s% max_age = -1
+    endif
 
     !now set f_ov_below_nonburn from [Fe/H] at extras_cpar(3)
     !s% overshoot_f_below_nonburn_shell = f_ov_below_nonburn(s% job% extras_rpar(4))
@@ -931,6 +935,9 @@ contains
        !s% varcontrol_target = 2.0d0*s% varcontrol_target
        write(*,*) ' varcontrol_target = ', s% varcontrol_target
        write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
+       if(s% x_logical_ctrl(1)) then
+          call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+       endif
     endif
 
     ! late AGB
@@ -943,6 +950,9 @@ contains
           late_AGB_check=.false.
           post_AGB_check=.true.
        endif
+      if(s% x_logical_ctrl(1)) then
+             call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+      endif
     endif
 
     if(post_AGB_check)then
@@ -962,6 +972,9 @@ contains
           pre_WD_check = .true.
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
        endif
+       if(s% x_logical_ctrl(1)) then
+              call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+       endif
     endif
 
     ! pre-WD
@@ -980,6 +993,9 @@ contains
           !call atm_option_str(atm_option(s% which_atm_option,ierr), stuff, ierr)
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
        endif
+       if(s% x_logical_ctrl(1)) then
+              call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+       endif
     endif
 
     ! All stopping criteria are in run_binary_extras.f but we also use one here too for single star runs only
@@ -989,30 +1005,14 @@ contains
       if ((s% center_h1 < 1d-4) .and. (s% center_he4 < 1.0d-4) .and. (s% center_c12 < 1.0d-2)) then
         write(*,'(g0)') "termination code: Single star depleted carbon, terminating from run_star_extras"
         extras_finish_step = terminate
-      !else
-      !  ! check if neon is by far greatest source of energy
-      !  is_ne_biggest = .true.
-      !  do i=1, num_categories
-      !     if(i /= i_burn_ne .and.  s% L_by_category(i_burn_ne) < 10* s% L_by_category(i)) then
-      !        is_ne_biggest = .false.
-      !        exit
-      !     end if
-      !  end do
-      !  if (is_ne_biggest .and. s% max_eps_z_m/s% xmstar > 0.01) then
-      !        write(*,'(g0)') "offcenter neon ignition for single at q=",  s% max_eps_z_m/ s% xmstar, &
-      !         s% max_eps_z_m
-      !        extras_finish_step = terminate
-      !        write(*,'(g0)') "termination code: Single star offcenter neon ignition, terminating from run_star_extras"
-      !  end if
+      elif ((s% center_h1 < 1d-6) .and. (s% initial_mass <= 0.9d0) .and. (s% star_age > 2.0d10) )then
+          ! stopping criterion for TAMS, low mass stars.
+         termination_code_str(t_xtra2) = &
+           'termination code: Single, low-mass star depleted hydrogen, terminating from run_star_extras'
+         s% termination_code = t_xtra2
+         extras_finish_step = terminate
       endif
     endif
-
-    ! define STOPPING CRITERION: stopping criterion for TAMS, low mass stars.
-    !if ((s% center_h1 < 1d-2) .and. (s% initial_mass <= 0.6d0) .and. (s% star_age > 5.0d10) )then
-    !   termination_code_str(t_xtra2) = 'central H1 mass fraction below 0.01'
-    !   s% termination_code = t_xtra2
-    !   extras_finish_step = terminate
-    !endif
 
     ! check DIFFUSION: to determine whether or not diffusion should happen
     ! no diffusion for fully convective, post-MS, and mega-old models
