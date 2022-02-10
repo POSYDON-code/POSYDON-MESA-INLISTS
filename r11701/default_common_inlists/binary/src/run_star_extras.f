@@ -1495,7 +1495,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
           endif
           call eval_wind_for_scheme(scheme, cool_wind)
-       elseif(T1 >= s% cool_wind_full_on_T)then
+       endif
+          
+       if(T1 >= s% cool_wind_full_on_T)then
           !evaluate hot wind
           scheme="Dutch"
           call eval_wind_for_scheme(scheme, hot_wind)
