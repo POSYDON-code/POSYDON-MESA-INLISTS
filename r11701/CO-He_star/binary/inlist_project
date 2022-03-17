@@ -1,3 +1,4 @@
+! only differences compared to default_common_inlists/inlist_project
 
 &binary_job
 

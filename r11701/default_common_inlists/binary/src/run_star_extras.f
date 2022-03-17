@@ -97,28 +97,11 @@ contains
 
     if (s% star_mass <= 8.0d0) s% cool_wind_RGB_scheme ='Reimers'
 
-! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
-    !vct30 = 1.0d-4
-    !vct100 = 1.0d-3
-
-    !if (s% initial_mass > 30.0d0) then
-    !   frac = (s% initial_mass-30.0d0)/(100.0d0-30.0d0)
-    !   frac = 0.5d0*(1.0d0 - cospi_cr(frac))
-    !   s% varcontrol_target = vct30 + (vct100-vct30)*frac
-    !elseif (s% initial_mass > 100.0d0) then
-    !   s% varcontrol_target = vct100
-    !endif
-
     if(s% x_logical_ctrl(1)) then
           ! For single stars we allow to go beyong Hubble time,
           ! to reach TAMS of low mass stars
           s% max_age = -1
     endif
-
-    !now set f_ov_below_nonburn from [Fe/H] at extras_cpar(3)
-    !s% overshoot_f_below_nonburn_shell = f_ov_below_nonburn(s% job% extras_rpar(4))
-    !s% overshoot_f0_below_nonburn_shell = 0.5d0 * s% overshoot_f_below_nonburn_shell
-
 
   !prototype version for increasing overshoot above 4 Msun up to the Brott et
   !al. 2011 value at 8 Msun
@@ -149,15 +132,6 @@ contains
     s% overshoot_f0_above_burn_z_shell  = 8.0d-3
 
   end function extras_startup
-
-  !function f_ov_below_nonburn(feh) result(f_ov)
-  !  real(dp), intent(in) :: feh
-  !  real(dp) :: f_ov
-  !  real(dp), parameter :: max_f = 8.0d-2
-  !  real(dp), parameter :: min_f = 1.0d-2
-  !  f_ov = 1.6d-2 - 2.7d-2*feh
-  !  f_ov = min(max(f_ov, min_f),max_f)
-  !end function f_ov_below_nonburn
 
   function f_ov_fcn_of_mass(m) result(f_ov)
     real(dp), intent(in) :: m
@@ -448,10 +422,10 @@ contains
        do k=1, n_conv_regions_posydon ! from inside out
          if ((cz_bot_mass_posydon(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
               m_env_new = (cz_top_mass_posydon(k) - cz_bot_mass_posydon(k)) / Msun
-              Dr_env_new = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k) !depth of the convective layer, length of the eddie
+              Dr_env_new = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k) ! depth of the convective layer, length of the eddie
 ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
 ! and to (R-Renv) term in eq. 4 of Rasio et al. 1996  (different notation)
-            Renv_middle_new = 0.5_dp * (cz_top_radius_posydon(k) + cz_bot_radius_posydon(k) ) !middle of the convective layer
+            Renv_middle_new = 0.5_dp * (cz_top_radius_posydon(k) + cz_bot_radius_posydon(k) ) ! middle of the convective layer
 ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
 ! and to the Renv in eq. 4 of Rasio et al. 1996
 ! where it represented the base of the convective layer (different notation)
@@ -549,7 +523,6 @@ contains
       end do
    end if
 
-   ! to do. lambda_CEE calculation for He star envelope too.s
    he_core_mass_1cent = 0.0d0
    he_core_mass_10cent = 0.0d0
    he_core_mass_30cent = 0.0d0
@@ -1496,7 +1469,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
           endif
           call eval_wind_for_scheme(scheme, cool_wind)
        endif
-          
+
        if(T1 >= s% cool_wind_full_on_T)then
           !evaluate hot wind
           scheme="Dutch"
