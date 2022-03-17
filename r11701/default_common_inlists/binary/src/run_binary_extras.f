@@ -150,7 +150,7 @@
                   !write(*,*) 'two 1/timescales ', one_div_t_sync_conv , one_div_t_sync_rad
                   !write(*,*) 'two timescales ', b% s1% ixtra1, b% s1% ixtra2
                   one_div_t_sync = MAX(one_div_t_sync_conv,one_div_t_sync_rad)
-                  !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad ! if we wan to combine them
+                  !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad ! if we want to combine them
                   t_sync = 1d0/one_div_t_sync
                   !write(*,*) 't_tides in years', t_sync / secyer
          else if (sync_type == "Orb_period") then ! sync on timescale of orbital period
