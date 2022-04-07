@@ -52,7 +52,7 @@
 / ! end of star_job namelist
 
 &controls
-      zams_filename = 'zams_z0.00142m2_y0.25113.data'
+      !zams_filename = 'zams_z0.00142m2_y0.25113.data'
       !zams_filename = '/projects/b1119/POSYDON_ZAMS/zams_z0.00142m2_y0.25113.data'
       initial_z = 1.42d-3
 
