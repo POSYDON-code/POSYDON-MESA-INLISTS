@@ -53,7 +53,7 @@
 
 &controls
 
-      initial_z = 1.42d-2
+      initial_z = 0.0042d-2
 
       warn_when_large_rel_run_E_err = 1d99
       warn_when_stop_checking_residuals = .false.

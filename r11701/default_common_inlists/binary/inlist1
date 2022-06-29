@@ -52,7 +52,7 @@
 / ! end of star_job namelist
 
 &controls
-      initial_z = 1.42d-3
+      initial_z = 0.0042d0
 
       warn_when_large_rel_run_E_err = 1d99
       warn_when_stop_checking_residuals = .false.
