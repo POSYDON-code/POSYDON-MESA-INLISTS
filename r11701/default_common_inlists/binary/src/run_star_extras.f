@@ -1731,7 +1731,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0
+      log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
       if (dbg) then
          write(*,1) 'de_Jager log10 wind', log10w
@@ -1744,7 +1744,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)
+      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Zsolar)  
       w = exp10_cr(log10w)
     end subroutine eval_van_Loon_wind
 
@@ -1757,7 +1757,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       log10w = -14.02d0 + &
            1.24d0*log10_cr(L1/Lsun) + &
            0.16d0*log10_cr(M1/Msun) + &
-           0.81d0*log10_cr(R1/Rsun)
+           0.81d0*log10_cr(R1/Rsun) + &
+           0.5d0*log10_cr(Z/Zsolar)  
       w = exp10_cr(log10w)
       if (dbg) then
          write(*,1) 'Nieuwenhuijzen log10 wind', log10w
