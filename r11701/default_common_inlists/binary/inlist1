@@ -254,7 +254,7 @@ delta_HR_ds_L = 0.25d0
       ! for formation of He single stars, before they later evolve in a CO-HeMS binary or in a He Star
       x_logical_ctrl(2) = .false.
       ! Turn on eq.8 Belczynski+2010 LBV2 winds  with factor 1 (10-4 Msun/yr) to replace other winds for postMS stars in Humphreys-Davidson limit
-      x_logical_ctrl(3) = .false.
+      x_logical_ctrl(3) = .true.
 
 delta_lg_star_mass_limit = 5d-4 !def 5d-3
 delta_lg_star_mass_hard_limit = -1
