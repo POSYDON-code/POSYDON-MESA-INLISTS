@@ -1731,7 +1731,11 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
+      !MANOS ASSESS Ming's equation for SMC, only L dependent
+      if  (T1 < 5500d0) then
+         log10w = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91
+      else
+         log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
       if (dbg) then
          write(*,1) 'de_Jager log10 wind', log10w
