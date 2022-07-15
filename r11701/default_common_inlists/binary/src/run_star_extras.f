@@ -1729,7 +1729,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_de_Jager_wind(w)
       ! de Jager, C., Nieuwenhuijzen, H., & van der Hucht, K. A. 1988, A&AS, 72, 259.
       real(dp), intent(out) :: w
-      real(dp) :: log10w
+      real(dp) :: log10w, logw_highT, logw_lowT, alfa, T_high_ming, T_low_ming
       include 'formats'
       !MANOS ASSESS Ming's equation for SMC, only L dependent
       T_high_ming = 6000.0d0
@@ -1741,7 +1741,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
           log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
       else
           logw_highT = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)  
-          logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0)  
+          logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &  
              + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91
           alfa = (T1 - T_low_ming)/(T_high_ming - T_low_ming)
           log10w = (1-alfa)*logw_lowT + alfa*logw_highT
