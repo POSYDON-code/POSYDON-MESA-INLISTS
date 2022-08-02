@@ -8,7 +8,6 @@
       eosDT_use_linear_interp_to_HELM = .false.
 
       write_profile_when_terminate = .false. !this is done in the run_binary_extras.f
-
       !save_model_number = 1 ! taken care at run_binary_extras.f
 
       save_model_when_terminate = .true.
@@ -34,7 +33,7 @@
       new_rotation_flag = .true.
       change_rotation_flag = .true.
       set_initial_surface_rotation_v = .true.
-      new_surface_rotation_v = 0d0
+      new_surface_rotation_v = 0.0d0
       num_steps_to_relax_rotation = 50
 
       !use jina
@@ -52,7 +51,7 @@
 / ! end of star_job namelist
 
 &controls
-      zams_filename = './zams_z0.0142m2_y0.2703.data'
+      zams_filename = './zams_z0.0142m2_y0.2703.data' !POSYDON ZAMS files
       initial_z = 1.42d-2
 
       warn_when_large_rel_run_E_err = 1d99
@@ -211,7 +210,7 @@
       !delta_lg_XHe_cntr_limit = 0.1d0
       !delta_lg_XHe_cntr_hard_limit = -1d0
 
-! From Frank's suggestions
+      ! From Frank's suggestions
       delta_lgT_cntr_limit   = 0.005d0   ! default 0.01
       delta_lgT_limit = 0.025d0         ! default 0.5
       delta_lgRho_cntr_limit = 0.025d0   ! default 0.05
@@ -219,7 +218,7 @@
 
       delta_lgL_He_limit = 0.1d0
 
-! time step resolution on fuel depletion
+      ! time step resolution on fuel depletion
       !delta_lg_XH_cntr_limit = 0.01d0
       !delta_lg_XH_cntr_max   = 0.0d0
       !delta_lg_XH_cntr_min   = -4.0d0

@@ -1,10 +1,9 @@
-!high-mass stars
+! only differences compared to default_common_inlists/inlist1
 
 &star_job
 
 / ! end of star_job namelist
 
 &controls
-     !Added by Ying
-     x_ctrl(1) = 1.0d0 ! 1Eddinton limit
+     x_ctrl(1) = 1.0d0 ! Eddinton limit
 / ! end of controls namelist

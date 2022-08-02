@@ -1,7 +1,5 @@
 
-! inlist_test_rlo
-
-
+! only differences compared to default_common_inlists/inlist2
 
 &star_job
 
@@ -10,8 +8,6 @@
 
 
 / ! end of star_job namelist
-
-
 
 &controls
 
@@ -23,7 +19,7 @@
 
 
 &pgstar
-         
+
 
 
 / ! end of pgstar namelist

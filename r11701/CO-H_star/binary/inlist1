@@ -1,3 +1,4 @@
+! only differences compared to default_common_inlists/inlist1
 
 &star_job
       show_log_description_at_start = .false.
@@ -6,14 +7,11 @@
 
 &controls
 
-      !Dutch_scaling_factor = 0.0d0
-      !Blocker_scaling_factor = 0.0d0
-
       !OUTPUT OPTIONS
       history_interval = 1
       terminal_interval = 10
       write_header_frequency = 10
-      
+
       x_ctrl(1) = 1.0d0 !Eddington limit calculated * 1
-      
+
 / ! end of controls namelist
