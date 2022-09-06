@@ -1,0 +1,24 @@
+&star_job
+new_Z = METALLICITYd0
+
+! for binaries, rotation is set by tidal synchronization
+! save_model_filename = 'MASS_rotOMEGA_DIV_OMEGA_CRIT_single_final.mod'
+! new_omega_div_omega_crit = OMEGA_DIV_OMEGA_CRITd0
+/
+
+
+&kap
+Zbase = METALLICITYd0
+/
+
+&eos
+/
+
+&controls
+
+! for binaries the mass is set in inlist_binary
+! initial_mass = MASSd0
+
+time_delta_coeff = MESH_TIME_COEFF ! 0.8d0
+mesh_delta_coeff = MESH_DELTA_COEFF!1.0d0 !0.8d0
+/ ! end of controls namelist
