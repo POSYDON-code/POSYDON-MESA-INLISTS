@@ -1,0 +1,85 @@
+&star_job
+
+read_extra_star_job_inlist1 = .true.
+extra_star_job_inlist1_name = 'inlist_both'
+
+read_extra_star_job_inlist2 = .true.
+extra_star_job_inlist2_name = 'inlist_extra'
+
+
+save_model_filename = 'MASS2accretor_final.mod'
+
+/ ! end of star_job namelist
+
+&eos
+read_extra_eos_inlist1 = .true.
+extra_eos_inlist1_name = 'inlist_both'
+
+
+read_extra_eos_inlist2 = .true.
+extra_eos_inlist2_name = 'inlist_extra'
+
+/ ! end of eos namelist
+
+
+&kap
+read_extra_kap_inlist1 = .true.
+extra_kap_inlist1_name = 'inlist_both'
+
+read_extra_kap_inlist2 = .true.
+extra_kap_inlist2_name = 'inlist_extra'
+/ ! end of kap namelist
+
+
+&controls
+
+read_extra_controls_inlist1 = .true.
+extra_controls_inlist1_name = 'inlist_both'
+
+read_extra_controls_inlist2 = .true.
+extra_controls_inlist2_name = 'inlist_extra'
+
+! extra_terminal_output_file = 'log2'
+log_directory = 'LOGS2'
+
+! !! smooth outer composition in the accretor
+! smooth_outer_xa_big = 0.5
+! smooth_outer_xa_small = 0.2
+
+!! controls for implicit wind
+max_mdot_redo_cnt = 100
+min_years_dt_for_redo_mdot = 1d-2
+surf_w_div_w_crit_limit = 0.95d0
+surf_w_div_w_crit_tol = 0.05d0
+rotational_mdot_boost_fac = 1.2d10
+rotational_mdot_kh_fac = 1d10
+mdot_revise_factor = 1.2
+implicit_mdot_boost = 0.1
+max_mdot_jump_for_rotation = 10d0
+
+
+! extra resolution on HRD of accretor
+! delta_HR_ds_L = 0.001
+delta_HR_ds_Teff = 1d-5
+! delta_HR_limit = 0.5
+! delta_HR_hard_limit = 1
+
+max_num_profile_models = 100000
+profile_interval = 100
+photo_interval = 500
+
+
+/ ! end of controls namelist
+
+
+&pgstar
+
+read_extra_pgstar_inlist2 = .true.
+extra_pgstar_inlist2_name = 'inlist_pgstar'
+
+!filenames to avoid overlap with accretor
+HR_file_prefix = 'hr_accretor_'
+Grid2_file_prefix = 'accretor_'
+
+
+/ ! end of pgstar namelist
