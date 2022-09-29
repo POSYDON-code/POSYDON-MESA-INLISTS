@@ -1592,8 +1592,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
       if(s% x_logical_ctrl(3)) then ! Belczynski+2010 LBV2 winds (eq. 8) with factor 1
         if ((s% center_h1 < 1.0d-4) ) then  ! postMS
-            if ((s% L(1)/Lsun > 6.0d5) .and. &
-              (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
+            if ((s% L1/Lsun > 6.0d5) .and. &
+              (1.0d-5 * s% R1/Rsun * pow_cr((s% L1/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
               wind  = 1.0d-4
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
             endif
@@ -1740,8 +1740,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       else if (T1 >= T_high_ming) then
           log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
       else
-          logw_highT = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)  
-          logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &  
+          logw_highT = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
+          logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
              + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91
           alfa = (T1 - T_low_ming)/(T_high_ming - T_low_ming)
           log10w = (1-alfa)*logw_lowT + alfa*logw_highT
@@ -1758,7 +1758,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Zsolar)  
+      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
     end subroutine eval_van_Loon_wind
 
@@ -1772,7 +1772,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
            1.24d0*log10_cr(L1/Lsun) + &
            0.16d0*log10_cr(M1/Msun) + &
            0.81d0*log10_cr(R1/Rsun) + &
-           0.5d0*log10_cr(Z/Zsolar)  
+           0.5d0*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
       if (dbg) then
          write(*,1) 'Nieuwenhuijzen log10 wind', log10w
@@ -1912,4 +1912,3 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
 
 end module run_star_extras
-
