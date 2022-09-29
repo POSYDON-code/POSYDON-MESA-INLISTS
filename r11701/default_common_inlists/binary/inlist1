@@ -51,8 +51,9 @@
 / ! end of star_job namelist
 
 &controls
-      zams_filename = './zams_z0.0142m2_y0.2703.data' !POSYDON ZAMS files
-      initial_z = 1.42d-2
+      zams_filename = 'zams_z0.00142m2_y0.25113.data' !POSYDON ZAMS files,
+      !although it shoudl be overwritted from Scotty's script
+      initial_z = 1.42d-3
 
       warn_when_large_rel_run_E_err = 1d99
       warn_when_stop_checking_residuals = .false.
@@ -110,7 +111,7 @@
       use_Type2_opacities = .true.
       kap_Type2_full_off_X = 1.0d-3
       kap_Type2_full_on_X = 1.0d-6
-      Zbase = 0.0142d0 ! To be changed, when metallicity will change
+      Zbase = 0.00142d0 ! To be changed, when metallicity will change
       cubic_interpolation_in_X = .true.
       cubic_interpolation_in_Z = .true.
 
@@ -250,7 +251,7 @@ delta_HR_ds_L = 0.125d0
  delta_HR_hard_limit = 0.2d0
 
       ! for single stars stars, the control below needs to be true, so that the carbon exhaustion check happens in run_star_extras.f
-      x_logical_ctrl(1) = .false.
+      x_logical_ctrl(1) = .true.
       ! for formation of He single stars, before they later evolve in a CO-HeMS binary or in a He Star
       x_logical_ctrl(2) = .false.
       ! Turn on eq.8 Belczynski+2010 LBV2 winds  with factor 1 (10-4 Msun/yr) to replace other winds for postMS stars in Humphreys-Davidson limit
