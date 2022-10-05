@@ -1435,7 +1435,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     logical :: using_wind_scheme_mdot
     real(dp), parameter :: Zsolar = 0.0142d0 ! for Vink et al formula
 
-    logical, parameter :: dbg = .true.
+    logical, parameter :: dbg = .false.
 
     include 'formats'
 
@@ -1592,7 +1592,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
       if(s% x_logical_ctrl(3)) then ! Belczynski+2010 LBV2 winds (eq. 8) with factor 1
         if ((s% center_h1 < 1.0d-4) ) then  ! postMS
-            if ((L1/Lsun > 6.0d5) .and. & 
+            if ((L1/Lsun > 6.0d5) .and. &
               (1.0d-5 * R1/Rsun * pow_cr((L1/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
               wind  = 1.0d-4
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
