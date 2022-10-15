@@ -52,7 +52,7 @@
 / ! end of star_job namelist
 
 &controls
-      initial_z = 0.00426d0
+      initial_z = 0.0071d0
 
       warn_when_large_rel_run_E_err = 1d99
       warn_when_stop_checking_residuals = .false.
@@ -110,7 +110,7 @@
       use_Type2_opacities = .true.
       kap_Type2_full_off_X = 1.0d-3
       kap_Type2_full_on_X = 1.0d-6
-      Zbase = 0.00426d0 ! To be changed, when metallicity will change
+      Zbase = 0.0071d0 ! To be changed, when metallicity will change
       cubic_interpolation_in_X = .true.
       cubic_interpolation_in_Z = .true.
 

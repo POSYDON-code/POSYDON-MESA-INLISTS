@@ -1732,8 +1732,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp) :: log10w, logw_highT, logw_lowT, alfa, T_high_ming, T_low_ming
       include 'formats'
       !MANOS ASSESS Ming's equation for SMC, only L dependent
-      T_high_ming = 5500.0d0
-      T_low_ming = 4500.0d0
+      ! Keep in  mind that when it is reimplemented, Ming's winds need to be scaled with Metallicity Z
+      T_high_ming = 55.0d0
+      T_low_ming = 45.0d0
       if  (T1 <= T_low_ming) then
          log10w = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
              + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91
