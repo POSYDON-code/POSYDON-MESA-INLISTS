@@ -1758,11 +1758,12 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_Yang_wind(w)
       ! Yang et al. 2022
       real(dp), intent(out) :: w
-      real(dp) :: log10w
+      real(dp) :: log10w, Z_SMC
       include 'formats'
-
+      Z_SMC = 0.3 * Zsolar
       log10w = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
-      + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 + 0.5d0*log10_cr(Z/Zsolar)
+      + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 &
+      + 0.5d0*log10_cr(Z/Z_SMC)
 
       w = exp10_cr(log10w)
       if (dbg) then
@@ -1773,10 +1774,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_van_Loon_wind(w)
       ! van Loon et al. 2005, A&A, 438, 273
       real(dp), intent(out) :: w
-      real(dp) :: log10w, Z_SMC
+      real(dp) :: log10w
       include 'formats'
-      Z_SMC = 0.3 * Zsolar
-      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Z_SMC)
+      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
     end subroutine eval_van_Loon_wind
 
