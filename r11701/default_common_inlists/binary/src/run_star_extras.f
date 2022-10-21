@@ -1746,7 +1746,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_de_Jager_wind(w)
       ! de Jager, C., Nieuwenhuijzen, H., & van der Hucht, K. A. 1988, A&AS, 72, 259.
       real(dp), intent(out) :: w
-      real(dp) :: log10w, logw_highT, logw_lowT, alfa, T_high_ming, T_low_ming
+      real(dp) :: log10w
       include 'formats'
       log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
@@ -1773,9 +1773,10 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_van_Loon_wind(w)
       ! van Loon et al. 2005, A&A, 438, 273
       real(dp), intent(out) :: w
-      real(dp) :: log10w
+      real(dp) :: log10w, Z_SMC
       include 'formats'
-      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Zsolar)
+      Z_SMC = 0.3 * Zsolar
+      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Z_SMC)
       w = exp10_cr(log10w)
     end subroutine eval_van_Loon_wind
 
