@@ -264,7 +264,7 @@ delta_mdot_rtol = 0.03d0
 delta_mdot_limit = 1
 
 delta_lgR_limit = 0.01 !(not 0.5 as default)
-delta_lgR_hard_limit = 0.03 
+delta_lgR_hard_limit = 0.03  
 delta_lgR_limit_min_lgR = 1
 
 / ! end of controls namelist
