@@ -158,7 +158,7 @@
       hot_wind_scheme = 'Dutch' ! hot of all stars
       cool_wind_RGB_scheme ='Dutch'  ! cool of high mass stars (Minit>10Msun),
            !it gets replaced in run_star_extras by 'Reimers' for cool low mass stars
-      cool_wind_AGB_scheme = 'Blocker' ! cool for low mass stars in AGB
+      cool_wind_AGB_scheme = 'Dutch' ! cool for low mass stars in AGB
       Dutch_scaling_factor = 1.0d0
       Blocker_scaling_factor = 0.2d0
       Reimers_scaling_factor = 0.1d0
@@ -264,7 +264,7 @@ delta_mdot_rtol = 0.03d0
 delta_mdot_limit = 1
 
 delta_lgR_limit = 0.01 !(not 0.5 as default)
-delta_lgR_hard_limit = 0.03  
+delta_lgR_hard_limit = 0.03
 delta_lgR_limit_min_lgR = 1
 
 / ! end of controls namelist
