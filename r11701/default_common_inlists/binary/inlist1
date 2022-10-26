@@ -240,8 +240,8 @@
      timestep_factor_for_retries = 0.75d0
 
 ! HRD, Radius resolution
-delta_HR_ds_L = 1.0d0
- delta_HR_ds_Teff = 0.25d0
+delta_HR_ds_L = 0.5d0
+ delta_HR_ds_Teff = 0.5d0
     !### delta_HR_limit
     !### delta_HR_hard_limit
     ! limit for dHR (negative means no limit)
@@ -256,15 +256,15 @@ delta_HR_ds_L = 1.0d0
       ! Turn on eq.8 Belczynski+2010 LBV2 winds  with factor 1 (10-4 Msun/yr) to replace other winds for postMS stars in Humphreys-Davidson limit
       x_logical_ctrl(3) = .true.
 
-delta_lg_star_mass_limit = 1d-4 !def 5d-3
+delta_lg_star_mass_limit = 5d-4 !def 5d-3
 delta_lg_star_mass_hard_limit = -1
 
-delta_mdot_atol = 8d-6 !def 1d-3
-delta_mdot_rtol = 0.01d0
+delta_mdot_atol = 1d-3 !def 1d-3
+delta_mdot_rtol = 0.03d0
 delta_mdot_limit = 1
 
 delta_lgR_limit = 0.01 !(not 0.5 as default)
-delta_lgR_hard_limit = 0.01
+delta_lgR_hard_limit = 0.03
 delta_lgR_limit_min_lgR = 1
 
 / ! end of controls namelist
