@@ -95,7 +95,7 @@ contains
     endif
 
 
-    if (s% star_mass <= 8.0d0) s% cool_wind_RGB_scheme ='Reimers'
+    if (s% star_mass <= 6.0d0) s% cool_wind_RGB_scheme ='Reimers'
 
 ! set VARCONTROL: for massive stars, turn up varcontrol gradually to help them evolve
     !vct30 = 1.0d-4
