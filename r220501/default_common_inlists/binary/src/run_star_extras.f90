@@ -24,9 +24,9 @@ module run_star_extras
   use star_lib
   use star_def
   use const_def
-  use crlibm_lib
+  !use crlibm_lib
   use chem_def
-  use ionization_def
+  !use ionization_def
   use num_lib, only: find0
 
   implicit none
@@ -60,8 +60,8 @@ contains
     s% data_for_extra_history_columns => data_for_extra_history_columns
     s% how_many_extra_history_header_items => how_many_extra_history_header_items
     s% data_for_extra_history_header_items => data_for_extra_history_header_items
-  !  s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
-  !  s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
+    s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
+     s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
     s% job% warn_run_star_extras =.false.
 
 
@@ -105,31 +105,9 @@ contains
 
   !prototype version for increasing overshoot above 4 Msun up to the Brott et
   !al. 2011 value at 8 Msun
-    !s% overshoot_f_above_nonburn_core  = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_above_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_below_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_above_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_below_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_above_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_below_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_above_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    !s% overshoot_f_below_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
+    s% overshoot_f(:)  = f_ov_fcn_of_mass(s% initial_mass)
 
-    !s% overshoot_f0_above_nonburn_core = 8.0d-3
-    !s% overshoot_f0_above_burn_h_core  = 8.0d-3
-    !s% overshoot_f0_above_burn_he_core = 8.0d-3
-    !s% overshoot_f0_above_burn_z_core  = 8.0d-3
-    !s% overshoot_f0_above_nonburn_shell = 8.0d-3
-    !s% overshoot_f0_below_nonburn_shell = 8.0d-3
-    !s% overshoot_f0_above_burn_h_shell  = 8.0d-3
-    !s% overshoot_f0_below_burn_h_shell  = 8.0d-3
-    !s% overshoot_f0_above_burn_he_shell = 8.0d-3
-    !s% overshoot_f0_below_burn_he_shell = 8.0d-3
-    !s% overshoot_f0_below_burn_z_shell  = 8.0d-3
-    !s% overshoot_f0_above_burn_z_shell  = 8.0d-3
+    s% overshoot_f0(:) = 8.0d-3
 
   end function extras_startup
 
@@ -166,7 +144,7 @@ contains
   subroutine data_for_extra_history_header_items( &
                   id, id_extra, num_extra_header_items, &
                   extra_header_item_names, extra_header_item_vals, ierr)
-      use chem_def, only: chem_isos
+      !use chem_def, only: chem_isos
       integer, intent(in) :: id, id_extra, num_extra_header_items
       character (len=*), pointer :: extra_header_item_names(:)
       real(dp), pointer :: extra_header_item_vals(:)
@@ -373,9 +351,9 @@ contains
     names(10) = "spin_parameter"
     vals(10) = clight * s% total_angular_momentum/( standard_cgrav * s% m(1) * s% m(1) )
 
-    if(s% c_core_k > 0 .and. s% c_core_k < s% nz) then
+    if(s% co_core_k > 0 .and. s% co_core_k < s% nz) then
         !location of c core
-        k1=s% c_core_k
+        k1=s% co_core_k
         !location of center
         k2=s% nz
         !locate Carbon-12 in s% xa
@@ -649,8 +627,8 @@ contains
    end function lambda_CE
 
    real(dp) function get_ion_info(s,id,k)
-     use ionization_def, only: num_ion_vals
-     use ionization_lib, only: eval_ionization
+     !use ionization_def, only: num_ion_vals
+     !use ionization_lib, only: eval_ionization
      integer, intent(in) :: id, k
      integer :: ierr
      real(dp) :: ionization_res(num_ion_vals)
@@ -790,52 +768,52 @@ contains
    end function mass_conv_core
 
 
-!  subroutine how_many_extra_profile_header_items(id, id_extra, num_cols)
-!      integer, intent(in) :: id, id_extra
-!      integer, intent(out) :: num_cols
-!      num_cols=3
-!  end subroutine how_many_extra_profile_header_items
+  subroutine how_many_extra_profile_header_items(id, id_extra, num_cols)
+      integer, intent(in) :: id, id_extra
+      integer, intent(out) :: num_cols
+      num_cols=3
+  end subroutine how_many_extra_profile_header_items
 
-!  subroutine data_for_extra_profile_header_items( &
-!                  id, id_extra, num_extra_header_items, &
-!                  extra_header_item_names, extra_header_item_vals, ierr)
-!      use chem_def, only: chem_isos
-!      integer, intent(in) :: id, id_extra, num_extra_header_items
-!      character (len=*), pointer :: extra_header_item_names(:)
-!      real(dp), pointer :: extra_header_item_vals(:)
-!      type(star_info), pointer :: s
-!      integer, intent(out) :: ierr
-!      integer :: i
-!      real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
-!      ierr = 0
-!      call star_ptr(id,s,ierr)
-!      if(ierr/=0) return
-!      !here is an example for adding an extra history header item
-!      !set num_cols=1 in how_many_extra_history_header_items and then unccomment these lines
-!      initial_X = 0._dp
-!      initial_Y = 0._dp
-!      initial_Z = 0._dp
-!      initial_m = 0._dp
-!      do i=1,s% species
-!         !write(*,*) chem_isos% name(s% chem_id(i)), s% xa(i,1)
-!         if( trim(chem_isos% name(s% chem_id(i))) == 'prot' .or. trim(chem_isos% name(s% chem_id(i))) == 'neut')then
-!            continue ! don't count these
-!         else if( trim(chem_isos% name(s% chem_id(i))) == 'h1' .or. trim(chem_isos% name(s% chem_id(i))) == 'h2' ) then
-!            initial_X = initial_X + s% xa(i,1)
-!         else if( trim(chem_isos% name(s% chem_id(i))) == 'he3' .or. trim(chem_isos% name(s% chem_id(i))) == 'he4' ) then
-!            initial_Y = initial_Y + s% xa(i,1)
-!         else
-!            initial_Z = initial_Z + s% xa(i,1)
-!         endif
-!      enddo
-!      initial_m = s% initial_mass
-!      extra_header_item_names(1) = 'initial_Z'
-!      extra_header_item_vals(1) = initial_Z
-!      extra_header_item_names(2) = 'initial_Y'
-!      extra_header_item_vals(2) =  initial_Y
-!      extra_header_item_names(3) = 'initial_m'
-!      extra_header_item_vals(3) =  initial_m
-!  end subroutine data_for_extra_profile_header_items
+  subroutine data_for_extra_profile_header_items( &
+                  id, id_extra, num_extra_header_items, &
+                  extra_header_item_names, extra_header_item_vals, ierr)
+      use chem_def, only: chem_isos
+      integer, intent(in) :: id, id_extra, num_extra_header_items
+      character (len=*), pointer :: extra_header_item_names(:)
+      real(dp), pointer :: extra_header_item_vals(:)
+      type(star_info), pointer :: s
+      integer, intent(out) :: ierr
+      integer :: i
+      real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
+      ierr = 0
+      call star_ptr(id,s,ierr)
+      if(ierr/=0) return
+      !here is an example for adding an extra history header item
+      !set num_cols=1 in how_many_extra_history_header_items and then unccomment these lines
+      initial_X = 0._dp
+      initial_Y = 0._dp
+      initial_Z = 0._dp
+      initial_m = 0._dp
+      do i=1,s% species
+         !write(*,*) chem_isos% name(s% chem_id(i)), s% xa(i,1)
+         if( trim(chem_isos% name(s% chem_id(i))) == 'prot' .or. trim(chem_isos% name(s% chem_id(i))) == 'neut')then
+            continue ! don't count these
+         else if( trim(chem_isos% name(s% chem_id(i))) == 'h1' .or. trim(chem_isos% name(s% chem_id(i))) == 'h2' ) then
+            initial_X = initial_X + s% xa(i,1)
+         else if( trim(chem_isos% name(s% chem_id(i))) == 'he3' .or. trim(chem_isos% name(s% chem_id(i))) == 'he4' ) then
+            initial_Y = initial_Y + s% xa(i,1)
+         else
+            initial_Z = initial_Z + s% xa(i,1)
+         endif
+      enddo
+      initial_m = s% initial_mass
+      extra_header_item_names(1) = 'initial_Z'
+      extra_header_item_vals(1) = initial_Z
+      extra_header_item_names(2) = 'initial_Y'
+      extra_header_item_vals(2) =  initial_Y
+      extra_header_item_names(3) = 'initial_m'
+      extra_header_item_vals(3) =  initial_m
+  end subroutine data_for_extra_profile_header_items
 
   integer function how_many_extra_profile_columns(id, id_extra)
     use star_def, only: star_info
@@ -866,8 +844,8 @@ contains
 
 
   integer function extras_finish_step(id, id_extra)
-    use atm_lib, only: atm_option, atm_option_str
-    use kap_def, only: kap_lowT_option, lowT_AESOPUS
+    !use atm_lib, only: atm_option, atm_option_str
+    !use kap_def, only: kap_lowT_option, lowT_AESOPUS
     integer, intent(in) :: id, id_extra
     integer :: ierr, i
     real(dp) :: envelope_mass_fraction, L_He, L_tot, min_center_h1_for_diff, &
@@ -954,7 +932,7 @@ contains
     if(pre_WD_check)then
        if(s% Teff < 3.0d4 .and. s% L_surf < 1.0d0)then
           pre_WD_check = .false.
-          s% do_Ne22_sedimentation_heating = .true.
+          s% do_wd_sedimentation_heating = .true.
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
           write(*,*) 'now at WD phase, model number ', s% model_number
           !if(s% job% extras_lpar(2))then
@@ -1417,7 +1395,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     call star_ptr(id, s, ierr)
     if(ierr/=0) return
 
-    Zbase = s% Zbase
+    Zbase = s% kap_rq% Zbase
 
     L1 = L_phot
     M1 = M_phot
@@ -1542,7 +1520,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if (dbg) write(*,1) 'Vink_wind', wind
       else if (scheme == 'Grafener') then
          call eval_Grafener_wind(wind)
-         wind = wind * s% Grafener_scaling_factor
+         wind = wind !* s% Grafener_scaling_factor
          if (dbg) write(*,1) 'Grafener_wind', wind
       else if (scheme == 'Blocker') then
          call eval_blocker_wind(wind)
