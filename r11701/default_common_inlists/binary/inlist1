@@ -71,6 +71,14 @@
       photo_digits = 5
       photo_interval = 0
 
+      ! H core overshoot !NEW OVERSHOOTING
+      overshoot_scheme(1) = 'exponential'
+      overshoot_zone_type(1) = 'any' ! 'burn_H'
+      overshoot_zone_loc(1) = 'core'
+      overshoot_bdy_loc(1) = 'any'
+
+      overshoot_f(1) = 4.15d-2
+      overshoot_f0(1) = 8.0d-3
 
       star_history_dbl_format = '(1pes32.16e3, 1x)'
       star_history_int_format = '(i32, 1x)'

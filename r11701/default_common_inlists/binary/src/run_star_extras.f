@@ -105,31 +105,31 @@ contains
 
   !prototype version for increasing overshoot above 4 Msun up to the Brott et
   !al. 2011 value at 8 Msun
-    s% overshoot_f_above_nonburn_core  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_above_nonburn_core  = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_above_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_below_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_above_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_below_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_above_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_below_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_above_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
+    !s% overshoot_f_below_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
 
-    s% overshoot_f0_above_nonburn_core = 8.0d-3
-    s% overshoot_f0_above_burn_h_core  = 8.0d-3
-    s% overshoot_f0_above_burn_he_core = 8.0d-3
-    s% overshoot_f0_above_burn_z_core  = 8.0d-3
-    s% overshoot_f0_above_nonburn_shell = 8.0d-3
-    s% overshoot_f0_below_nonburn_shell = 8.0d-3
-    s% overshoot_f0_above_burn_h_shell  = 8.0d-3
-    s% overshoot_f0_below_burn_h_shell  = 8.0d-3
-    s% overshoot_f0_above_burn_he_shell = 8.0d-3
-    s% overshoot_f0_below_burn_he_shell = 8.0d-3
-    s% overshoot_f0_below_burn_z_shell  = 8.0d-3
-    s% overshoot_f0_above_burn_z_shell  = 8.0d-3
+    !s% overshoot_f0_above_nonburn_core = 8.0d-3
+    !s% overshoot_f0_above_burn_h_core  = 8.0d-3
+    !s% overshoot_f0_above_burn_he_core = 8.0d-3
+    !s% overshoot_f0_above_burn_z_core  = 8.0d-3
+    !s% overshoot_f0_above_nonburn_shell = 8.0d-3
+    !s% overshoot_f0_below_nonburn_shell = 8.0d-3
+    !s% overshoot_f0_above_burn_h_shell  = 8.0d-3
+    !s% overshoot_f0_below_burn_h_shell  = 8.0d-3
+    !s% overshoot_f0_above_burn_he_shell = 8.0d-3
+    !s% overshoot_f0_below_burn_he_shell = 8.0d-3
+    !s% overshoot_f0_below_burn_z_shell  = 8.0d-3
+    !s% overshoot_f0_above_burn_z_shell  = 8.0d-3
 
   end function extras_startup
 
@@ -348,9 +348,9 @@ contains
     ! output info about the ENV.: binding energy
 
     total_env_binding_E = 0.0d0
-    do k=1,s% nz
+    do k=1,s% nz - 1
        if (s% m(k) > (s% he_core_mass * Msun)) then !envelope is defined to be H-rich
-          env_binding_E = s% dm(k) * (s% energy(k) - (s% cgrav(1) * s% m(k))/s% r(k))
+          env_binding_E = s% dm(k) * (s% energy(k) - (s% cgrav(k) * s% m(k+1))/s% r(k+1))
           total_env_binding_E = total_env_binding_E + env_binding_E
        end if
     end do
@@ -638,9 +638,9 @@ contains
       else
          E_bind = 0.0d0
          E_bind_shell = 0.0d0
-         do k=1, s% nz
+         do k=1, s% nz - 1
             if (s% m(k) > (star_core_mass_CE)) then !envelope is defined as everything above star_core_mass_CE.
-               E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/(s% r(k))
+               E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(k) * s% m(k+1) * s% dm(k))/(s% r(k+1))
                E_bind = E_bind+ E_bind_shell
             end if
          end do
