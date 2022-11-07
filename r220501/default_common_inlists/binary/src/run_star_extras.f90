@@ -24,7 +24,7 @@ module run_star_extras
   use star_lib
   use star_def
   use const_def
-  !use crlibm_lib
+  use math_lib !use crlibm_lib
   use chem_def
   !use ionization_def
   use num_lib, only: find0
@@ -38,6 +38,13 @@ module run_star_extras
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
 
+  ! addition for the check_TP subroutine
+  logical :: have_done_TP = .false.
+  integer :: TP_state = 0
+  integer :: TP_M_H_on = 0
+  integer :: TP_M_H_min = 0
+  integer :: TP_count = 0
+
 contains
 
   subroutine extras_controls(id, ierr)
@@ -49,7 +56,7 @@ contains
     if (ierr /= 0) return
 
     !s% other_mlt => my_other_mlt
-    s% other_am_mixing => TSF
+    !s% other_am_mixing => TSF
     s% other_wind => other_set_mdot
 
     s% extras_startup => extras_startup
@@ -60,8 +67,8 @@ contains
     s% data_for_extra_history_columns => data_for_extra_history_columns
     s% how_many_extra_history_header_items => how_many_extra_history_header_items
     s% data_for_extra_history_header_items => data_for_extra_history_header_items
-    s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
-     s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
+    !s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
+    ! s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
     s% job% warn_run_star_extras =.false.
 
 
@@ -70,7 +77,7 @@ contains
   end subroutine extras_controls
 
 
-  integer function extras_startup(id, restart, ierr)
+  subroutine extras_startup(id, restart, ierr)
     integer, intent(in) :: id
     logical, intent(in) :: restart
     integer, intent(out) :: ierr
@@ -81,7 +88,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    extras_startup = 0
+    !extras_startup = 0
     if (.not. restart) then
        call alloc_extra_info(s)
     else
@@ -109,7 +116,7 @@ contains
 
     s% overshoot_f0(:) = 8.0d-3
 
-  end function extras_startup
+  end subroutine extras_startup
 
   function f_ov_fcn_of_mass(m) result(f_ov)
     real(dp), intent(in) :: m
@@ -120,13 +127,13 @@ contains
     elseif(m > 8.0d0) then
        frac = 1.0d0
     else
-       frac = 0.5d0 * (1.0d0 - cospi_cr(0.25d0*(m-4.0d0)))
+       frac = 0.5d0 * (1.0d0 - cospi(0.25d0*(m-4.0d0)))
     endif
     f_ov = f1 + (f2-f1)*frac
   end function f_ov_fcn_of_mass
 
-  integer function extras_check_model(id, id_extra)
-    integer, intent(in) :: id, id_extra
+  integer function extras_check_model(id)
+    integer, intent(in) :: id
     integer :: ierr
     type (star_info), pointer :: s
     ierr = 0
@@ -135,33 +142,80 @@ contains
     extras_check_model = keep_going
   end function extras_check_model
 
-  subroutine how_many_extra_history_header_items(id, id_extra, num_cols)
-      integer, intent(in) :: id, id_extra
-      integer, intent(out) :: num_cols
-      num_cols=3
-  end subroutine how_many_extra_history_header_items
+ ! subroutine how_many_extra_history_header_items(id,  num_cols)
+ !     integer, intent(in) :: id
+ !     integer, intent(out) :: num_cols
+ !     num_cols=3
+ ! end subroutine how_many_extra_history_header_items
 
-  subroutine data_for_extra_history_header_items( &
-                  id, id_extra, num_extra_header_items, &
-                  extra_header_item_names, extra_header_item_vals, ierr)
-      !use chem_def, only: chem_isos
-      integer, intent(in) :: id, id_extra, num_extra_header_items
-      character (len=*), pointer :: extra_header_item_names(:)
-      real(dp), pointer :: extra_header_item_vals(:)
-      type(star_info), pointer :: s
-      integer, intent(out) :: ierr
-      integer :: i
-      real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
-      ierr = 0
-      call star_ptr(id,s,ierr)
-      if(ierr/=0) return
-      !here is an example for adding an extra history header item
-      !set num_cols=1 in how_many_extra_history_header_items and then unccomment these lines
-      initial_X = 0._dp
-      initial_Y = 0._dp
-      initial_Z = 0._dp
-      initial_m = 0._dp
-      do i=1,s% species
+integer function how_many_extra_history_header_items(id)
+   integer, intent(in) :: id
+   integer :: ierr
+   type (star_info), pointer :: s
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+   how_many_extra_history_header_items = 0
+  end function how_many_extra_history_header_items
+
+ ! subroutine data_for_extra_history_header_items( &
+ !                 id, id_extra, num_extra_header_items, &
+ !                 extra_header_item_names, extra_header_item_vals, ierr)
+ !     !use chem_def, only: chem_isos
+ !     integer, intent(in) :: id, id_extra, num_extra_header_items
+ !     character (len=*), pointer :: extra_header_item_names(:)
+ !     real(dp), pointer :: extra_header_item_vals(:)
+ !     type(star_info), pointer :: s
+ !     integer, intent(out) :: ierr
+ !     integer :: i
+ !     real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
+ !     ierr = 0
+ !     call star_ptr(id,s,ierr)
+ !     if(ierr/=0) return
+ !     !here is an example for adding an extra history header item
+ !     !set num_cols=1 in how_many_extra_history_header_items and then unccomment these lines
+ !     initial_X = 0._dp
+ !     initial_Y = 0._dp
+ !     initial_Z = 0._dp
+ !     initial_m = 0._dp
+ !     do i=1,s% species
+ !        !write(*,*) chem_isos% name(s% chem_id(i)), s% xa(i,1)
+ !        if( trim(chem_isos% name(s% chem_id(i))) == 'prot' .or. trim(chem_isos% name(s% chem_id(i))) == 'neut')then
+ !           continue ! don't count these
+ !        else if( trim(chem_isos% name(s% chem_id(i))) == 'h1' .or. trim(chem_isos% name(s% chem_id(i))) == 'h2' ) then
+ !           initial_X = initial_X + s% xa(i,1)
+ !        else if( trim(chem_isos% name(s% chem_id(i))) == 'he3' .or. trim(chem_isos% name(s% chem_id(i))) == 'he4' ) then
+ !           initial_Y = initial_Y + s% xa(i,1)
+ !        else
+ !           initial_Z = initial_Z + s% xa(i,1)
+ !        endif
+ !     enddo
+ !     initial_m = s% initial_mass
+ !     extra_header_item_names(1) = 'initial_Z'
+ !     extra_header_item_vals(1) = initial_Z
+ !     extra_header_item_names(2) = 'initial_Y'
+ !     extra_header_item_vals(2) =  initial_Y
+ !     extra_header_item_names(3) = 'initial_m'
+ !     extra_header_item_vals(3) =  initial_m
+ ! end subroutine data_for_extra_history_header_items
+
+  subroutine data_for_extra_history_header_items(id, n, names, vals, ierr)
+     integer, intent(in) :: id, n
+     character (len=maxlen_history_column_name) :: names(n)
+     real(dp) :: vals(n)
+     type(star_info), pointer :: s
+     integer, intent(out) :: ierr
+     integer :: i
+     real(dp) :: Initial_X, Initial_Y, Initial_Z, initial_m
+     ierr = 0
+     call star_ptr(id,s,ierr)
+     if(ierr/=0) return
+
+     initial_X = 0._dp
+     initial_Y = 0._dp
+     initial_Z = 0._dp
+     initial_m = 0._dp
+     do i=1,s% species
          !write(*,*) chem_isos% name(s% chem_id(i)), s% xa(i,1)
          if( trim(chem_isos% name(s% chem_id(i))) == 'prot' .or. trim(chem_isos% name(s% chem_id(i))) == 'neut')then
             continue ! don't count these
@@ -174,16 +228,21 @@ contains
          endif
       enddo
       initial_m = s% initial_mass
-      extra_header_item_names(1) = 'initial_Z'
-      extra_header_item_vals(1) = initial_Z
-      extra_header_item_names(2) = 'initial_Y'
-      extra_header_item_vals(2) =  initial_Y
-      extra_header_item_names(3) = 'initial_m'
-      extra_header_item_vals(3) =  initial_m
+      names(1) = 'initial_Z'
+      vals(1) = initial_Z
+      !extra_header_item_names(2) = 'initial_Y'
+      !extra_header_item_vals(2) =  initial_Y
+      !extra_header_item_names(3) = 'initial_m'
+      !extra_header_item_vals(3) =  initial_m
+  ! here is an example for adding an extra history header item
+  ! also set how_many_extra_history_header_items
+  ! names(1) = 'mixing_length_alpha'
+  ! vals(1) = s% mixing_length_alpha
+
   end subroutine data_for_extra_history_header_items
 
-  integer function how_many_extra_history_columns(id, id_extra)
-    integer, intent(in) :: id, id_extra
+  integer function how_many_extra_history_columns(id)
+    integer, intent(in) :: id
     integer :: ierr
     type (star_info), pointer :: s
     ierr = 0
@@ -192,9 +251,9 @@ contains
     how_many_extra_history_columns = 26
   end function how_many_extra_history_columns
 
-  subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
+  subroutine data_for_extra_history_columns(id, n, names, vals, ierr)
     use chem_def, only: chem_isos
-    integer, intent(in) :: id, id_extra, n
+    integer, intent(in) :: id, n
     character (len=maxlen_history_column_name) :: names(n)
     real(dp) :: vals(n)
     integer, intent(out) :: ierr
@@ -343,7 +402,7 @@ contains
           MoI = MoI + 0.4d0*s% dm_bar(i)*(pow5(s% r(i)) - pow5(s% r(i-1)) )/(pow3(s% r(i)) - pow3(s% r(i-1)))
        enddo
     else
-       MoI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
+       MoI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz)%val)
     endif
 
     vals(9) = MoI
@@ -408,7 +467,7 @@ contains
 ! and to the Renv in eq. 4 of Rasio et al. 1996
 ! where it represented the base of the convective layer (different notation)
 
-            tau_conv_new = 0.431_dp * pow_cr( m_env_new*Dr_env_new* &
+            tau_conv_new = 0.431_dp * pow( m_env_new*Dr_env_new* &
               Renv_middle_new/3d0/s% L_phot, one_third) * secyer
 
              !P_tid = 1d0/abs(1d0/porb-s% omega(top_bound_zone)/(2d0*pi))
@@ -442,64 +501,65 @@ contains
 
 
    ! lambda_CE calculation for different core definitions.
-   sticking_to_energy_without_recombination_corr = .false.
+   sticking_to_energy_without_recombination_corr = .true. ! MANOS changed to no calculate recombination energy
    ! get energy from the EOS and adjust the different contributions from recombination/dissociation to internal energy
    allocate(adjusted_energy(s% nz))
    adjusted_energy=0.0d0
-   do k=1, s% nz
-      ! the following lines compute the fractions of HI, HII, HeI, HeII and HeIII
-      ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
-      ! this file can be checked for additional ionization output available
-      frac_HI = get_ion_info(s,ion_ifneut_H,k)
-      frac_HII = 1.0d0 - frac_HI
-
-      ! ionization module provides neutral fraction and average charge of He.
-      ! use these two to compute the mass fractions of HeI and HeII
-      frac_HeI = get_ion_info(s,ion_ifneut_He,k)
-      avg_charge_He = get_ion_info(s,ion_iZ_He,k)
-      ! the following is the solution to the equations
-      !   avg_charge_He = 2*fracHeIII + 1*fracHeII
-      !               1 = fracHeI + fracHeII + fracHeIII
-      frac_HeII = 2d0 - 2d0*frac_HeI - avg_charge_He
-      frac_HeIII = 1d0 - frac_HeII - frac_HeI
-
-      ! recombination energies from https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html
-      rec_energy_HII_to_HI = avo*13.59843449d0*frac_HII*ev2erg*s% X(k)
-      diss_energy_H2 = avo*4.52d0/2d0*ev2erg*s% X(k)
-      rec_energy_HeII_to_HeI = avo*24.58738880d0*(frac_HeII+frac_HeIII)*ev2erg*s% Y(k)/4d0
-      rec_energy_HeIII_to_HeII = avo*54.4177650d0*frac_HeIII*ev2erg*s% Y(k)/4d0
-
-      adjusted_energy(k) = s% energy(k) &
-                           - rec_energy_HII_to_HI &
-                           - rec_energy_HeII_to_HeI &
-                           - rec_energy_HeIII_to_HeII &
-                           - diss_energy_H2
-
-       if (adjusted_energy(k) < 0d0 .or. adjusted_energy(k) > s% energy(k)) then
-          write(*,*) "Error when computing adjusted energy in CE, ", &
-             "s% energy(k):", s% energy(k), " adjusted_energy, ", adjusted_energy(k)
-             sticking_to_energy_without_recombination_corr = .true.
-       end if
-
-      if(.false.) then
-         ! for debug, check the mismatch between the EOS energy and that of a gas+radiation
-         energy_comp = 3.0d0*avo*boltzm*s% T(k)/(2*s% mu(k)) + crad*pow4(s% T(k))/s% rho(k) &
-                       + rec_energy_HII_to_HI &
-                       + rec_energy_HeII_to_HeI &
-                       + rec_energy_HeIII_to_HeII &
-                       + diss_energy_H2
-
-         write(*,*) "compare energies", k, s%m(k)/Msun, s% energy(k), energy_comp, &
-            (s% energy(k)-energy_comp)/s% energy(k)
-      end if
-
-   end do
 
    if (sticking_to_energy_without_recombination_corr) then
       do k=1, s% nz
           adjusted_energy(k) = s% energy(k)
       end do
-   end if
+   else
+      !do k=1, s% nz
+      !   ! the following lines compute the fractions of HI, HII, HeI, HeII and HeIII
+      !   ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
+      !   ! this file can be checked for additional ionization output available
+      !   frac_HI = get_ion_info(s,ion_ifneut_H,k)
+      !   frac_HII = 1.0d0 - frac_HI
+
+      !   ! ionization module provides neutral fraction and average charge of He.
+      !   ! use these two to compute the mass fractions of HeI and HeII
+      !   frac_HeI = get_ion_info(s,ion_ifneut_He,k)
+      !   avg_charge_He = get_ion_info(s,ion_iZ_He,k)
+      !   ! the following is the solution to the equations
+      !   !   avg_charge_He = 2*fracHeIII + 1*fracHeII
+      !   !               1 = fracHeI + fracHeII + fracHeIII
+      !   frac_HeII = 2d0 - 2d0*frac_HeI - avg_charge_He
+      !   frac_HeIII = 1d0 - frac_HeII - frac_HeI
+
+       !  ! recombination energies from https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html
+       !  rec_energy_HII_to_HI = avo*13.59843449d0*frac_HII*ev2erg*s% X(k)
+       !  diss_energy_H2 = avo*4.52d0/2d0*ev2erg*s% X(k)
+       !  rec_energy_HeII_to_HeI = avo*24.58738880d0*(frac_HeII+frac_HeIII)*ev2erg*s% Y(k)/4d0
+       !  rec_energy_HeIII_to_HeII = avo*54.4177650d0*frac_HeIII*ev2erg*s% Y(k)/4d0
+
+        ! adjusted_energy(k) = s% energy(k) &
+       !                    - rec_energy_HII_to_HI &
+       !                    - rec_energy_HeII_to_HeI &
+       !                    - rec_energy_HeIII_to_HeII &
+       !                    - diss_energy_H2
+
+       !  if (adjusted_energy(k) < 0d0 .or. adjusted_energy(k) > s% energy(k)) then
+       !   write(*,*) "Error when computing adjusted energy in CE, ", &
+       !      "s% energy(k):", s% energy(k), " adjusted_energy, ", adjusted_energy(k)
+       !      sticking_to_energy_without_recombination_corr = .true.
+       !   end if
+
+       !   if(.false.) then
+       !      ! for debug, check the mismatch between the EOS energy and that of a gas+radiation
+       !      energy_comp = 3.0d0*avo*boltzm*s% T(k)/(2*s% mu(k)) + crad*pow4(s% T(k))/s% rho(k) &
+       !                + rec_energy_HII_to_HI &
+       !                + rec_energy_HeII_to_HeI &
+       !                + rec_energy_HeIII_to_HeII &
+       !                + diss_energy_H2
+
+       !      write(*,*) "compare energies", k, s%m(k)/Msun, s% energy(k), energy_comp, &
+       !           (s% energy(k)-energy_comp)/s% energy(k)
+       !   end if
+
+       !end do
+    end if
 
    he_core_mass_1cent = 0.0d0
    he_core_mass_10cent = 0.0d0
@@ -626,20 +686,20 @@ contains
       end if
    end function lambda_CE
 
-   real(dp) function get_ion_info(s,id,k)
-     !use ionization_def, only: num_ion_vals
-     !use ionization_lib, only: eval_ionization
-     integer, intent(in) :: id, k
-     integer :: ierr
-     real(dp) :: ionization_res(num_ion_vals)
-     type (star_info), pointer :: s
-     ierr = 0
-     call eval_ionization( &
-          1d0 - (s% X(k) + s% Y(k)), s% X(k), s% Rho(k), s% lnd(k)/ln10, &
-          s% T(k), s% lnT(k)/ln10, ionization_res, ierr)
-     if (ierr /= 0) ionization_res = 0
-     get_ion_info = ionization_res(id)
-   end function get_ion_info
+   !real(dp) function get_ion_info(s,id,k)
+   !  !use ionization_def, only: num_ion_vals
+   !  !use ionization_lib, only: eval_ionization
+   !  integer, intent(in) :: id, k
+   !  integer :: ierr
+   !  real(dp) :: ionization_res(num_ion_vals)
+   !  type (star_info), pointer :: s
+   !  ierr = 0
+   !  call eval_ionization( &
+   !       1d0 - (s% X(k) + s% Y(k)), s% X(k), s% Rho(k), s% lnd(k)/ln10, &
+   !       s% T(k), s% lnT(k)/ln10, ionization_res, ierr)
+   !  if (ierr /= 0) ionization_res = 0
+   !  get_ion_info = ionization_res(id)
+   !end function get_ion_info
 
 
    ! simpler version of the same function at star/private/report.f90
@@ -729,7 +789,7 @@ contains
 
       alfa = max(0d0, min(1d0, (bdy_q - s% q(k+1))/s% dq(k)))
 
-      bdy_r = pow_cr( &
+      bdy_r = pow( &
          interp2(s% r(k)*s% r(k)*s% r(k), s% r(k+1)*s% r(k+1)*s% r(k+1)),1d0/3d0)/Rsun
 
       contains
@@ -843,10 +903,10 @@ contains
   end subroutine data_for_extra_profile_columns
 
 
-  integer function extras_finish_step(id, id_extra)
+  integer function extras_finish_step(id)
     !use atm_lib, only: atm_option, atm_option_str
     !use kap_def, only: kap_lowT_option, lowT_AESOPUS
-    integer, intent(in) :: id, id_extra
+    integer, intent(in) :: id
     integer :: ierr, i
     real(dp) :: envelope_mass_fraction, L_He, L_tot, min_center_h1_for_diff, &
          critmass, feh, rot_full_off, rot_full_on, frac2
@@ -868,8 +928,10 @@ contains
       if (extras_finish_step == terminate) s% termination_code =t_extras_finish_step
     end if
 
+    call check_TP(id) !MANOS this was intriduced to calculate have_done_TP locally
+
     ! TP-AGB
-    if(TP_AGB_check .and. s% have_done_TP)then
+    if(TP_AGB_check .and.  have_done_TP)then
        TP_AGB_check = .false.
        late_AGB_check = .true.
        write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
@@ -887,7 +949,7 @@ contains
        write(*,*) ' varcontrol_target = ', s% varcontrol_target
        write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
        if(s% x_logical_ctrl(1)) then
-          call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+          call star_write_profile_info(id, "LOGS1/final_profile.data", ierr)
        endif
     endif
 
@@ -902,7 +964,7 @@ contains
           post_AGB_check=.true.
        endif
       if(s% x_logical_ctrl(1)) then
-             call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+             call star_write_profile_info(id, "LOGS1/final_profile.data", ierr)
       endif
     endif
 
@@ -924,7 +986,7 @@ contains
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
        endif
        if(s% x_logical_ctrl(1)) then
-              call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+              call star_write_profile_info(id, "LOGS1/final_profile.data", ierr)
        endif
     endif
 
@@ -945,7 +1007,7 @@ contains
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
        endif
        if(s% x_logical_ctrl(1)) then
-              call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+              call star_write_profile_info(id, "LOGS1/final_profile.data", ierr)
        endif
     endif
 
@@ -980,7 +1042,7 @@ contains
     end if
 
     ! TP-AGB
-    if(s% have_done_TP) then
+    if(have_done_TP) then
        !termination_code_str(t_xtra2) = 'Reached TPAGB'
        !s% termination_code = t_xtra2
        !extras_finish_step = terminate
@@ -989,15 +1051,15 @@ contains
   end function extras_finish_step
 
 
-  subroutine extras_after_evolve(id, id_extra, ierr)
-    integer, intent(in) :: id, id_extra
+  subroutine extras_after_evolve(id, ierr)
+    integer, intent(in) :: id
     integer, intent(out) :: ierr
     type (star_info), pointer :: s
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
     if(s% x_logical_ctrl(1)) then !check for central carbon depletion, only in case we run single stars.
-      call star_write_profile_info(id, "LOGS1/final_profile.data", id, ierr)
+      call star_write_profile_info(id, "LOGS1/final_profile.data", ierr)
     endif
   end subroutine extras_after_evolve
 
@@ -1198,189 +1260,189 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       end subroutine loop_conv_layers
 
 
-  subroutine TSF(id, ierr)
+  !subroutine TSF(id, ierr)
 
-    integer, intent(in) :: id
-    integer, intent(out) :: ierr
-    type (star_info), pointer :: s
-    integer :: k,j,op_err,nsmooth,nsmootham
-    real(dp) :: alpha,shearsmooth,nu_tsf,nu_tsf_t,omegac,omegag,omegaa,&
-    omegat,difft,diffm,brunts,bruntsn2,logamnuomega,alphaq
+ !   integer, intent(in) :: id
+ !   integer, intent(out) :: ierr
+ !   type (star_info), pointer :: s
+ !   integer :: k,j,op_err,nsmooth,nsmootham
+ !   real(dp) :: alpha,shearsmooth,nu_tsf,nu_tsf_t,omegac,omegag,omegaa,&
+ !   omegat,difft,diffm,brunts,bruntsn2,logamnuomega,alphaq
 
-    call star_ptr(id,s,ierr)
-    if (ierr /= 0) return
+ !   call star_ptr(id,s,ierr)
+ !   if (ierr /= 0) return
 
-    alpha=1d0
-    nsmooth=5
-    nsmootham=nsmooth-3
-    shearsmooth=1d-30
-    op_err = 0
+ !   alpha=1d0
+ !   nsmooth=5
+ !   nsmootham=nsmooth-3
+ !   shearsmooth=1d-30
+ !   op_err = 0
 
-    !Calculate shear at each zone, then calculate TSF torque
-    do k=nsmooth+1,s% nz-(nsmooth+1)
+  !  !Calculate shear at each zone, then calculate TSF torque
+  !  do k=nsmooth+1,s% nz-(nsmooth+1)
 
-        nu_tsf=1d-30
-        nu_tsf_t=1d-30
-        !Calculate smoothed shear, q= dlnOmega/dlnr
-        shearsmooth = s% omega_shear(k)/(2d0*nsmooth+1d0)
-        do j=1,nsmooth
-            shearsmooth = shearsmooth + (1d0/(2d0*nsmooth+1d0))*( s% omega_shear(k-j) + s% omega_shear(k+j) )
-        end do
+!        nu_tsf=1d-30
+ !       nu_tsf_t=1d-30
+ !       !Calculate smoothed shear, q= dlnOmega/dlnr
+ !       shearsmooth = s% omega_shear(k)/(2d0*nsmooth+1d0)
+ !       do j=1,nsmooth
+ !           shearsmooth = shearsmooth + (1d0/(2d0*nsmooth+1d0))*( s% omega_shear(k-j) + s% omega_shear(k+j) )
+ !       end do
 
-        diffm =  diffmag(s% rho(k),s% T(k),s% abar(k),s% zbar(k),op_err) !Magnetic diffusivity
-        difft = 16d0*5.67d-5*pow3(s% T(k))/(3d0*s% opacity(k)*pow2(s% rho(k))*s% Cv(k)) !Thermal diffusivity
-        omegaa = s% omega(k)*pow_cr(shearsmooth*s% omega(k)/sqrt_cr(abs(s% brunt_N2(k))),1d0/3d0) !Alfven frequency at saturation, assuming adiabatic instability
-        omegat = difft*pow2(sqrt_cr(abs(s% brunt_N2(k)))/(omegaa*s% r(k))) !Thermal damping rate assuming adiabatic instability
-        brunts = sqrt_cr(abs( s% brunt_N2_composition_term(k)&
-                +(s% brunt_N2(k)-s% brunt_N2_composition_term(k))/(1d0 + omegat/omegaa) )) !Suppress thermal part of brunt
-        bruntsn2 = sqrt_cr(abs( s% brunt_N2_composition_term(k)+&
-            (s% brunt_N2(k)-s% brunt_N2_composition_term(k))*min(1d0,diffm/difft) )) !Effective brunt for isothermal instability
-        brunts = max(brunts,bruntsn2) !Choose max between suppressed brunt and isothermal brunt
-        brunts = max(s% omega(k),brunts) !Don't let Brunt be smaller than omega
-        omegaa = s% omega(k)*pow_cr(abs(shearsmooth*s% omega(k)/brunts),1d0/3d0) !Recalculate omegaa
+!        diffm =  diffmag(s% rho(k),s% T(k),s% abar(k),s% zbar(k),op_err) !Magnetic diffusivity
+!        difft = 16d0*5.67d-5*pow3(s% T(k))/(3d0*s% opacity(k)*pow2(s% rho(k))*s% Cv(k)) !Thermal diffusivity
+!        omegaa = s% omega(k)*pow(shearsmooth*s% omega(k)/sqrt(abs(s% brunt_N2(k))),1d0/3d0) !Alfven frequency at saturation, assuming adiabatic instability
+!        omegat = difft*pow2(sqrt(abs(s% brunt_N2(k)))/(omegaa*s% r(k))) !Thermal damping rate assuming adiabatic instability
+!        brunts = sqrt(abs( s% brunt_N2_composition_term(k)&
+!                +(s% brunt_N2(k)-s% brunt_N2_composition_term(k))/(1d0 + omegat/omegaa) )) !Suppress thermal part of brunt
+!        bruntsn2 = sqrt(abs( s% brunt_N2_composition_term(k)+&
+!            (s% brunt_N2(k)-s% brunt_N2_composition_term(k))*min(1d0,diffm/difft) )) !Effective brunt for isothermal instability
+!        brunts = max(brunts,bruntsn2) !Choose max between suppressed brunt and isothermal brunt
+!        brunts = max(s% omega(k),brunts) !Don't let Brunt be smaller than omega
+!        omegaa = s% omega(k)*pow(abs(shearsmooth*s% omega(k)/brunts),1d0/3d0) !Recalculate omegaa
 
-        ! Calculate nu_TSF
-        if (s% brunt_N2(k) > 0d0) then
-            if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
-                omegac = 1d0*s% omega(k)*sqrt_cr(brunts/s% omega(k))*pow_cr(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
-                nu_tsf = 5d-1+5d-1*tanh_cr(5d0*log_cr(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
-                nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
-            end if
-            ! Add TSF enabled by thermal diffusion
-            if (pow2(brunts) < 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
-                nu_tsf_t = alpha*abs(shearsmooth)*s% omega(k)*pow2(s% r(k))
-            end if
-            s% am_nu_omega(k) = s% am_nu_omega(k) + max(nu_tsf,nu_tsf_t) + 1d-1
-        end if
+!        ! Calculate nu_TSF
+!        if (s% brunt_N2(k) > 0d0) then
+!            if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
+!                omegac = 1d0*s% omega(k)*sqrt(brunts/s% omega(k))*pow(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
+!                nu_tsf = 5d-1+5d-1*tanh(5d0*log(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
+!                nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
+!            end if
+!            ! Add TSF enabled by thermal diffusion
+!            if (pow2(brunts) < 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
+!                nu_tsf_t = alpha*abs(shearsmooth)*s% omega(k)*pow2(s% r(k))
+!            end if
+!            s% am_nu_omega(k) = s% am_nu_omega(k) + max(nu_tsf,nu_tsf_t) + 1d-1
+!        end if
+!
+!     end do
 
-     end do
 
+ !     !Values near inner boundary
+ !     do k=s% nz-nsmooth,s% nz
+ !       nu_tsf=1d-30
+ !       nu_tsf_t=1d-30
+ !       shearsmooth = shearsmooth
 
-      !Values near inner boundary
-      do k=s% nz-nsmooth,s% nz
-        nu_tsf=1d-30
-        nu_tsf_t=1d-30
-        shearsmooth = shearsmooth
+ !       diffm =  diffmag(s% rho(k),s% T(k),s% abar(k),s% zbar(k),op_err) !Magnetic diffusivity
+ !       difft = 16d0*5.67d-5*pow3(s% T(k))/(3d0*s% opacity(k)*pow2(s% rho(k))*s% Cv(k)) !Thermal diffusivity
+ !       omegaa = s% omega(k)*pow(shearsmooth*s% omega(k)/sqrt(abs(s% brunt_N2(k))),1d0/3d0) !Alfven frequency at saturation, assuming adiabatic instability
+ !       omegat = difft*pow2(sqrt(abs(s% brunt_N2(k)))/(s% omega(k)*s% r(k))) !Thermal damping rate assuming adiabatic instability
+ !       brunts = sqrt(abs( s% brunt_N2_composition_term(k)&
+ !           +(s% brunt_N2(k)-s% brunt_N2_composition_term(k))/(1d0 + omegat/omegaa) )) !Suppress thermal part of brunt
+ !       bruntsn2 = sqrt(abs( s% brunt_N2_composition_term(k)+&
+ !           (s% brunt_N2(k)-s% brunt_N2_composition_term(k))*min(1d0,diffm/difft) )) !Effective brunt for isothermal instability
+ !       brunts = max(brunts,bruntsn2) !Choose max between suppressed brunt and isothermal brunt
+ !       brunts = max(s% omega(k),brunts) !Don't let Brunt be smaller than omega
+ !       omegaa = s% omega(k)*pow(abs(shearsmooth*s% omega(k)/brunts),1d0/3d0) !Recalculate omegaa
 
-        diffm =  diffmag(s% rho(k),s% T(k),s% abar(k),s% zbar(k),op_err) !Magnetic diffusivity
-        difft = 16d0*5.67d-5*pow3(s% T(k))/(3d0*s% opacity(k)*pow2(s% rho(k))*s% Cv(k)) !Thermal diffusivity
-        omegaa = s% omega(k)*pow_cr(shearsmooth*s% omega(k)/sqrt_cr(abs(s% brunt_N2(k))),1d0/3d0) !Alfven frequency at saturation, assuming adiabatic instability
-        omegat = difft*pow2(sqrt_cr(abs(s% brunt_N2(k)))/(s% omega(k)*s% r(k))) !Thermal damping rate assuming adiabatic instability
-        brunts = sqrt_cr(abs( s% brunt_N2_composition_term(k)&
-            +(s% brunt_N2(k)-s% brunt_N2_composition_term(k))/(1d0 + omegat/omegaa) )) !Suppress thermal part of brunt
-        bruntsn2 = sqrt_cr(abs( s% brunt_N2_composition_term(k)+&
-            (s% brunt_N2(k)-s% brunt_N2_composition_term(k))*min(1d0,diffm/difft) )) !Effective brunt for isothermal instability
-        brunts = max(brunts,bruntsn2) !Choose max between suppressed brunt and isothermal brunt
-        brunts = max(s% omega(k),brunts) !Don't let Brunt be smaller than omega
-        omegaa = s% omega(k)*pow_cr(abs(shearsmooth*s% omega(k)/brunts),1d0/3d0) !Recalculate omegaa
+!        ! Calculate nu_TSF
+!        if (s% brunt_N2(k) > 0d0) then
+!            if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
+!                omegac = 1d0*s% omega(k)*sqrt(brunts/s% omega(k))*pow(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
+!                nu_tsf = 5d-1+5d-1*tanh(5d0*log(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
+!                nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
+!            end if
+!            ! Add TSF enabled by thermal diffusion
+!            if (pow2(brunts) < 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
+!                nu_tsf_t = alpha*abs(shearsmooth)*s% omega(k)*pow2(s% r(k))
+!            end if
+!            s% am_nu_omega(k) = s% am_nu_omega(k) + max(nu_tsf,nu_tsf_t) + 1d-1
+!        end if
+!      end do
 
-        ! Calculate nu_TSF
-        if (s% brunt_N2(k) > 0d0) then
-            if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
-                omegac = 1d0*s% omega(k)*sqrt_cr(brunts/s% omega(k))*pow_cr(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
-                nu_tsf = 5d-1+5d-1*tanh_cr(5d0*log_cr(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
-                nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
-            end if
-            ! Add TSF enabled by thermal diffusion
-            if (pow2(brunts) < 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
-                nu_tsf_t = alpha*abs(shearsmooth)*s% omega(k)*pow2(s% r(k))
-            end if
-            s% am_nu_omega(k) = s% am_nu_omega(k) + max(nu_tsf,nu_tsf_t) + 1d-1
-        end if
-      end do
+!  !Values near outer boundary
+!  do k=nsmooth,1
+!    nu_tsf=1d-30
+!    nu_tsf_t=1d-30
+!    shearsmooth = shearsmooth
 
-  !Values near outer boundary
-  do k=nsmooth,1
-    nu_tsf=1d-30
-    nu_tsf_t=1d-30
-    shearsmooth = shearsmooth
+ !   diffm =  diffmag(s% rho(k),s% T(k),s% abar(k),s% zbar(k),op_err) !Magnetic diffusivity
+ !   difft = 16d0*5.67d-5*pow3(s% T(k))/(3d0*s% opacity(k)*pow2(s% rho(k))*s% Cv(k)) !Thermal diffusivity
+ !   omegaa = s% omega(k)*pow(shearsmooth*s% omega(k)/sqrt(abs(s% brunt_N2(k))),1d0/3d0) !Alfven frequency at saturation, assuming adiabatic instability
+ !   omegat = difft*pow2(sqrt(abs(s% brunt_N2(k)))/(s% omega(k)*s% r(k))) !Thermal damping rate assuming adiabatic instability
+ !   brunts = sqrt(abs( s% brunt_N2_composition_term(k)&
+ !       +(s% brunt_N2(k)-s% brunt_N2_composition_term(k))/(1d0 + omegat/omegaa) )) !Suppress thermal part of brunt
+ !   bruntsn2 = sqrt(abs( s% brunt_N2_composition_term(k)+&
+ !       (s% brunt_N2(k)-s% brunt_N2_composition_term(k))*min(1d0,diffm/difft) )) !Effective brunt for isothermal instability
+ !   brunts = max(brunts,bruntsn2) !Choose max between suppressed brunt and isothermal brunt
+ !   brunts = max(s% omega(k),brunts) !Don't let Brunt be smaller than omega
+ !   omegaa = s% omega(k)*pow(abs(shearsmooth*s% omega(k)/brunts),1d0/3d0) !Recalculate omegaa
 
-    diffm =  diffmag(s% rho(k),s% T(k),s% abar(k),s% zbar(k),op_err) !Magnetic diffusivity
-    difft = 16d0*5.67d-5*pow3(s% T(k))/(3d0*s% opacity(k)*pow2(s% rho(k))*s% Cv(k)) !Thermal diffusivity
-    omegaa = s% omega(k)*pow_cr(shearsmooth*s% omega(k)/sqrt_cr(abs(s% brunt_N2(k))),1d0/3d0) !Alfven frequency at saturation, assuming adiabatic instability
-    omegat = difft*pow2(sqrt_cr(abs(s% brunt_N2(k)))/(s% omega(k)*s% r(k))) !Thermal damping rate assuming adiabatic instability
-    brunts = sqrt_cr(abs( s% brunt_N2_composition_term(k)&
-        +(s% brunt_N2(k)-s% brunt_N2_composition_term(k))/(1d0 + omegat/omegaa) )) !Suppress thermal part of brunt
-    bruntsn2 = sqrt_cr(abs( s% brunt_N2_composition_term(k)+&
-        (s% brunt_N2(k)-s% brunt_N2_composition_term(k))*min(1d0,diffm/difft) )) !Effective brunt for isothermal instability
-    brunts = max(brunts,bruntsn2) !Choose max between suppressed brunt and isothermal brunt
-    brunts = max(s% omega(k),brunts) !Don't let Brunt be smaller than omega
-    omegaa = s% omega(k)*pow_cr(abs(shearsmooth*s% omega(k)/brunts),1d0/3d0) !Recalculate omegaa
+ !   ! Calculate nu_TSF
+ !   if (s% brunt_N2(k) > 0d0) then
+ !       if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
+ !           omegac = 1d0*s% omega(k)*sqrt(brunts/s% omega(k))*pow(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
+ !           nu_tsf = 5d-1+5d-1*tanh(5d0*log(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
+ !           nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
+ !       end if
+ !       ! Add TSF enabled by thermal diffusion
+ !       if (pow2(brunts) < 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
+ !           nu_tsf_t = alpha*abs(shearsmooth)*s% omega(k)*pow2(s% r(k))
+ !       end if
+ !       s% am_nu_omega(k) = s% am_nu_omega(k) + max(nu_tsf,nu_tsf_t) + 1d-1
+ !   end if
+ ! end do
 
-    ! Calculate nu_TSF
-    if (s% brunt_N2(k) > 0d0) then
-        if (pow2(brunts) > 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
-            omegac = 1d0*s% omega(k)*sqrt_cr(brunts/s% omega(k))*pow_cr(diffm/(pow2(s% r(k))*s% omega(k)),0.25d0)  !Critical field strength
-            nu_tsf = 5d-1+5d-1*tanh_cr(5d0*log_cr(alpha*omegaa/omegac)) !Suppress AM transport if omega_a<omega_c
-            nu_tsf = nu_tsf*pow3(alpha)*s% omega(k)*pow2(s% r(k))*pow2(s% omega(k)/brunts) !nu_omega for revised Tayler instability
-        end if
-        ! Add TSF enabled by thermal diffusion
-        if (pow2(brunts) < 2d0*pow2(shearsmooth)*pow2(s% omega(k))) then
-            nu_tsf_t = alpha*abs(shearsmooth)*s% omega(k)*pow2(s% r(k))
-        end if
-        s% am_nu_omega(k) = s% am_nu_omega(k) + max(nu_tsf,nu_tsf_t) + 1d-1
-    end if
-  end do
+ ! !Smooth nu_omega
+ ! logamnuomega=-3d1
+ ! do k=nsmootham+1,s% nz-(nsmootham+1)
+ !   !Don't smooth convective diffusivity into non-convective zones
+ !   if (s% mixing_type(k)==1) then
+ !       s% am_nu_omega(k) = s% am_nu_omega(k)
+ !   !Smooth zones if not including a convective zone
+ !   else
+ !       logamnuomega = log10(s% am_nu_omega(k))/(2d0*nsmootham+1d0)
+ !   end if
+ !   do j=1,nsmootham
+ !       !Don't smooth convective diffusivity into non-convective zones
+ !       if (s% mixing_type(k-j)<3.5d0) then
+ !           logamnuomega = log10(s% am_nu_omega(k))
+ !       !Smooth zones if not including a convective zone
+ !       else
+ !           logamnuomega = logamnuomega + (1d0/(2d0*nsmootham+1d0))*log10(s% am_nu_omega(k-j))
+ !       end if
+ !   end do
+ !   do j=1,nsmootham
+ !       !Don't smooth convective diffusivity into non-convective zones
+ !       if (s% mixing_type(k+j)<3.5d0) then
+ !           logamnuomega = logamnuomega
+ !       !Smooth zones if not including a convective zone
+ !       else
+ !           logamnuomega = logamnuomega + (1d0/(2d0*nsmootham+1d0))*log10(s% am_nu_omega(k+j))
+ !       end if
+ !   end do
+ !   s% am_nu_omega(k) = exp10(logamnuomega)
+ ! end do
 
-  !Smooth nu_omega
-  logamnuomega=-3d1
-  do k=nsmootham+1,s% nz-(nsmootham+1)
-    !Don't smooth convective diffusivity into non-convective zones
-    if (s% mixing_type(k)==1) then
-        s% am_nu_omega(k) = s% am_nu_omega(k)
-    !Smooth zones if not including a convective zone
-    else
-        logamnuomega = log10_cr(s% am_nu_omega(k))/(2d0*nsmootham+1d0)
-    end if
-    do j=1,nsmootham
-        !Don't smooth convective diffusivity into non-convective zones
-        if (s% mixing_type(k-j)<3.5d0) then
-            logamnuomega = log10_cr(s% am_nu_omega(k))
-        !Smooth zones if not including a convective zone
-        else
-            logamnuomega = logamnuomega + (1d0/(2d0*nsmootham+1d0))*log10_cr(s% am_nu_omega(k-j))
-        end if
-    end do
-    do j=1,nsmootham
-        !Don't smooth convective diffusivity into non-convective zones
-        if (s% mixing_type(k+j)<3.5d0) then
-            logamnuomega = logamnuomega
-        !Smooth zones if not including a convective zone
-        else
-            logamnuomega = logamnuomega + (1d0/(2d0*nsmootham+1d0))*log10_cr(s% am_nu_omega(k+j))
-        end if
-    end do
-    s% am_nu_omega(k) = exp10_cr(logamnuomega)
-  end do
+  !!Values near inner boundary
+  !do k=s% nz-nsmootham,s% nz
+  !      s% am_nu_omega(k) = s% am_nu_omega(k-1)
+  !end do
 
-  !Values near inner boundary
-  do k=s% nz-nsmootham,s% nz
-        s% am_nu_omega(k) = s% am_nu_omega(k-1)
-  end do
-
-  !Values near outer boundary
-  do k=nsmootham,1
-        s% am_nu_omega(k) = s% am_nu_omega(k-1)
-  end do
-
-  end subroutine TSF
+  !!Values near outer boundary
+  !do k=nsmootham,1
+  !      s% am_nu_omega(k) = s% am_nu_omega(k-1)
+  !end do
+  !
+  !end subroutine TSF
 
 
 
   ! the following is a re-implementation of set_mdot in star/private/winds.f90
   ! that uses Zbase instead of Z
 
-  subroutine other_set_mdot(id, L_phot, M_phot, R_phot, T_phot, wind, ierr)
+  subroutine other_set_mdot(id, L_phot, M_phot, R_phot, T_phot, X, Y, Z, wind, ierr)
     use chem_def
     use utils_lib
     integer, intent(in) :: id
-    real(dp), intent(in) :: L_phot, M_phot, R_phot, T_phot ! photosphere values (cgs)
+    real(dp), intent(in) :: L_phot, M_phot, R_phot, T_phot, X, Y, Z ! photosphere values (cgs)
     real(dp), intent(out) :: wind
     integer, intent(out) :: ierr
     type (star_info), pointer :: s
     integer :: k, j, h1, he4, nz, base
     real(dp) :: max_ejection_mass, alfa, beta, &
-         X, Y, Z, Zbase, Zsurf, w1, w2, T_high, T_low, L1, M1, R1, T1, &
+         Zbase, Zsurf, w1, w2, T_high, T_low, L1, M1, R1, T1, &
          center_h1, center_he4, surface_h1, surface_he4, mdot, &
          full_off, full_on, cool_wind, hot_wind, divisor
     character (len=strlen) :: scheme
@@ -1434,7 +1496,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
        if(T1 <= s% hot_wind_full_on_T)then
           !evaluate cool wind
           !RGB/TPAGB switch goes here
-          if (s% have_done_TP) then
+          if (have_done_TP) then
              scheme = s% cool_wind_AGB_scheme
              if (dbg) &
                   write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
@@ -1489,9 +1551,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if (s% stop_for_bad_nums) stop 'winds'
          return
       end if
-      X = surface_h1
-      Y = surface_he4
-      Z = Zbase ! previously 1-(X+Y)
+      !X = surface_h1
+      !Y = surface_he4
+      !Z = Zbase ! previously 1-(X+Y)
       Zsurf = 1.0_dp - (X+Y)
 
       if (scheme == 'Dutch') then
@@ -1547,7 +1609,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       if(s% x_logical_ctrl(3)) then ! Belczynski+2010 LBV2 winds (eq. 8) with factor 1
         if ((s% center_h1 < 1.0d-4) ) then  ! postMS
             if ((s% L(1)/Lsun > 6.0d5) .and. &
-              (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
+              (1.0d-5 * s% r(1)/Rsun * pow((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
               wind  = 1.0d-4
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
             endif
@@ -1567,7 +1629,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       else if (T1 < 22500d0) then
          alfa = 0
       else ! use Vink et al 2001, eqns 14 and 15 to set "jump" temperature
-         Teff_jump = 1d3*(61.2d0 + 2.59d0*(-13.636d0 + 0.889d0*log10_cr(Z/Zsolar)))
+         Teff_jump = 1d3*(61.2d0 + 2.59d0*(-13.636d0 + 0.889d0*log10(Z/Zsolar)))
          dT = 100d0
          if (T1 > Teff_jump + dT) then
             alfa = 1
@@ -1583,31 +1645,31 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
       if (alfa > 0.0d0) then ! eval hot side wind (eqn 24)
          vinf_div_vesc = 2.6d0 ! this is the hot side galactic value
-         vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
+         vinf_div_vesc = vinf_div_vesc*pow(Z/Zsolar,0.13d0) ! corrected for Z
          logMdot = &
               - 6.697d0 &
-              + 2.194d0*log10_cr(L1/Lsun/1d5) &
-              - 1.313d0*log10_cr(M1/Msun/30d0) &
-              - 1.226d0*log10_cr(vinf_div_vesc/2d0) &
-              + 0.933d0*log10_cr(T1/4d4) &
-              - 10.92d0*pow2(log10_cr(T1/4d4)) &
-              + 0.85d0*log10_cr(Z/Zsolar)
-         w1 = exp10_cr(logMdot)
+              + 2.194d0*log10(L1/Lsun/1d5) &
+              - 1.313d0*log10(M1/Msun/30d0) &
+              - 1.226d0*log10(vinf_div_vesc/2d0) &
+              + 0.933d0*log10(T1/4d4) &
+              - 10.92d0*pow2(log10(T1/4d4)) &
+              + 0.85d0*log10(Z/Zsolar)
+         w1 = exp10(logMdot)
       else
          w1 = 0d0
       end if
 
       if (alfa < 1) then ! eval cool side wind (eqn 25)
          vinf_div_vesc = 1.3d0 ! this is the cool side galactic value
-         vinf_div_vesc = vinf_div_vesc*pow_cr(Z/Zsolar,0.13d0) ! corrected for Z
+         vinf_div_vesc = vinf_div_vesc*pow(Z/Zsolar,0.13d0) ! corrected for Z
          logMdot = &
               - 6.688d0 &
-              + 2.210d0*log10_cr(L1/Lsun/1d5) &
-              - 1.339d0*log10_cr(M1/Msun/30d0) &
-              - 1.601d0*log10_cr(vinf_div_vesc/2d0) &
-              + 1.07d0*log10_cr(T1/2d4) &
-              + 0.85d0*log10_cr(Z/Zsolar)
-         w2 = exp10_cr(logMdot)
+              + 2.210d0*log10(L1/Lsun/1d5) &
+              - 1.339d0*log10(M1/Msun/30d0) &
+              - 1.601d0*log10(vinf_div_vesc/2d0) &
+              + 1.07d0*log10(T1/2d4) &
+              + 0.85d0*log10(Z/Zsolar)
+         w2 = exp10(logMdot)
       else
          w2 = 0d0
       end if
@@ -1625,17 +1687,17 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(inout) :: w
       real(dp) :: w1, logMdot, gamma_edd, xsurf, beta, gammazero, lgZ
       xsurf = surface_h1
-      gamma_edd = exp10_cr(-4.813d0)*(1+xsurf)*(L1/Lsun)*(Msun/M1)
-      lgZ = log10_cr(Z/Zsolar)
+      gamma_edd = exp10(-4.813d0)*(1+xsurf)*(L1/Lsun)*(Msun/M1)
+      lgZ = log10(Z/Zsolar)
       beta = 1.727d0 + 0.250d0*lgZ
       gammazero = 0.326d0 - 0.301d0*lgZ - 0.045d0*lgZ*lgZ
       logMdot = &
            + 10.046d0 &
-           + beta*log10_cr(gamma_edd - gammazero) &
-           - 3.5d0*log10_cr(T1) &
-           + 0.42d0*log10_cr(L1/Lsun) &
+           + beta*log10(gamma_edd - gammazero) &
+           - 3.5d0*log10(T1) &
+           + 0.42d0*log10(L1/Lsun) &
            - 0.45d0*xsurf
-      w = exp10_cr(logMdot)
+      w = exp10(logMdot)
       if (dbg) write(*,*) 'grafener wind', w
     end subroutine eval_Grafener_wind
 
@@ -1643,7 +1705,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_blocker_wind(w)
       real(dp), intent(inout) :: w
       w = w * s% Blocker_scaling_factor * &
-           4.83d-9 * pow_cr(M1/Msun,-2.1d0) * pow_cr(L1/Lsun,2.7d0)
+           4.83d-9 * pow(M1/Msun,-2.1d0) * pow(L1/Lsun,2.7d0)
       if (dbg) write(*,*) 'blocker wind', w
     end subroutine eval_blocker_wind
 
@@ -1652,8 +1714,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       include 'formats'
       if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
-         w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
-         if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
+         w = 1d-11 * pow(L1/Lsun,1.29d0) * pow(Y,1.7d0) * sqrt(Zsurf)
+         if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10(wind)
       else
          call eval_Vink_wind(w)
       end if
@@ -1665,13 +1727,13 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       include 'formats'
       if (s% Dutch_wind_lowT_scheme == 'de Jager') then
          call eval_de_Jager_wind(w)
-         if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
+         if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10(wind), T1, T_low, T_high
       else if (s% Dutch_wind_lowT_scheme == 'van Loon') then
          call eval_van_Loon_wind(w)
-         if (dbg) write(*,1) 'Dutch_wind = van Loon', safe_log10_cr(wind), T1, T_low, T_high
+         if (dbg) write(*,1) 'Dutch_wind = van Loon', safe_log10(wind), T1, T_low, T_high
       else if (s% Dutch_wind_lowT_scheme == 'Nieuwenhuijzen') then
          call eval_Nieuwenhuijzen_wind(w)
-         if (dbg) write(*,1) 'Dutch_wind = Nieuwenhuijzen', safe_log10_cr(wind), T1, T_low, T_high
+         if (dbg) write(*,1) 'Dutch_wind = Nieuwenhuijzen', safe_log10(wind), T1, T_low, T_high
       else
          write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
               trim(s% Dutch_wind_lowT_scheme)
@@ -1685,8 +1747,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0
-      w = exp10_cr(log10w)
+      log10w = 1.769d0*log10(L1/Lsun) - 1.676d0*log10(T1) - 8.158d0
+      w = exp10(log10w)
       if (dbg) then
          write(*,1) 'de_Jager log10 wind', log10w
       end if
@@ -1698,8 +1760,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)
-      w = exp10_cr(log10w)
+      log10w = -5.65d0 + 1.05d0*log10(L1/(1d4*Lsun)) - 6.3d0*log10(T1/35d2)
+      w = exp10(log10w)
     end subroutine eval_van_Loon_wind
 
 
@@ -1709,10 +1771,10 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp) :: log10w
       include 'formats'
       log10w = -14.02d0 + &
-           1.24d0*log10_cr(L1/Lsun) + &
-           0.16d0*log10_cr(M1/Msun) + &
-           0.81d0*log10_cr(R1/Rsun)
-      w = exp10_cr(log10w)
+           1.24d0*log10(L1/Lsun) + &
+           0.16d0*log10(M1/Msun) + &
+           0.81d0*log10(R1/Rsun)
+      w = exp10(log10w)
       if (dbg) then
          write(*,1) 'Nieuwenhuijzen log10 wind', log10w
       end if
@@ -1728,62 +1790,62 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
 
 
-  real(dp) function diffmag(rho,T,abar,zbar,ierr)
+  !real(dp) function diffmag(rho,T,abar,zbar,ierr)
 
-     ! Written by S.-C. Yoon, Oct. 10, 2003
-     ! Electrical conductivity according to Spitzer 1962
-     ! See also Wendell et al. 1987, ApJ 313:284
-     real(dp), intent(in) :: rho, T, abar, zbar
-     integer, intent(out) :: ierr
-     real(dp) :: xmagfmu, xmagft, xmagfdif, xmagfnu, &
-        xkap, xgamma, xlg, xsig1, xsig2, xsig3, xxx, ffff, xsig, &
-        xeta
+  !   ! Written by S.-C. Yoon, Oct. 10, 2003
+  !   ! Electrical conductivity according to Spitzer 1962
+  !   ! See also Wendell et al. 1987, ApJ 313:284
+  !   real(dp), intent(in) :: rho, T, abar, zbar
+  !   integer, intent(out) :: ierr
+  !   real(dp) :: xmagfmu, xmagft, xmagfdif, xmagfnu, &
+  !      xkap, xgamma, xlg, xsig1, xsig2, xsig3, xxx, ffff, xsig, &
+  !      xeta
 
-    if (ierr /= 0) return
+  !  if (ierr /= 0) return
 
-    xgamma = 0.2275d0*zbar*zbar*pow_cr(rho*1d-6/abar,1d0/3d0)*1d8/T
-    xlg = log10_cr(xgamma)
-    if (xlg < -1.5d0) then
-        xsig1 = sige1(zbar,T,xgamma)
-        xsig = xsig1
-    else if (xlg >= -1.5d0 .and. xlg <= 0d0) then
-        xxx = (xlg + 0.75d0)*4d0/3d0
-        ffff = 0.25d0*(2d0-3d0*xxx + xxx*xxx*xxx)
-        xsig1 = sige1(zbar,T,xgamma)
+  !  xgamma = 0.2275d0*zbar*zbar*pow(rho*1d-6/abar,1d0/3d0)*1d8/T
+  !  xlg = log10(xgamma)
+  !  if (xlg < -1.5d0) then
+  !      xsig1 = sige1(zbar,T,xgamma)
+  !      xsig = xsig1
+  !  else if (xlg >= -1.5d0 .and. xlg <= 0d0) then
+  !      xxx = (xlg + 0.75d0)*4d0/3d0
+  !      ffff = 0.25d0*(2d0-3d0*xxx + xxx*xxx*xxx)
+  !      xsig1 = sige1(zbar,T,xgamma)
 
-        xsig2 = sige2(T,rho,zbar,ierr)
-        if (ierr /= 0) return
+  !      xsig2 = sige2(T,rho,zbar,ierr)
+  !      if (ierr /= 0) return
 
-        xsig = (1d0-ffff)*xsig2 + ffff*xsig1
-    else if (xlg > 0d0 .and. xlg < 0.5d0) then
-        xsig2 = sige2(T,rho,zbar,ierr)
-        if (ierr /= 0) return
+  !      xsig = (1d0-ffff)*xsig2 + ffff*xsig1
+  !  else if (xlg > 0d0 .and. xlg < 0.5d0) then
+  !      xsig2 = sige2(T,rho,zbar,ierr)
+  !      if (ierr /= 0) return
 
-        xsig = xsig2
-    else if (xlg >= 0.5d0 .and. xlg < 1d0) then
-        xxx = (xlg-0.75d0)*4d0
-        ffff = 0.25d0*(2d0-3d0*xxx + xxx*xxx*xxx)
-        xsig2 = sige2(T,rho,zbar,ierr)
-        if (ierr /= 0) return
+  !      xsig = xsig2
+  !  else if (xlg >= 0.5d0 .and. xlg < 1d0) then
+  !      xxx = (xlg-0.75d0)*4d0
+  !      ffff = 0.25d0*(2d0-3d0*xxx + xxx*xxx*xxx)
+  !      xsig2 = sige2(T,rho,zbar,ierr)
+  !      if (ierr /= 0) return
 
-        xsig3 = sige3(zbar,T,xgamma)
-        xsig = (1d0-ffff)*xsig3 + ffff*xsig2
-    else
-        xsig3 = sige3(zbar,T,xgamma)
-        xsig = xsig3
-    endif
+  !      xsig3 = sige3(zbar,T,xgamma)
+  !      xsig = (1d0-ffff)*xsig3 + ffff*xsig2
+  !  else
+  !      xsig3 = sige3(zbar,T,xgamma)
+  !      xsig = xsig3
+  !  endif
 
-    diffmag = 7.1520663d19/xsig ! magnetic diffusivity
+  !  diffmag = 7.1520663d19/xsig ! magnetic diffusivity
 
-  end function diffmag
+  !end function diffmag
 
 
   ! Helper functions
 
-  real(dp) function sqrt_cr(x)
-    real(dp), intent(in) :: x
-    sqrt_cr = pow_cr(x, 0.5d0)
-  end function sqrt_cr
+  !real(dp) function sqrt(x)
+  !  real(dp), intent(in) :: x
+  !  sqrt_cr = pow_cr(x, 0.5d0)
+  !end function sqrt_cr
 
   real(dp) function sige1(z,t,xgamma)
      ! Written by S.-C. Yoon, Oct. 10, 2003
@@ -1792,30 +1854,30 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
      real(dp), intent(in) :: z, t, xgamma
      real(dp) :: etan, xlambda,f
      if (t >= 4.2d5) then
-        f = sqrt_cr(4.2d5/t)
+        f = sqrt(4.2d5/t)
      else
         f = 1d0
      end if
-     xlambda = sqrt_cr(3d0*z*z*z)*pow_cr(xgamma,-1.5d0)*f + 1d0
-     etan = 3d11*z*log_cr(xlambda)*pow_cr(t,-1.5d0)             ! magnetic diffusivity
-     etan = etan/(1d0-1.20487d0*exp_cr(-1.0576d0*pow_cr(z,0.347044d0))) ! correction: gammae
+     xlambda = sqrt(3d0*z*z*z)*pow(xgamma,-1.5d0)*f + 1d0
+     etan = 3d11*z*log(xlambda)*pow(t,-1.5d0)             ! magnetic diffusivity
+     etan = etan/(1d0-1.20487d0*exp(-1.0576d0*pow(z,0.347044d0))) ! correction: gammae
      sige1 = clight*clight/(4d0*pi*etan)                    ! sigma = c^2/(4pi*eta)
   end function sige1
 
 
-  real(dp) function sige2(T,rho,zbar,ierr)
-     ! writen by S.-C. YOON Oct. 10, 2003
-     ! electrical conductivity using conductive opacity
-     ! see Wendell et al. 1987 ApJ 313:284
-     use kap_lib, only: kap_get_elect_cond_opacity
-     real(dp), intent(in) :: t,rho,zbar
-     integer, intent(out) :: ierr
-     real(dp) :: kap, dlnkap_dlnRho, dlnkap_dlnT
-     call kap_get_elect_cond_opacity( &
-        zbar, log10_cr(rho), log10_cr(T),  &
-        kap, dlnkap_dlnRho, dlnkap_dlnT, ierr)
-     sige2 = 1.11d9*T*T/(rho*kap)
-  end function sige2
+  !real(dp) function sige2(T,rho,zbar,ierr)
+  !   ! writen by S.-C. YOON Oct. 10, 2003
+  !   ! electrical conductivity using conductive opacity
+  !   ! see Wendell et al. 1987 ApJ 313:284
+  !   use kap_lib, only: kap_get_elect_cond_opacity
+  !   real(dp), intent(in) :: t,rho,zbar
+  !   integer, intent(out) :: ierr
+  !   real(dp) :: kap, dlnkap_dlnRho, dlnkap_dlnT
+  !   call kap_get_elect_cond_opacity( &
+  !      zbar, log10(rho), log10(T),  &
+  !      kap, dlnkap_dlnRho, dlnkap_dlnT, ierr)
+  !   sige2 = 1.11d9*T*T/(rho*kap)
+  !end function sige2
 
   real(dp) function sige3(z,t,xgamma)
      ! writen by S.-C. YOON Oct. 10, 2003
@@ -1824,9 +1886,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
      real(dp), intent(in) :: z, t, xgamma
      real(dp) :: rme, rm23, ctmp, xi
      rme = 8.5646d-23*t*t*t*xgamma*xgamma*xgamma/pow5(z)  ! rme = rho6/mue
-     rm23 = pow_cr(rme,2d0/3d0)
+     rm23 = pow(rme,2d0/3d0)
      ctmp = 1d0 + 1.018d0*rm23
-     xi= sqrt_cr(3.14159d0/3d0)*log_cr(z)/3d0 + 2d0*log_cr(1.32d0+2.33d0/sqrt_cr(xgamma))/3d0-0.484d0*rm23/ctmp
+     xi= sqrt(3.14159d0/3d0)*log(z)/3d0 + 2d0*log(1.32d0+2.33d0/sqrt(xgamma))/3d0-0.484d0*rm23/ctmp
      sige3 = 8.630d21*rme/(z*ctmp*xi)
   end function sige3
 
@@ -1849,5 +1911,105 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          k_for_q = nz
   end function k_for_q
 
+
+  subroutine check_TP(id) ! check for AGB thermal pulse dredge up                                                                                                                       
+            !logical, intent(in) :: burn_h, burn_he, burn_z
+            !integer, intent(out) :: ierr
+            !real(dp) :: h, hstep, h2, dr, dr2, dr_limit, r_limit, Bp1
+            !logical :: have_done_TP
+            !integer :: TP_state, TP_M_H_on, TP_M_H_min, TP_count
+            integer, intent(in) :: id
+            integer :: ierr
+            real(dp) :: h1_czb_dm, h1_czb_mass_old
+            type (star_info), pointer :: s        
+            logical, parameter :: dbg = .false.
+            integer, parameter :: max_DUP_counter = 200
+            include 'formats'
+            
+            ierr = 0
+    call star_ptr(id, s, ierr)
+    if (ierr /= 0) return
+
+            if (s% power_h_burn + s% power_he_burn < 0.5d0*s% power_nuc_burn) then
+               if (dbg .and.  TP_state /= 0) then
+                  write(*,*) 'advanced burning: change to TP_state = 0'
+                  write(*,*)
+               end if
+               TP_state = 0
+            else if (s% he_core_mass > s% co_core_mass + 0.1d0) then
+               if (dbg .and. TP_state /= 0) then
+                  write(*,*) 'not yet: change to TP_state = 0'
+                  write(*,1) 's% he_core_mass', s% he_core_mass
+                  write(*,1) 's% co_core_mass', s% co_core_mass
+                  write(*,1) 'h1 - co_core_mass', s% he_core_mass - s% co_core_mass
+                  write(*,*)
+               end if
+               TP_state = 0
+            else if (TP_state == 0) then ! not in TP                                                                                                                                                                                                                                                                                                                   
+                      if (s% power_he_burn > s% power_h_burn) then ! starting TP                                                                                                                                                                                                                                                                                                 
+                  TP_state = 1
+                  TP_M_H_on = s% h1_czb_mass
+                  TP_M_H_min = s% h1_czb_mass
+                  if (dbg) then
+                     write(*,*) 'change to TP_state = 1'
+                     write(*,1) 'TP_M_H_on',  TP_M_H_on
+                     write(*,*)
+                  end if
+               end if
+            else
+               h1_czb_dm = s% h1_czb_mass*1d-6
+               if (TP_state == 1) then ! early part of TP                                                                                                                                                                                                                                                                                                              
+                  if (s% h1_czb_mass <  TP_M_H_on - h1_czb_dm) then
+                     if (dbg) then
+                        write(*,*) 'change to TP_state = 2'
+                        write(*,1) 's% TP_M_H_on', TP_M_H_on
+                        write(*,1) 'h1_czb_dm', h1_czb_dm
+                        write(*,1) 's% TP_M_H_on - h1_czb_dm',  TP_M_H_on - h1_czb_dm
+                        write(*,1) 'h1_czb_mass', s% h1_czb_mass
+                        write(*,1) '(s% TP_M_H_on - h1_czb_dm) - h1_czb_mass', &
+                           (TP_M_H_on - h1_czb_dm) - s% h1_czb_mass
+                                        write(*,*)
+                     end if
+                                  TP_state = 2
+                                  TP_count = 0
+                     TP_M_H_min = s% h1_czb_mass
+                     have_done_TP = .true.
+                     ! MANOS to replace s% h1_czb_mass_old which does not exist any more in the new MESA version
+                     h1_czb_mass_old = s% h1_czb_mass*Msun
+                  else if (s% power_h_burn > s% power_he_burn) then ! no dredge up                                                                                                                                                                                                                                                                                       
+                     if (dbg) write(*,*) 'change to TP_state = 0: no dredge up this time'
+                     TP_state = 0
+                  end if
+               else if (TP_state == 2) then ! dredge up part of TP                                                                                                                                                                                                                                                                                                     
+                  if (s% h1_czb_mass < TP_M_H_min)  TP_M_H_min = s% h1_czb_mass
+                  ! h1_czb_mass_old = s% h1_czb_mass_old*Msun ! MANOS commented
+                  if (dbg) then
+                     write(*,1) '(h1_czb_mass - h1_czb_mass_old)/Msun', &
+                        (s% h1_czb_mass - h1_czb_mass_old)/Msun
+                     write(*,1) 'h1_czb_dm/Msun', h1_czb_dm/Msun
+                     write(*,*)
+                  end if
+                  if (s% h1_czb_mass > h1_czb_mass_old + h1_czb_dm .or. &
+                        s% power_h_burn > s% power_he_burn) then
+                     TP_count = TP_count + 1
+                     if (dbg) write(*,2) '++ TP_count',  TP_count, &
+                           s% h1_czb_mass - (h1_czb_mass_old + h1_czb_dm), &
+                          s%  h1_czb_mass,  h1_czb_mass_old + h1_czb_dm, &
+                           h1_czb_mass_old, h1_czb_dm
+                  else if (s% h1_czb_mass < h1_czb_mass_old - h1_czb_dm) then
+                     TP_count = max(0, TP_count - 1)
+                     if (dbg) write(*,3) '-- TP_count',  TP_count,  TP_state
+                  end if
+                  if ( TP_count >  max_DUP_counter) then
+                     if (dbg) write(*,*) 'change to TP_state = 0'
+                     TP_state = 0
+                  end if
+               end if
+               if (TP_state == 2) then
+                  !f_below = f_below*s% overshoot_below_noburn_shell_factor
+                  !f0_below = f0_below*s% overshoot_below_noburn_shell_factor
+               end  if
+            end if
+         end subroutine check_TP
 
 end module run_star_extras
