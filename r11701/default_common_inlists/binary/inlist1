@@ -160,7 +160,7 @@
            !it gets replaced in run_star_extras by 'Reimers' for cool low mass stars
       cool_wind_AGB_scheme = 'Blocker' ! cool for low mass stars in AGB
       Dutch_scaling_factor = 1.0d0
-      Dutch_wind_lowT_scheme = 'van Loon'
+      Dutch_wind_lowT_scheme = 'Beasor'
       Blocker_scaling_factor = 0.2d0
       Reimers_scaling_factor = 0.1d0
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr

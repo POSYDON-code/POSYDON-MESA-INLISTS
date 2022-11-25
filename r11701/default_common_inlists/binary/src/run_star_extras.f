@@ -1718,6 +1718,10 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       else if (s% Dutch_wind_lowT_scheme == 'Nieuwenhuijzen') then
          call eval_Nieuwenhuijzen_wind(w)
          if (dbg) write(*,1) 'Dutch_wind = Nieuwenhuijzen', safe_log10_cr(wind), T1, T_low, T_high
+       else if (s% Dutch_wind_lowT_scheme == 'Beasor') then
+          call eval_Beasor_wind(w)
+          if (dbg) write(*,1) 'Dutch_wind = Beasor', safe_log10_cr(wind), T1, T_low, T_high
+
       else
          write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
               trim(s% Dutch_wind_lowT_scheme)
@@ -1761,6 +1765,17 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
     end subroutine eval_van_Loon_wind
+
+
+        subroutine eval_Beasor_wind(w)
+          ! Beasor+2020
+          real(dp), intent(out) :: w
+          real(dp) :: log10w
+          include 'formats'
+          log10w = -26.4d0 + 4.8d0*log10_cr(L1/Lsun) - 0.23d0*(s% initial_mass)  + 0.5d0*log10_cr(Z/Zsolar)
+          w = exp10_cr(log10w)
+        end subroutine eval_Beasor_wind
+
 
 
     subroutine eval_Nieuwenhuijzen_wind(w)
