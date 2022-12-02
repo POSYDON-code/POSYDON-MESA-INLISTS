@@ -109,27 +109,27 @@ contains
     s% overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
+!    s% overshoot_f_above_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
+!    s% overshoot_f_below_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
+!    s% overshoot_f_above_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
+!    s% overshoot_f_below_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
+!    s% overshoot_f_above_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
+!    s% overshoot_f_below_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
+!    s% overshoot_f_above_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
+!    s% overshoot_f_below_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
 
     s% overshoot_f0_above_nonburn_core = 8.0d-3
     s% overshoot_f0_above_burn_h_core  = 8.0d-3
     s% overshoot_f0_above_burn_he_core = 8.0d-3
     s% overshoot_f0_above_burn_z_core  = 8.0d-3
-    s% overshoot_f0_above_nonburn_shell = 8.0d-3
-    s% overshoot_f0_below_nonburn_shell = 8.0d-3
-    s% overshoot_f0_above_burn_h_shell  = 8.0d-3
-    s% overshoot_f0_below_burn_h_shell  = 8.0d-3
-    s% overshoot_f0_above_burn_he_shell = 8.0d-3
-    s% overshoot_f0_below_burn_he_shell = 8.0d-3
-    s% overshoot_f0_below_burn_z_shell  = 8.0d-3
-    s% overshoot_f0_above_burn_z_shell  = 8.0d-3
+!    s% overshoot_f0_above_nonburn_shell = 8.0d-3
+!    s% overshoot_f0_below_nonburn_shell = 8.0d-3
+!    s% overshoot_f0_above_burn_h_shell  = 8.0d-3
+!    s% overshoot_f0_below_burn_h_shell  = 8.0d-3
+!    s% overshoot_f0_above_burn_he_shell = 8.0d-3
+!    s% overshoot_f0_below_burn_he_shell = 8.0d-3
+!    s% overshoot_f0_below_burn_z_shell  = 8.0d-3
+!    s% overshoot_f0_above_burn_z_shell  = 8.0d-3
 
   end function extras_startup
 
