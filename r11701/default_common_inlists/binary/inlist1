@@ -51,7 +51,6 @@
 / ! end of star_job namelist
 
 &controls
-      zams_filename = '/projects/b1119/POSYDON_ZAMS/zams_z1.42m3_y0.2511.data' !POSYDON ZAMS files
       initial_z = 1.42d-3
 
       warn_when_large_rel_run_E_err = 1d99
