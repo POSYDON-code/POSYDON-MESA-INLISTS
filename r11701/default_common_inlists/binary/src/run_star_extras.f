@@ -1414,7 +1414,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     character (len=strlen) :: scheme
     logical :: using_wind_scheme_mdot
     real(dp), parameter :: Zsolar = 0.0142d0 ! for Vink et al formula
-    real(dp) :: current_wind_prscr
 
     logical, parameter :: dbg = .false.
 
@@ -1509,7 +1508,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       character(len=strlen) :: scheme
       real(dp), intent(out) :: wind
       include 'formats'
-      real(dp) :: current_wind_prscr
 
       current_wind_prscr = 0
       wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
@@ -1688,7 +1686,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_highT_Dutch(w)
       real(dp), intent(out) :: w
       include 'formats'
-      real(dp) :: current_wind_prscr
       if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
          w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
@@ -1704,7 +1701,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_lowT_Dutch(w)
       real(dp), intent(out) :: w
       include 'formats'
-      real(dp) :: current_wind_prscr
       if (s% Dutch_wind_lowT_scheme == 'de Jager') then
          call eval_de_Jager_wind(w)
          current_wind_prscr = 3
