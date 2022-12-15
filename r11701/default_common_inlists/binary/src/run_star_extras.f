@@ -211,7 +211,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 26
+    how_many_extra_history_columns = 27
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -254,6 +254,7 @@ contains
     logical :: sticking_to_energy_without_recombination_corr
     real(dp) :: XplusY_CO_core_mass_threshold
     logical :: have_30_value, have_10_value, have_1_value, have_co_value
+    character (len=strlen) :: current_wind_prscr
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -625,6 +626,11 @@ contains
 
 
    deallocate(adjusted_energy)
+
+   names(27) = 'current_wind_prescription'
+   vals(27) = current_wind_prscr
+
+
   end subroutine data_for_extra_history_columns
 
   real(dp) function lambda_CE(s, adjusted_energy, star_core_mass_CE)
@@ -1408,10 +1414,13 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     character (len=strlen) :: scheme
     logical :: using_wind_scheme_mdot
     real(dp), parameter :: Zsolar = 0.0142d0 ! for Vink et al formula
+    character (len=strlen) :: current_wind_prscr
 
     logical, parameter :: dbg = .false.
 
     include 'formats'
+
+
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -1448,9 +1457,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     !massive stars
     if(s% initial_mass >= 10._dp)then
        scheme = s% hot_wind_scheme
+       current_wind_prscr = scheme
        call eval_wind_for_scheme(scheme,wind)
        if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
-
     !low-mass stars
     else
        if(T1 <= s% hot_wind_full_on_T)then
@@ -1458,12 +1467,14 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
           !RGB/TPAGB switch goes here
           if (s% have_done_TP) then
              scheme = s% cool_wind_AGB_scheme
+             current_wind_prscr = scheme
              if (dbg) &
                   write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
                   center_h1, center_he4, s% RGB_to_AGB_wind_switch
 
           else
              scheme= s% cool_wind_RGB_scheme
+             current_wind_prscr = scheme
              if (dbg) write(*,*) 'using cool_wind_RGB_scheme: "' // trim(scheme) // '"'
 
           endif
@@ -1473,6 +1484,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
        if(T1 >= s% cool_wind_full_on_T)then
           !evaluate hot wind
           scheme="Dutch"
+          current_wind_prscr = scheme
           call eval_wind_for_scheme(scheme, hot_wind)
           if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
 
@@ -1570,6 +1582,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
         if ((s% center_h1 < 1.0d-4) ) then  ! postMS
             if ((s% L(1)/Lsun > 6.0d5) .and. &
               (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
+              current_wind_prscr = 'LBV_wind'
               wind  = 1.0d-4
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
             endif
@@ -1673,18 +1686,23 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_highT_Dutch(w)
       real(dp), intent(out) :: w
       include 'formats'
+      character (len=strlen) :: current_wind_prscr
       if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
          w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
+        current_wind_prscr = "Nugis_Lamers"
       else
          call eval_Vink_wind(w)
+         current_wind_prscr = "Vink"
       end if
+
     end subroutine eval_highT_Dutch
 
 
     subroutine eval_lowT_Dutch(w)
       real(dp), intent(out) :: w
       include 'formats'
+      character (len=strlen) :: current_wind_prscr
       if (s% Dutch_wind_lowT_scheme == 'de Jager') then
          call eval_de_Jager_wind(w)
          if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
@@ -1699,6 +1717,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
               trim(s% Dutch_wind_lowT_scheme)
          w = 0d0
       end if
+     current_wind_prscr = s% Dutch_wind_lowT_scheme
     end subroutine eval_lowT_Dutch
 
 
