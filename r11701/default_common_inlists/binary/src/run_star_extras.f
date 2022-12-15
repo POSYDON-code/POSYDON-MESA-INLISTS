@@ -37,6 +37,7 @@ module run_star_extras
   logical :: late_AGB_check = .false.
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
+  real(dp) :: current_wind_prscr = -1d0
 
 contains
 
@@ -254,7 +255,6 @@ contains
     logical :: sticking_to_energy_without_recombination_corr
     real(dp) :: XplusY_CO_core_mass_threshold
     logical :: have_30_value, have_10_value, have_1_value, have_co_value
-    real(dp) :: current_wind_prscr
 
     ierr = 0
     call star_ptr(id, s, ierr)
