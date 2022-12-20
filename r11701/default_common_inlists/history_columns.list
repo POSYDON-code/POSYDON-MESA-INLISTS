@@ -107,7 +107,7 @@
 
       !mix_relr_regions <integer>
 
-      mix_relr_regions 20
+      !mix_relr_regions 20
          ! same as above, but locations given as r/rstar instead of m/mstar.
          ! the columns in the log file will have names like 'mix_relr_type_1' and 'mix_relr_top_1'
 
@@ -151,7 +151,7 @@
          ! if the star has too many regions to report them all,
          ! the smallest regions will be merged with neighbors for reporting purposes only.
 
-
+    burning_regions 20
 
 
    ! conditions at base of largest convection zone (by mass)
