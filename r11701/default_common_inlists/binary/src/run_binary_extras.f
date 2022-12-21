@@ -871,9 +871,6 @@
             return
          end if
          extras_binary_check_model = keep_going
-         
-         
-
        
 
        if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
@@ -889,7 +886,7 @@
           b% do_jdot_ml = .true.
           b% do_jdot_ls = .true.
           b% do_jdot_missing_wind = .true.
-          b% do_j_accretion = .true. !MANOS MAR20
+          b% do_j_accretion = .true.
        end if
 
       end function extras_binary_check_model
@@ -1003,7 +1000,7 @@
             end if
          end if
 
-         ! check for L2 overflow after ZAMS, but before TAMS
+         ! check for L2 overflow after ZAMS, but before TAMS as in Marchant et al. 2016
          if(.not. b% ignore_rlof_flag .and. extras_binary_finish_step /= terminate .and. (b% point_mass_i == 0)) then ! only when we evolve both stars in MS
             if (b% s1% center_h1 > 1d-6 .and. b% s2% center_h1 > 1d-6) then
                if (b% m(1) > b% m(2)) then
