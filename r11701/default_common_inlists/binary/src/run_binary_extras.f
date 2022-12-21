@@ -864,7 +864,6 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	       real(dp) :: r_l2, d_l2
          real(dp) :: q
          integer :: ierr
          call binary_ptr(binary_id, b, ierr)
@@ -872,83 +871,7 @@
             return
          end if
          extras_binary_check_model = keep_going
-
-
-       if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
-          if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
-             i_don = 1
-             i_acc = 2
-               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
-                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp) * exp_cr(-0.052_dp*q) + 1.308_dp)
-                  !Condition to stop when star overflows L2
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
-                     return
-                  end if
-
-               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
-                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 1'
-                     return
-                  end if
-               end if
-          end if
-       end if
-
-       if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
-          if (b% s2% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
-             i_don = 2
-             i_acc = 1
-               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q, 1.05_dp) * exp_cr(-0.188_dp * q) + 1.004_dp)
-                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q,  0.514_dp) * exp_cr(-0.052_dp * q) + 1.308_dp)
-                  !Condition to stop when star overflows L2
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 2'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 2'
-                     return
-                  end if
-
-               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
-                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 2'
-                     return
-                  end if
-               end if
-          end if
-       end if
+       
 
        if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
          .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
@@ -973,6 +896,8 @@
       integer function extras_binary_finish_step(binary_id)
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
+         integer:: i_don, i_acc
+	 real(dp) :: r_l2, d_l2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
@@ -1091,7 +1016,87 @@
                end if
             end if
          end if
+         
+         
+         
+         if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
+          if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+             i_don = 1
+             i_acc = 2
+               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
+                  q = b% m(i_acc) / b% m(i_don)
+                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp) * exp_cr(-0.052_dp*q) + 1.308_dp)
+                  !Condition to stop when star overflows L2
+                  if (b% r(i_don) .ge. (r_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
+                     return
+                  end if
+                  if (b% r(i_don) .ge. (d_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
+                     return
+                  end if
 
+               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
+                  q = b% m(i_acc) / b% m(i_don)
+                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
+                  if (b% r(i_don) .ge. (r_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
+                     return
+                  end if
+                  if (b% r(i_don) .ge. (d_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 1'
+                     return
+                  end if
+               end if
+          end if
+       end if
+
+       if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
+          if (b% s2% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+             i_don = 2
+             i_acc = 1
+               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
+                  q = b% m(i_acc) / b% m(i_don)
+                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q, 1.05_dp) * exp_cr(-0.188_dp * q) + 1.004_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q,  0.514_dp) * exp_cr(-0.052_dp * q) + 1.308_dp)
+                  !Condition to stop when star overflows L2
+                  if (b% r(i_don) .ge. (r_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 2'
+                     return
+                  end if
+                  if (b% r(i_don) .ge. (d_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 2'
+                     return
+                  end if
+
+               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
+                  q = b% m(i_acc) / b% m(i_don)
+                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
+                  if (b% r(i_don) .ge. (r_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
+                     return
+                  end if
+                  if (b% r(i_don) .ge. (d_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 2'
+                     return
+                  end if
+               end if
+          end if
+       end if
+       
+       
+       
          if (extras_binary_finish_step == terminate) then
             !write(*,*) "saving final profilesA"
             !call star_write_profile_info(b% s1% id, "LOGS1/prof_9FINAL.data", b% s1% id, ierr)
