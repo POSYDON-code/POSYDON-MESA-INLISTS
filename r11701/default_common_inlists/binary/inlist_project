@@ -66,5 +66,7 @@
    ! and picks the shortest one.
    sync_type_1 = "structure_dependent"
    sync_type_2 = "structure_dependent"
+   
+   x_logical_ctrl(1) = .false.
 
 / ! end of binary_controls namelist
