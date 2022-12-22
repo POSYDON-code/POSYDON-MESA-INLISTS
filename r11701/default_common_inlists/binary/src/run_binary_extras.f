@@ -65,6 +65,7 @@
           b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
+	  b% other_rlo_mdot => my_rlo_mdot
       end subroutine extras_binary_controls
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
@@ -773,6 +774,293 @@
           mdot_edd = mdot_edd * b% s1% x_ctrl(1)
       end subroutine my_mdot_edd
 
+      subroutine my_rlo_mdot(binary_id, mdot, ierr) ! Adapted from a routine kindly provided by Anastasios Fragkos
+         integer, intent(in) :: binary_id
+         real(dp), intent(out) :: mdot
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         real(dp):: mdot_normal, mdot_reverse
+
+         include 'formats.inc'
+
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+
+         mdot = 0d0
+         mdot_normal = 0d0
+         mdot_reverse = 0d0
+
+
+        if (b% mdot_scheme == "Kolb" .and. b% eccentricity <= 0.0) then
+          call get_info_for_ritter(b)
+          mdot_normal = b% mdot_thin
+          call get_info_for_kolb(b)
+          mdot_normal = mdot_normal + b% mdot_thick
+        else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
+           call get_info_for_ritter_eccentric(b)
+           mdot_normal = b% mdot_thin
+           call get_info_for_kolb_eccentric(b)
+           mdot_normal = mdot_normal + b% mdot_thick
+         end if
+
+         mdot = mdot_normal
+         !write(*,*) 'mdot_normal, from donor i:', mdot_normal, b% d_i
+
+        if (b% point_mass_i == 0) then
+          ! if mdot = 0d0 then ! no RLO from the donor so far.
+          if (b% r(b% d_i) < b% rl(b% d_i)) then   ! Better version
+            ! donor  reversed temporarily
+            if (b% d_i == 2) then
+                b% d_i = 1
+                b% a_i = 2
+                b% s_donor => b% s1
+                b% s_accretor => b% s2
+            else
+                b% d_i = 2
+                b% a_i = 1
+                b% s_donor => b% s2
+                b% s_accretor => b% s1
+            end if
+
+            if (b% mdot_scheme == "Kolb" .and. b% eccentricity <= 0.0) then
+              call get_info_for_ritter(b)
+              mdot_reverse = b% mdot_thin
+              call get_info_for_kolb(b)
+              mdot_reverse = mdot_reverse + b% mdot_thick
+            else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
+               call get_info_for_ritter_eccentric(b)
+               mdot_reverse = b% mdot_thin
+               call get_info_for_kolb_eccentric(b)
+               mdot_reverse = mdot_reverse + b% mdot_thick
+            end if
+
+            !write(*,*) 'mdot_reverse, from donor i:', mdot_reverse, b% d_i
+
+            if  (abs(mdot_reverse) > abs(mdot_normal))    then
+               mdot = mdot_reverse
+            else
+               !     switch donor back to the initial one in the step after the Kolb explicit calculation
+               if (b% d_i == 2) then
+                  b% d_i = 1
+                  b% a_i = 2
+                  b% s_donor => b% s1
+                  b% s_accretor => b% s2
+               else
+                  b% d_i = 2
+                  b% a_i = 1
+                  b% s_donor => b% s2
+                  b% s_accretor => b% s1
+               end if
+             end if
+           !write(*,*) 'final mdot, from donor i:', mdot,  b% d_i
+          end if
+        end if
+
+      end subroutine my_rlo_mdot
+
+      subroutine get_info_for_ritter(b)
+         type(binary_info), pointer :: b
+         real(dp) :: rho_exponent, F1, q, rho, p, grav, hp, v_th, rl3, q_temp
+         include 'formats.inc'
+
+         !--------------------- Optically thin MT rate -----------------------------------------------
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+
+         rho = b% s_donor% rho(1) ! density at surface in g/cm^3
+         p = b% s_donor% p(1) ! pressure at surface in dynes/cm^2
+         grav = b% s_donor% cgrav(1)*b% m(b% d_i)/(b% r(b% d_i))**2 ! local gravitational acceleration
+         hp = p/(grav*rho) ! pressure scale height
+         v_th = sqrt(kerg * b% s_donor% T(1) / (mp * b% s_donor% mu(1)))
+
+         q = b% m(b% a_i)/b% m(b% d_i) ! Mass ratio, as defined in Ritter 1988
+                                       ! (Kolb & Ritter 1990 use the opposite!)
+         ! consider range of validity for F1, do not extrapolate! Eq. A9 of Ritter 1988
+         q_temp = min(max(q,0.5d0),10d0)
+         F1 = (1.23d0  + 0.5D0* log10_cr(q_temp))
+         rl3 = (b% rl(b% d_i))*(b% rl(b% d_i))*(b% rl(b% d_i))
+         b% mdot_thin0 = (2.0D0*pi/exp_cr(0.5d0)) * v_th*v_th*v_th * &
+             rl3/(b% s_donor% cgrav(1)*b% m(b% d_i)) * rho * F1
+         !Once again, do not extrapolate! Eq. (7) of Ritter 1988
+         q_temp = min(max(q,0.04d0),20d0)
+         if (q_temp < 1.0d0) then
+            b% ritter_h = hp/( 0.954D0 + 0.025D0*log10_cr(q_temp) - 0.038D0*(log10_cr(q_temp))**2 )
+         else
+            b% ritter_h = hp/( 0.954D0 + 0.039D0*log10_cr(q_temp) + 0.114D0*(log10_cr(q_temp))**2 )
+         end if
+
+         b% ritter_exponent = (b% r(b% d_i)-b% rl(b% d_i))/b% ritter_h
+
+         if (b% mdot_scheme == "Kolb") then
+            if (b% ritter_exponent > 0) then
+               b% mdot_thin = -b% mdot_thin0
+            else
+               b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
+            end if
+         else
+            b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
+         end if
+
+      end subroutine get_info_for_ritter
+
+      real(dp) function calculate_kolb_mdot_thick(b, indexR, rl_d) result(mdot_thick)
+         real(dp), intent(in) :: rl_d
+         integer, intent(in) :: indexR
+         real(dp) :: F1, F3, G1, dP, q, rho, p, grav, hp, v_th, rl3, q_temp
+         integer :: i
+         type(binary_info), pointer :: b
+         include 'formats.inc'
+
+         !--------------------- Optically thin MT rate -----------------------------------------------
+         ! As described in Kolb and H. Ritter 1990, A&A 236,385-392
+
+         ! compute integral in Eq. (A17 of Kolb & Ritter 1990)
+         mdot_thick = 0d0
+         do i=1,indexR-1
+            G1 = b% s_donor% gamma1(i)
+            F3 = sqrt(G1) * pow_cr(2d0/(G1+1d0), (G1+1d0)/(2d0*G1-2d0))
+            mdot_thick = mdot_thick + F3*sqrt(kerg * b% s_donor% T(i) / &
+               (mp * b% s_donor% mu(i)))*(b% s_donor% P(i+1)-b% s_donor% P(i))
+         end do
+         ! only take a fraction of dP for last cell
+         G1 = b% s_donor% gamma1(i)
+         F3 = sqrt(G1) * pow_cr(2d0/(G1+1d0), (G1+1d0)/(2d0*G1-2d0))
+         dP = (b% s_donor% r(indexR) - rl_d) / &
+            (b% s_donor% r(indexR) - b% s_donor% r(indexR+1)) * (b% s_donor% P(i+1)-b% s_donor% P(i))
+         mdot_thick = mdot_thick + F3*sqrt(kerg * b% s_donor% T(i) / (mp*b% s_donor% mu(i)))*dP
+
+         q = b% m(b% a_i)/b% m(b% d_i) ! Mass ratio, as defined in Ritter 1988
+                                       ! (Kolb & Ritter 1990 use the opposite!)
+         ! consider range of validity for F1, do not extrapolate! Eq. A9 of Ritter 1988
+         q_temp = min(max(q,0.5d0),10d0)
+         F1 = (1.23d0  + 0.5D0* log10_cr(q_temp))
+         mdot_thick = -2.0D0*pi*F1*rl_d*rl_d*rl_d/(b% s_donor% cgrav(1)*b% m(b% d_i))*mdot_thick
+
+      end function calculate_kolb_mdot_thick
+
+      subroutine get_info_for_kolb(b)
+         type(binary_info), pointer :: b
+         real(dp) :: F3, FF, G1, x_L1, q, g
+         real(dp) :: mdot_thick0,  R_gas, dP, rl, s_div_rl
+         integer :: i, indexR
+         include 'formats.inc'
+
+         !--------------------- Optically thick MT rate -----------------------------------------------
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+
+         ! First we need to find how deep inside the star the Roche lobe reaches. In other words the mesh point of the star at which R=R_RL
+         b% mdot_thick = 0d0
+         indexR=-1
+         if(b% r(b% d_i)-b% rl(b% d_i) > 0.0d0) then
+            i=1
+            do while (b% s_donor% r(i) > b% rl(b% d_i))
+               i=i+1
+            end do
+
+            if (i .eq. 1) then
+               b% mdot_thick = 0d0
+            else
+               b% mdot_thick = calculate_kolb_mdot_thick(b, i-1, b% rl(b% d_i))
+            end if
+         end if
+
+      end subroutine get_info_for_kolb
+
+      subroutine get_info_for_ritter_eccentric(b)
+         type(binary_info), pointer :: b
+         integer :: i
+         real(dp) :: rho_exponent, F1, q, q_temp, rho, p, grav, hp, v_th, dm
+         real(dp), DIMENSION(b% anomaly_steps):: mdot0, mdot, Erit, rl_d
+         include 'formats.inc'
+
+         ! Optically thin MT rate adapted for eccentric orbits
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+
+         rho = b% s_donor% rho(1) ! density at surface in g/cm^3
+         p = b% s_donor% p(1) ! pressure at surface in dynes/cm^2
+         grav = b% s_donor% cgrav(1)*b% m(b% d_i)/(b% r(b% d_i))**2 ! local gravitational acceleration
+         hp = p/(grav*rho) ! pressure scale height
+         v_th = sqrt(kerg * b% s_donor% T(1) / (mp * b% s_donor% mu(1))) ! kerg = Boltzmann's constant
+         ! phase dependant RL radius
+         rl_d = b% rl(b% d_i) * (1d0 - b% eccentricity**2) / &
+                (1 + b% eccentricity * cos(b% theta_co) )
+         q = b% m(b% a_i)/b% m(b% d_i) ! Mass ratio, as defined in Ritter 1988
+                                       ! (Kolb & Ritter 1990 use the opposite!)
+         q_temp = min(max(q,0.5d0),10d0)
+         F1 = (1.23d0  + 0.5D0* log10_cr(q_temp))
+         mdot0 = (2.0D0*pi/exp_cr(0.5d0)) * pow3(v_th) * rl_d*rl_d*rl_d / &
+             (b% s_donor% cgrav(1)*b% m(b% d_i)) * rho * F1
+         q_temp = min(max(q,0.04d0),20d0)
+         if (q_temp < 1.0d0) then
+            b% ritter_h = hp/( 0.954D0 + 0.025D0*log10_cr(q_temp) - 0.038D0*(log10_cr(q_temp))**2 )
+         else
+            b% ritter_h = hp/( 0.954D0 + 0.039D0*log10_cr(q_temp) + 0.114D0*(log10_cr(q_temp))**2 )
+         end if
+         Erit = (b% r(b% d_i)- rl_d) / b% ritter_h
+         if (b% mdot_scheme == "Kolb") then
+            do i = 1,b% anomaly_steps
+               if (Erit(i) > 0) then
+                  mdot(i) = -1 * mdot0(i)
+               else
+                  mdot(i) = -1 * mdot0(i) * exp(Erit(i))
+               end if
+            end do
+         else
+            mdot = -1 * mdot0 * exp(Erit)
+         end if
+         b% mdot_donor_theta = mdot
+         !integrate to get total massloss
+         dm = 0d0
+         do i = 2,b% anomaly_steps ! trapezoidal integration
+            dm = dm + 0.5d0 * (mdot(i-1) + mdot(i)) * (b% time_co(i) - b% time_co(i-1))
+         end do
+         b% mdot_thin = dm
+      end subroutine get_info_for_ritter_eccentric
+      subroutine get_info_for_kolb_eccentric(b)
+         type(binary_info), pointer :: b
+         real(dp) :: e, dm
+         integer :: i, j
+         real(dp), DIMENSION(b% anomaly_steps):: rl_d_i, mdot_thick_i
+         include 'formats.inc'
+         ! Optically thick MT rate adapted for eccentric orbits
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+         b% mdot_thick = 0d0
+         e = b% eccentricity
+         ! If the radius of the donor is smaller as the smallest RL radius,
+         ! there is only atmospheric RLOF, thus return.
+         if ( b% r(b% d_i) < b% rl(b% d_i) * (1-e**2)/(1+e) ) then
+            return
+         end if
+         ! phase dependant RL radius
+         rl_d_i = b% rl(b% d_i) * (1d0 - b% eccentricity**2) / &
+                  (1 + b% eccentricity * cos(b% theta_co) )
+         ! For each point in the orbit calculate mdot_thick
+         do i = 1,b% anomaly_steps
+            ! find how deep in the star we are
+            j=1
+            do while (b% s_donor% r(j) > rl_d_i(i))
+               j=j+1
+            end do
+            ! calculate mdot_thick
+            if (j .eq. 1) then
+               mdot_thick_i(i) = 0d0
+            else
+               mdot_thick_i(i) = calculate_kolb_mdot_thick(b, j-1, rl_d_i(i))
+            end if
+         end do
+         b% mdot_donor_theta = b% mdot_donor_theta + mdot_thick_i
+         ! Integrate mdot_thick over the orbit
+         dm = 0d0
+         do i = 2,b% anomaly_steps ! trapezoidal integration
+            dm = dm + 0.5d0 * (mdot_thick_i(i-1) + mdot_thick_i(i)) * &
+                              (b% time_co(i) - b% time_co(i-1))
+         end do
+         b% mdot_thick = dm
+      end subroutine get_info_for_kolb_eccentric
+
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
@@ -1144,6 +1432,17 @@
                end if
                if (ierr /= 0) return ! failure
             end if
+         end if
+	 
+         if (b% s_accretor% x_logical_ctrl(4)) then
+            if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
+	        b% mass_transfer_beta = 1.0d0
+                b% s_accretor% max_wind = 1d-12
+	    end if
+	    if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
+	        b% mass_transfer_beta = 0d0
+	        b% s_accretor% max_wind = 0d0
+	    end if
          end if
 
       end function extras_binary_finish_step
