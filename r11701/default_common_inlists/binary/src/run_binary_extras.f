@@ -1434,16 +1434,18 @@
             end if
          end if
 	 
-         if (b% s_accretor% x_logical_ctrl(4)) then
-            if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
-	        b% mass_transfer_beta = 1.0d0
-                b% s_accretor% max_wind = 1d-12
-	    end if
-	    if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
-	        b% mass_transfer_beta = 0d0
-	        b% s_accretor% max_wind = 0d0
-	    end if
-         end if
+	 if (b% point_mass_i == 0) then
+             if (b% s_accretor% x_logical_ctrl(4)) then
+                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
+	            b% mass_transfer_beta = 1.0d0
+                    b% s_accretor% max_wind = 1d-12
+	        end if
+	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
+	            b% mass_transfer_beta = 0d0
+	            b% s_accretor% max_wind = 0d0
+	        end if
+             end if
+	 end if
 
       end function extras_binary_finish_step
 
