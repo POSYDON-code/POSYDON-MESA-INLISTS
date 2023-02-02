@@ -158,7 +158,7 @@ contains
   function f_ov_fcn_of_mass(m) result(f_ov)
     real(dp), intent(in) :: m
     real(dp) :: f_ov, frac
-    real(dp), parameter :: f1 = 1.6d-2, f2=4.15d-2
+    real(dp), parameter :: f1 = 1.6d-2, f2=1.6d-2
     if(m < 4.0d0) then
        frac = 0.0d0
     elseif(m > 8.0d0) then
@@ -1430,10 +1430,12 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     real(dp) :: max_ejection_mass, alfa, beta, &
          X, Y, Z, Zbase, Zsurf, w1, w2, T_high, T_low, L1, M1, R1, T1, &
          center_h1, center_he4, surface_h1, surface_he4, mdot, &
-         full_off, full_on, cool_wind, hot_wind, divisor
+         full_off, full_on, cool_wind, hot_wind, divisor, Zindex
     character (len=strlen) :: scheme
     logical :: using_wind_scheme_mdot
     real(dp), parameter :: Zsolar = 0.0142d0 ! for Vink et al formula
+
+    Zindex = s% x_ctrl(2)  ! index for Z dependence of RSG "cold" winds
 
     logical, parameter :: dbg = .false.
 
@@ -1721,7 +1723,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
        else if (s% Dutch_wind_lowT_scheme == 'Beasor') then
           call eval_Beasor_wind(w)
           if (dbg) write(*,1) 'Dutch_wind = Beasor', safe_log10_cr(wind), T1, T_low, T_high
-
+      else if (s% Dutch_wind_lowT_scheme == 'Yang') then
+         call eval_Yang_wind(w)
+         if (dbg) write(*,1) 'Dutch_wind = Yang', safe_log10_cr(wind), T1, T_low, T_high
       else
          write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
               trim(s% Dutch_wind_lowT_scheme)
@@ -1733,28 +1737,46 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     subroutine eval_de_Jager_wind(w)
       ! de Jager, C., Nieuwenhuijzen, H., & van der Hucht, K. A. 1988, A&AS, 72, 259.
       real(dp), intent(out) :: w
-      real(dp) :: log10w, logw_highT, logw_lowT, alfa, T_high_ming, T_low_ming
+      real(dp) :: log10w
       include 'formats'
-      !MANOS ASSESS Ming's equation for SMC, only L dependent
-      T_high_ming = 55.0d0
-      T_low_ming = 45.0d0
-      if  (T1 <= T_low_ming) then
-         log10w = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
-             + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91
-      else if (T1 >= T_high_ming) then
-          log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
-      else
-          logw_highT = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + 0.5d0*log10_cr(Z/Zsolar)
-          logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
-             + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91
-          alfa = (T1 - T_low_ming)/(T_high_ming - T_low_ming)
-          log10w = (1-alfa)*logw_lowT + alfa*logw_highT
-      end if
+
+      log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
       if (dbg) then
          write(*,1) 'de_Jager log10 wind', log10w
       end if
     end subroutine eval_de_Jager_wind
+
+    subroutine eval_Yang_wind(w)
+      ! Yang+2022 for SMC, only L dependent
+      real(dp), intent(out) :: w
+      real(dp) :: log10w, logw_highT, logw_lowT, alfa, T_high_yang, T_low_yang, T_transition
+      include 'formats'
+
+      real(dp), parameter :: Z_SMC = 0.3*Zsolar
+
+      ! Temperature of transition from de Jager to Yang+2022 winds (in a range +- 500K if that value)
+      T_transition = s% x_ctrl(1)
+      T_high_yang = T_transition+500d0
+      T_low_yang = T_transition-500d0
+      if  (T1 <= T_low_yang) then
+        log10w = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
+            + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 + Zindex*log10_cr(Z/Z_SMC)
+      else if (T1 >= T_high_yang) then
+          log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
+      else
+          logw_highT = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
+          logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
+             + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 + Zindex*log10_cr(Z/Z_SMC)
+          alfa = (T1 - T_low_ming)/(T_high_ming - T_low_ming)
+          log10w = (1-alfa)*logw_lowT + alfa*logw_highT
+      end if
+
+      w = exp10_cr(log10w)
+      if (dbg) then
+         write(*,1) 'Yang+2023 log10 wind', log10w
+      end if
+    end subroutine eval_Yang_wind
 
 
     subroutine eval_van_Loon_wind(w)
@@ -1762,7 +1784,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + 0.5d0*log10_cr(Z/Zsolar)
+      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + Zindex*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
     end subroutine eval_van_Loon_wind
 
@@ -1772,7 +1794,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
           real(dp), intent(out) :: w
           real(dp) :: log10w
           include 'formats'
-          log10w = -26.4d0 + 4.8d0*log10_cr(L1/Lsun) - 0.23d0*(s% initial_mass)  + 0.5d0*log10_cr(Z/Zsolar)
+          log10w = -26.4d0 + 4.8d0*log10_cr(L1/Lsun) - 0.23d0*(s% initial_mass)  + Zindex*log10_cr(Z/Zsolar)
           w = exp10_cr(log10w)
         end subroutine eval_Beasor_wind
 
@@ -1787,7 +1809,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
            1.24d0*log10_cr(L1/Lsun) + &
            0.16d0*log10_cr(M1/Msun) + &
            0.81d0*log10_cr(R1/Rsun) + &
-           0.5d0*log10_cr(Z/Zsolar)
+           Zindex*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
       if (dbg) then
          write(*,1) 'Nieuwenhuijzen log10 wind', log10w
