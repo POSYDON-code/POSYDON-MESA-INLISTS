@@ -1435,8 +1435,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     logical :: using_wind_scheme_mdot
     real(dp), parameter :: Zsolar = 0.0142d0 ! for Vink et al formula
 
-    Zindex = s% x_ctrl(2)  ! index for Z dependence of RSG "cold" winds
-
     logical, parameter :: dbg = .false.
 
     include 'formats'
@@ -1446,6 +1444,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     if(ierr/=0) return
 
     Zbase = s% Zbase
+    Zindex = s% x_ctrl(2)  ! index for Z dependence of RSG "cold" winds
+
 
     L1 = L_phot
     M1 = M_phot
@@ -1768,7 +1768,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
           logw_highT = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
           logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
              + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 + Zindex*log10_cr(Z/Z_SMC)
-          alfa = (T1 - T_low_ming)/(T_high_ming - T_low_ming)
+          alfa = (T1 - T_low_yang)/(T_high_yang - T_low_yang)
           log10w = (1-alfa)*logw_lowT + alfa*logw_highT
       end if
 
