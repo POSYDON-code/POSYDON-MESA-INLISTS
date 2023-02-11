@@ -158,7 +158,7 @@ contains
   function f_ov_fcn_of_mass(m) result(f_ov)
     real(dp), intent(in) :: m
     real(dp) :: f_ov, frac
-    real(dp), parameter :: f1 = 1.6d-2, f2=1.6d-2 ! 4.15d-2
+    real(dp), parameter :: f1 = 1.6d-2, f2=4.15d-2
     if(m < 4.0d0) then
        frac = 0.0d0
     elseif(m > 8.0d0) then
