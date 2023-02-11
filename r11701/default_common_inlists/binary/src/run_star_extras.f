@@ -1726,6 +1726,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       else if (s% Dutch_wind_lowT_scheme == 'Yang') then
          call eval_Yang_wind(w)
          if (dbg) write(*,1) 'Dutch_wind = Yang', safe_log10_cr(wind), T1, T_low, T_high
+       else if (s% Dutch_wind_lowT_scheme == 'Kee') then
+          call eval_Kee_wind(w)
+          if (dbg) write(*,1) 'Dutch_wind = Kee', safe_log10_cr(wind), T1, T_low, T_high
       else
          write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
               trim(s% Dutch_wind_lowT_scheme)
@@ -1778,6 +1781,32 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       end if
     end subroutine eval_Yang_wind
 
+    subroutine eval_Kee_wind(w)
+      ! Kee+2021 turbulent wind
+      ! metallicity independent
+      real(dp), intent(out) :: w
+      real(dp) :: Gamma_Edd, c_s, v_turb_cgs, R_park, rho_Rpark, rho_Rpark, &
+              Mdot_analyt, v_esc_kms, numerical_non_isothermal_factor
+      include 'formats'
+      real(dp), parameter :: kappa = 0.01 ! flux weighted mean opacity in cgs
+      real(dp), parameter :: v_turb = 18.2 ! in km/s
+
+      ! R = sqrt(L1/(4.0d0*pi*boltz_sigma*pow_cr(T1,4.0d0))
+      Gamma_Edd =  kappa*L1/(4.0d0*pi*standard_cgrav*M1*clight) ! in cgs
+      c_s =  sqrt(kerg*T1/mp) ! from Kee+2021
+      v_turb_cgs = v_turb * 10.0d5. !  in cgs
+      R_park = standard_cgrav*M1*(1.0d0-Gamma_Edd) / (2.0d0*(pow2(c_s) + pow2(v_turb_cgs))) ! eq. 5
+      rho_Rpark = 4.0d0/3.0d0  * R_park/(kappa*pow2(R1)) * &
+                exp_cr(-2.0d0*R_park/R1 + 3.d0/2.0d0) / (1.0d0-exp_cr(-2.0d0*R_park/R1)) ! eq. 14
+      Mdot_analyt = 4.0d0*pi*rho_Rpark * sqrt(pow2(c_s) + pow2(v_turb_cgs)) *  pow2(R_park) ! eq. 13
+      v_esc_kms = sqrt(2.0d0*standard_cgrav*M1/R1) / 1.0d5 ! in Km/s
+      numerical_non_isothermal_factor = pow_cr(((v_turb / 17.0d0)/ (v_esc_kms/60.0d0)),1.3d0) ! eq.25, velocities in Km/s
+      w = numerical_non_isothermal_factor * Mdot_analyt / (msol/secyer) ! metallicity independent
+
+      if (dbg) then
+         write(*,1) 'Kee+2021 log10 wind', log10w
+      end if
+    end subroutine eval_Kee_wind
 
     subroutine eval_van_Loon_wind(w)
       ! van Loon et al. 2005, A&A, 438, 273
