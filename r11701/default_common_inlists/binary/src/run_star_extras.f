@@ -1785,17 +1785,17 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       ! Kee+2021 turbulent wind
       ! metallicity independent
       real(dp), intent(out) :: w
-      real(dp) :: Gamma_Edd, c_s, v_turb_cgs, R_park, rho_Rpark, rho_Rpark, &
+      real(dp) :: gamma_edd, c_s, v_turb_cgs, R_park, rho_Rpark, &
               Mdot_analyt, v_esc_kms, numerical_non_isothermal_factor
       include 'formats'
       real(dp), parameter :: kappa = 0.01 ! flux weighted mean opacity in cgs
       real(dp), parameter :: v_turb = 18.2 ! in km/s
 
       ! R = sqrt(L1/(4.0d0*pi*boltz_sigma*pow_cr(T1,4.0d0))
-      Gamma_Edd =  kappa*L1/(4.0d0*pi*standard_cgrav*M1*clight) ! in cgs
+      gamma_edd =  kappa*L1/(4.0d0*pi*standard_cgrav*M1*clight) ! in cgs
       c_s =  sqrt(kerg*T1/mp) ! from Kee+2021
-      v_turb_cgs = v_turb * 10.0d5. !  in cgs
-      R_park = standard_cgrav*M1*(1.0d0-Gamma_Edd) / (2.0d0*(pow2(c_s) + pow2(v_turb_cgs))) ! eq. 5
+      v_turb_cgs = v_turb * 10.0d5 !  in cgs
+      R_park = standard_cgrav*M1*(1.0d0-gamma_edd) / (2.0d0*(pow2(c_s) + pow2(v_turb_cgs))) ! eq. 5
       rho_Rpark = 4.0d0/3.0d0  * R_park/(kappa*pow2(R1)) * &
                 exp_cr(-2.0d0*R_park/R1 + 3.d0/2.0d0) / (1.0d0-exp_cr(-2.0d0*R_park/R1)) ! eq. 14
       Mdot_analyt = 4.0d0*pi*rho_Rpark * sqrt(pow2(c_s) + pow2(v_turb_cgs)) *  pow2(R_park) ! eq. 13
@@ -1804,7 +1804,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       w = numerical_non_isothermal_factor * Mdot_analyt / (msol/secyer) ! metallicity independent
 
       if (dbg) then
-         write(*,1) 'Kee+2021 log10 wind', log10w
+         write(*,1) 'Kee+2021 log10 wind', log10_cr(w)
       end if
     end subroutine eval_Kee_wind
 
