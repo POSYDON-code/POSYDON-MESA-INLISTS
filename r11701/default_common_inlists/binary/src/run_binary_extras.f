@@ -109,6 +109,7 @@
          end if
 
          write(*,*) "TURNING ON CE"
+         
 
          b% s_donor% mix_factor = 0d0
          b% s_donor% dxdt_nuc_factor = 0d0
@@ -132,6 +133,8 @@
             s => b% s_donor
 
             write(*,*) "Initiating common envelope phase"
+            call star_write_profile_info(b% s1%id,"LOGS1/prof_startCE.data", b% s1% id,ierr)
+
 
             allocate(b% CE_m(s% nz), b% CE_entropy(4*s% nz), stat=ierr)
             if(ierr /= 0) then
