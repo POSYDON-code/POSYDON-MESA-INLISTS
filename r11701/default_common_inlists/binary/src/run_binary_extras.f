@@ -65,8 +65,7 @@
          b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
          b% other_tsync => my_tsync
          b% other_mdot_edd => my_mdot_edd
-	      b% other_rlo_mdot => my_rlo_mdot
-
+         b% other_rlo_mdot => my_rlo_mdot
          b% other_jdot_mb => mb_torque_selector
 
       end subroutine extras_binary_controls
