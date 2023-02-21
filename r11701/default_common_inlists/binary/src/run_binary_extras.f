@@ -1064,6 +1064,7 @@
          b% mdot_thick = dm
       end subroutine get_info_for_kolb_eccentric
 
+<<<<<<< HEAD
 
       ! This subroutine determines which torque prescription to use for magnetic braking
       ! To use custom magnetic braking prescriptions, need at least these options...
@@ -1708,6 +1709,8 @@
 
       end subroutine calc_tau_convective
 
+=======
+>>>>>>> 9fca4599683fd214a7ac9d21e79f5ce2c0d74396
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
