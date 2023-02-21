@@ -1513,9 +1513,11 @@
          end if
 
          !check if mass transfer rate reached maximun, assume unstable regime if it happens
-          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
-            extras_binary_finish_step = terminate
-            write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
+          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then       ! continue to CE     
+            write(*,'(g0)') "reached unstable regime maximum mass transfer, CE begins..." ! taken care of in inlist max_implicit_abs_mdot
+
+            ! extras_binary_finish_step = terminate                    !stop when larger than 0.1 Msun/yr
+            ! write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
          end if
 
          ! check trapping radius only for runs with a compact object
@@ -1527,9 +1529,13 @@
 
            !check if mass transfer rate reached maximun, assume unstable regime if it happens
             if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
+            write(*,'(g0)') "reached unstable regime trapping radius, CE begins..."
+            %b CE_flag = .true.
+
+
             !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
-              extras_binary_finish_step = terminate
-              write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
+              !extras_binary_finish_step = terminate
+              !write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
             end if
           end if
 
@@ -1610,13 +1616,21 @@
                   d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp) * exp_cr(-0.052_dp*q) + 1.308_dp)
                   !Condition to stop when star overflows L2
                   if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
+                     !extras_binary_finish_step = terminate
+                     !write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
+
+                     write(*,'(g0)') "reached unstable regime L2 overflow, CE begins..."
+                     %b CE_flag = .true.
+
                      return
                   end if
                   if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
+                     !extras_binary_finish_step = terminate
+                     !write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
+                     
+                     write(*,'(g0)') "reached unstable regime L2 overflow, CE begins..."
+                     %b CE_flag = .true.
+
                      return
                   end if
 
@@ -1626,7 +1640,7 @@
                   d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'                    
                      return
                   end if
                   if (b% r(i_don) .ge. (d_l2)) then
