@@ -65,6 +65,10 @@
           b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
+	       b% other_rlo_mdot => my_rlo_mdot
+
+          b% other_jdot_mb => mb_torque_selector
+
       end subroutine extras_binary_controls
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
@@ -773,6 +777,937 @@
           mdot_edd = mdot_edd * b% s1% x_ctrl(1)
       end subroutine my_mdot_edd
 
+      subroutine my_rlo_mdot(binary_id, mdot, ierr) ! Adapted from a routine kindly provided by Anastasios Fragkos
+         integer, intent(in) :: binary_id
+         real(dp), intent(out) :: mdot
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         real(dp):: mdot_normal, mdot_reverse
+
+         include 'formats.inc'
+
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+
+         mdot = 0d0
+         mdot_normal = 0d0
+         mdot_reverse = 0d0
+
+
+        if (b% mdot_scheme == "Kolb" .and. b% eccentricity <= 0.0) then
+          call get_info_for_ritter(b)
+          mdot_normal = b% mdot_thin
+          call get_info_for_kolb(b)
+          mdot_normal = mdot_normal + b% mdot_thick
+        else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
+           call get_info_for_ritter_eccentric(b)
+           mdot_normal = b% mdot_thin
+           call get_info_for_kolb_eccentric(b)
+           mdot_normal = mdot_normal + b% mdot_thick
+         end if
+
+         mdot = mdot_normal
+         !write(*,*) 'mdot_normal, from donor i:', mdot_normal, b% d_i
+
+        if (b% point_mass_i == 0) then
+          ! if mdot = 0d0 then ! no RLO from the donor so far.
+          if (b% r(b% d_i) < b% rl(b% d_i)) then   ! Better version
+            ! donor  reversed temporarily
+            if (b% d_i == 2) then
+                b% d_i = 1
+                b% a_i = 2
+                b% s_donor => b% s1
+                b% s_accretor => b% s2
+            else
+                b% d_i = 2
+                b% a_i = 1
+                b% s_donor => b% s2
+                b% s_accretor => b% s1
+            end if
+
+            if (b% mdot_scheme == "Kolb" .and. b% eccentricity <= 0.0) then
+              call get_info_for_ritter(b)
+              mdot_reverse = b% mdot_thin
+              call get_info_for_kolb(b)
+              mdot_reverse = mdot_reverse + b% mdot_thick
+            else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
+               call get_info_for_ritter_eccentric(b)
+               mdot_reverse = b% mdot_thin
+               call get_info_for_kolb_eccentric(b)
+               mdot_reverse = mdot_reverse + b% mdot_thick
+            end if
+
+            !write(*,*) 'mdot_reverse, from donor i:', mdot_reverse, b% d_i
+
+            if  (abs(mdot_reverse) > abs(mdot_normal))    then
+               mdot = mdot_reverse
+            else
+               !     switch donor back to the initial one in the step after the Kolb explicit calculation
+               if (b% d_i == 2) then
+                  b% d_i = 1
+                  b% a_i = 2
+                  b% s_donor => b% s1
+                  b% s_accretor => b% s2
+               else
+                  b% d_i = 2
+                  b% a_i = 1
+                  b% s_donor => b% s2
+                  b% s_accretor => b% s1
+               end if
+             end if
+           !write(*,*) 'final mdot, from donor i:', mdot,  b% d_i
+          end if
+        end if
+
+      end subroutine my_rlo_mdot
+
+      subroutine get_info_for_ritter(b)
+         type(binary_info), pointer :: b
+         real(dp) :: rho_exponent, F1, q, rho, p, grav, hp, v_th, rl3, q_temp
+         include 'formats.inc'
+
+         !--------------------- Optically thin MT rate -----------------------------------------------
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+
+         rho = b% s_donor% rho(1) ! density at surface in g/cm^3
+         p = b% s_donor% p(1) ! pressure at surface in dynes/cm^2
+         grav = b% s_donor% cgrav(1)*b% m(b% d_i)/(b% r(b% d_i))**2 ! local gravitational acceleration
+         hp = p/(grav*rho) ! pressure scale height
+         v_th = sqrt(kerg * b% s_donor% T(1) / (mp * b% s_donor% mu(1)))
+
+         q = b% m(b% a_i)/b% m(b% d_i) ! Mass ratio, as defined in Ritter 1988
+                                       ! (Kolb & Ritter 1990 use the opposite!)
+         ! consider range of validity for F1, do not extrapolate! Eq. A9 of Ritter 1988
+         q_temp = min(max(q,0.5d0),10d0)
+         F1 = (1.23d0  + 0.5D0* log10_cr(q_temp))
+         rl3 = (b% rl(b% d_i))*(b% rl(b% d_i))*(b% rl(b% d_i))
+         b% mdot_thin0 = (2.0D0*pi/exp_cr(0.5d0)) * v_th*v_th*v_th * &
+             rl3/(b% s_donor% cgrav(1)*b% m(b% d_i)) * rho * F1
+         !Once again, do not extrapolate! Eq. (7) of Ritter 1988
+         q_temp = min(max(q,0.04d0),20d0)
+         if (q_temp < 1.0d0) then
+            b% ritter_h = hp/( 0.954D0 + 0.025D0*log10_cr(q_temp) - 0.038D0*(log10_cr(q_temp))**2 )
+         else
+            b% ritter_h = hp/( 0.954D0 + 0.039D0*log10_cr(q_temp) + 0.114D0*(log10_cr(q_temp))**2 )
+         end if
+
+         b% ritter_exponent = (b% r(b% d_i)-b% rl(b% d_i))/b% ritter_h
+
+         if (b% mdot_scheme == "Kolb") then
+            if (b% ritter_exponent > 0) then
+               b% mdot_thin = -b% mdot_thin0
+            else
+               b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
+            end if
+         else
+            b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
+         end if
+
+      end subroutine get_info_for_ritter
+
+      real(dp) function calculate_kolb_mdot_thick(b, indexR, rl_d) result(mdot_thick)
+         real(dp), intent(in) :: rl_d
+         integer, intent(in) :: indexR
+         real(dp) :: F1, F3, G1, dP, q, rho, p, grav, hp, v_th, rl3, q_temp
+         integer :: i
+         type(binary_info), pointer :: b
+         include 'formats.inc'
+
+         !--------------------- Optically thin MT rate -----------------------------------------------
+         ! As described in Kolb and H. Ritter 1990, A&A 236,385-392
+
+         ! compute integral in Eq. (A17 of Kolb & Ritter 1990)
+         mdot_thick = 0d0
+         do i=1,indexR-1
+            G1 = b% s_donor% gamma1(i)
+            F3 = sqrt(G1) * pow_cr(2d0/(G1+1d0), (G1+1d0)/(2d0*G1-2d0))
+            mdot_thick = mdot_thick + F3*sqrt(kerg * b% s_donor% T(i) / &
+               (mp * b% s_donor% mu(i)))*(b% s_donor% P(i+1)-b% s_donor% P(i))
+         end do
+         ! only take a fraction of dP for last cell
+         G1 = b% s_donor% gamma1(i)
+         F3 = sqrt(G1) * pow_cr(2d0/(G1+1d0), (G1+1d0)/(2d0*G1-2d0))
+         dP = (b% s_donor% r(indexR) - rl_d) / &
+            (b% s_donor% r(indexR) - b% s_donor% r(indexR+1)) * (b% s_donor% P(i+1)-b% s_donor% P(i))
+         mdot_thick = mdot_thick + F3*sqrt(kerg * b% s_donor% T(i) / (mp*b% s_donor% mu(i)))*dP
+
+         q = b% m(b% a_i)/b% m(b% d_i) ! Mass ratio, as defined in Ritter 1988
+                                       ! (Kolb & Ritter 1990 use the opposite!)
+         ! consider range of validity for F1, do not extrapolate! Eq. A9 of Ritter 1988
+         q_temp = min(max(q,0.5d0),10d0)
+         F1 = (1.23d0  + 0.5D0* log10_cr(q_temp))
+         mdot_thick = -2.0D0*pi*F1*rl_d*rl_d*rl_d/(b% s_donor% cgrav(1)*b% m(b% d_i))*mdot_thick
+
+      end function calculate_kolb_mdot_thick
+
+      subroutine get_info_for_kolb(b)
+         type(binary_info), pointer :: b
+         real(dp) :: F3, FF, G1, x_L1, q, g
+         real(dp) :: mdot_thick0,  R_gas, dP, rl, s_div_rl
+         integer :: i, indexR
+         include 'formats.inc'
+
+         !--------------------- Optically thick MT rate -----------------------------------------------
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+
+         ! First we need to find how deep inside the star the Roche lobe reaches. In other words the mesh point of the star at which R=R_RL
+         b% mdot_thick = 0d0
+         indexR=-1
+         if(b% r(b% d_i)-b% rl(b% d_i) > 0.0d0) then
+            i=1
+            do while (b% s_donor% r(i) > b% rl(b% d_i))
+               i=i+1
+            end do
+
+            if (i .eq. 1) then
+               b% mdot_thick = 0d0
+            else
+               b% mdot_thick = calculate_kolb_mdot_thick(b, i-1, b% rl(b% d_i))
+            end if
+         end if
+
+      end subroutine get_info_for_kolb
+
+      subroutine get_info_for_ritter_eccentric(b)
+         type(binary_info), pointer :: b
+         integer :: i
+         real(dp) :: rho_exponent, F1, q, q_temp, rho, p, grav, hp, v_th, dm
+         real(dp), DIMENSION(b% anomaly_steps):: mdot0, mdot, Erit, rl_d
+         include 'formats.inc'
+
+         ! Optically thin MT rate adapted for eccentric orbits
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+
+         rho = b% s_donor% rho(1) ! density at surface in g/cm^3
+         p = b% s_donor% p(1) ! pressure at surface in dynes/cm^2
+         grav = b% s_donor% cgrav(1)*b% m(b% d_i)/(b% r(b% d_i))**2 ! local gravitational acceleration
+         hp = p/(grav*rho) ! pressure scale height
+         v_th = sqrt(kerg * b% s_donor% T(1) / (mp * b% s_donor% mu(1))) ! kerg = Boltzmann's constant
+         ! phase dependant RL radius
+         rl_d = b% rl(b% d_i) * (1d0 - b% eccentricity**2) / &
+                (1 + b% eccentricity * cos(b% theta_co) )
+         q = b% m(b% a_i)/b% m(b% d_i) ! Mass ratio, as defined in Ritter 1988
+                                       ! (Kolb & Ritter 1990 use the opposite!)
+         q_temp = min(max(q,0.5d0),10d0)
+         F1 = (1.23d0  + 0.5D0* log10_cr(q_temp))
+         mdot0 = (2.0D0*pi/exp_cr(0.5d0)) * pow3(v_th) * rl_d*rl_d*rl_d / &
+             (b% s_donor% cgrav(1)*b% m(b% d_i)) * rho * F1
+         q_temp = min(max(q,0.04d0),20d0)
+         if (q_temp < 1.0d0) then
+            b% ritter_h = hp/( 0.954D0 + 0.025D0*log10_cr(q_temp) - 0.038D0*(log10_cr(q_temp))**2 )
+         else
+            b% ritter_h = hp/( 0.954D0 + 0.039D0*log10_cr(q_temp) + 0.114D0*(log10_cr(q_temp))**2 )
+         end if
+         Erit = (b% r(b% d_i)- rl_d) / b% ritter_h
+         if (b% mdot_scheme == "Kolb") then
+            do i = 1,b% anomaly_steps
+               if (Erit(i) > 0) then
+                  mdot(i) = -1 * mdot0(i)
+               else
+                  mdot(i) = -1 * mdot0(i) * exp(Erit(i))
+               end if
+            end do
+         else
+            mdot = -1 * mdot0 * exp(Erit)
+         end if
+         b% mdot_donor_theta = mdot
+         !integrate to get total massloss
+         dm = 0d0
+         do i = 2,b% anomaly_steps ! trapezoidal integration
+            dm = dm + 0.5d0 * (mdot(i-1) + mdot(i)) * (b% time_co(i) - b% time_co(i-1))
+         end do
+         b% mdot_thin = dm
+      end subroutine get_info_for_ritter_eccentric
+      subroutine get_info_for_kolb_eccentric(b)
+         type(binary_info), pointer :: b
+         real(dp) :: e, dm
+         integer :: i, j
+         real(dp), DIMENSION(b% anomaly_steps):: rl_d_i, mdot_thick_i
+         include 'formats.inc'
+         ! Optically thick MT rate adapted for eccentric orbits
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+         b% mdot_thick = 0d0
+         e = b% eccentricity
+         ! If the radius of the donor is smaller as the smallest RL radius,
+         ! there is only atmospheric RLOF, thus return.
+         if ( b% r(b% d_i) < b% rl(b% d_i) * (1-e**2)/(1+e) ) then
+            return
+         end if
+         ! phase dependant RL radius
+         rl_d_i = b% rl(b% d_i) * (1d0 - b% eccentricity**2) / &
+                  (1 + b% eccentricity * cos(b% theta_co) )
+         ! For each point in the orbit calculate mdot_thick
+         do i = 1,b% anomaly_steps
+            ! find how deep in the star we are
+            j=1
+            do while (b% s_donor% r(j) > rl_d_i(i))
+               j=j+1
+            end do
+            ! calculate mdot_thick
+            if (j .eq. 1) then
+               mdot_thick_i(i) = 0d0
+            else
+               mdot_thick_i(i) = calculate_kolb_mdot_thick(b, j-1, rl_d_i(i))
+            end if
+         end do
+         b% mdot_donor_theta = b% mdot_donor_theta + mdot_thick_i
+         ! Integrate mdot_thick over the orbit
+         dm = 0d0
+         do i = 2,b% anomaly_steps ! trapezoidal integration
+            dm = dm + 0.5d0 * (mdot_thick_i(i-1) + mdot_thick_i(i)) * &
+                              (b% time_co(i) - b% time_co(i-1))
+         end do
+         b% mdot_thick = dm
+      end subroutine get_info_for_kolb_eccentric
+
+
+      ! This subroutine determines which torque prescription to use for magnetic braking
+      ! To use custom magnetic braking prescriptions, need at least these options...
+      ! >> In inlist_project:
+      !      do_jdot_mb = .true.
+      !      use_other_jdot_mb = .true.
+      !
+      ! >> In inlist1:
+      !      x_ctrl(3) = <<MB option>>
+      !
+      ! Replace <<MB option>> to select a prescription:
+      !    <<MB option>> = 1 (Garraffo et al. 2018)
+      !    <<MB option>> = 2 (Matt et al. 2015)
+      !    <<MB option>> = 3 (Van & Ivanova 2019 -- CARB)
+
+      subroutine mb_torque_selector(binary_id, ierr)
+         use star_lib, only: star_ptr
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         real(dp) :: dJdt
+ 
+         ierr = 0
+         ! call star_ptr(id, s, ierr)
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+           write(*,*) 'failed in binary_ptr'
+          return
+         end if
+ 
+         b% jdot_mb = 0d0
+         dJdt = 0d0
+ 
+         ! turn on Garraffo+ 2018 style braking?
+         if (b% s1% x_ctrl(3) == 1) then
+           if (b% model_number == 0) then
+             write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+             write(*,*) 'Garraffo+ 2016/18 torque enabled (star 1)', b% d_i
+             write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+           end if
+           call garraffo_torque(binary_id, b% s_donor, dJdt, ierr)
+           if (b% do_tidal_sync) then
+             b% jdot_mb = b% jdot_mb + dJdt
+           end if
+ 
+           ! check if braking should be applied from the accretor as well
+           if ((b% point_mass_i == 0) .and. (b% include_accretor_mb)) then
+               if (b% model_number == 0) then
+                 write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+                 write(*,*) 'Garraffo+ 2016/18 torque enabled (star 2)', b% a_i
+                 write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+               end if
+               call garraffo_torque(binary_id, b% s_accretor, dJdt, ierr)
+               if (b% do_tidal_sync) then
+                 b% jdot_mb = b% jdot_mb + dJdt
+               end if
+           end if
+ 
+         ! turn on Matt+ 2015 style braking?
+         else if (b% s1% x_ctrl(3) == 2) then
+           if (b% model_number == 0) then
+             write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+             write(*,*) 'Matt+ 2015 torque enabled (star 1)'
+             write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+           end if
+           call matt_torque(binary_id, b% s_donor, dJdt, ierr)
+           if (b% do_tidal_sync) then
+             b% jdot_mb = b% jdot_mb + dJdt
+           end if
+ 
+           if ((b% point_mass_i == 0) .and. (b% include_accretor_mb)) then
+             if (b% model_number == 0) then
+               write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+               write(*,*) 'Matt+ 2015 torque enabled (star 2)'
+               write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+             end if
+             call matt_torque(binary_id, b% s_accretor, dJdt, ierr)
+             if (b% do_tidal_sync) then
+               b% jdot_mb = b% jdot_mb + dJdt
+             end if
+           end if
+         
+         ! turn on Van & Ivanova 2019 (CARB) style braking?
+         else if (b% s1% x_ctrl(3) == 3) then
+           if (b% model_number == 0) then
+             write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+             write(*,*) 'Van & Ivanova 2019 (CARB) torque enabled (star 1)'
+             write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+           end if
+           call carb_torque(binary_id, b% s_donor, dJdt, ierr)
+           if (b% do_tidal_sync) then
+             b% jdot_mb = b% jdot_mb + dJdt
+           end if
+ 
+           if ((b% point_mass_i == 0) .and. (b% include_accretor_mb)) then
+             if (b% model_number == 0) then
+               write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+               write(*,*) 'Van & Ivanova 2019 (CARB) torque enabled (star 2)'
+               write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+             end if
+             call carb_torque(binary_id, b% s_accretor, dJdt, ierr)
+             if (b% do_tidal_sync) then
+               b% jdot_mb = b% jdot_mb + dJdt
+             end if
+           end if
+ 
+         end if
+ 
+      end subroutine mb_torque_selector
+
+      ! Matt et al. (2015), ApJ, 799, L23 magnetic braking prescription
+      subroutine matt_torque(binary_id, s, dJdt, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         type (star_info), pointer :: s
+         integer :: j, k, mix_reg_extent, mix_reg_bot_k, mix_reg_top_k, &
+                 nz, n_conv_bdy, i, k_ocz_bot, k_ocz_top
+ 
+         real(dp) :: Prot, Ro, Rosol, Rosat, K_const, m, p, u, gamma, dJdt, &
+                     tau_convective, mixing_length_at_bcz, MOI, Om, rsol, &
+                     msol, omega_sol, tau_cz_sol, chi, T0, t_spindown
+ 
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+           write(*,*) 'failed in binary_ptr'
+          return
+         end if
+ 
+         ! number of convective regions; corresponds to outer CZ as an index
+         i = s% n_conv_regions
+ 
+         Prot = 0d0
+         Ro = 0d0
+         dJdt = 0d0
+         s% extra_omegadot(:) = 0d0
+ 
+         if ((s% n_conv_regions > 0)) then 
+           if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
+               ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11) .and. &
+               (s% star_age > s% x_ctrl(2))) then
+  
+             call calc_tau_convective(binary_id, s, tau_convective, ierr)  
+ 
+             MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
+             Om = s% omega_avg_surf !s% total_angular_momentum / MOI
+             ! surface rotation period
+             Prot = 2d0 * pi / Om
+ 
+             ! rossby number
+             Ro = Prot / tau_convective
+             Rosol = 2d0 ! Amard+ 2019
+             Rosat = 0.14d0 ! Amard+ 2019
+             K_const = 1.4e30 
+             m = 0.22d0
+             p = 2.6d0
+             tau_cz_sol = 12.9d0*86400d0 ! 12.9 days Matt+ 2015 [sec]
+             omega_sol = 2.6d-6 !2.6E-6 s^-1 solar solid body ang. rot. rate from measured Prot of Sun...
+             u = s% v_div_v_crit_avg_surf 
+             msol = 1.99d33 ! g
+             rsol = 6.96d10 ! cm
+             chi = Rosol / Rosat
+ 
+             gamma = pow_cr(1.0+powi_cr(u / 0.072, 2), 0.5d0)
+             T0 = K_const * pow_cr(pow_cr(10d0, s% log_surface_radius), 3.1d0) * &
+                  pow_cr(s% star_mass, 0.5d0) * pow_cr(gamma, -2.0d0 * m)
+ 
+             ! saturated regime
+             if (Ro .lt. Rosat) then
+               dJdt = T0 * pow_cr(chi, p) * (Om / omega_sol)
+             ! unsaturated regime
+             else
+               dJdt = T0 * pow_cr(tau_convective/tau_cz_sol, p) * &
+                           pow_cr(Om / omega_sol, p + 1.0d0)
+             end if
+ 
+             ! angular momentum change per second.
+             dJdt = max(0.0d0, dJdt)
+             dJdt = -dJdt
+ 
+             ! Check if spindown timescale is shorter than timestep. Print a warning in case.
+             ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+             t_spindown = abs(s% total_angular_momentum / dJdt) ! Estimate spindown timescale
+ 
+ 
+             if (b% do_tidal_sync) then
+               !b% jdot_mb = -dJdt
+               return
+             else
+               do k = s% nz, 1, -1
+                 ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+                 if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
+                   ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+                   s% extra_omegadot(k) = - s% omega(k) / s% dt
+                 else
+                   ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+                   s% extra_omegadot(k) = dJdt / MOI 
+                 end if
+               end do
+             end if
+             
+           else
+             t_spindown = 100 * s% dt ! To avoid decreasing the timestep in extras_finish_step
+           end if
+ 
+         else
+           t_spindown = 100 * s% dt ! To avoid decreasing the timestep in extras_finish_step
+         end if
+ 
+      end subroutine matt_torque
+
+      ! As implemented in Van & Ivanova 2019 (CARB magnetic braking), ApJ, 886, L31
+      ! from files hosted on Zenodo: https://zenodo.org/record/3647683#.Y_TfedLMKUk
+      ! Slightly modified to avoid INF values.
+      subroutine carb_torque(binary_id, s, jdot_mb_new, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         integer :: k, nz
+         type (binary_info), pointer :: b
+         type (star_info), pointer :: s
+         real(dp) :: turnover_time, tt_temp, tt_temp_scaled, tt_old, tt_diff
+         real(dp) :: vel, vel_ratio, vel_diff, upper_lim, lower_lim, scaled_vel
+         real(dp) :: eps_nuc_lim, eps_nuc
+         real(dp) :: dr, tau_lim, delta_mag_chk
+         real(dp) :: rsun4, two_pi_div_p3, two_pi_div_p2, K2
+         real(dp) :: tt_ratio, tt4
+         real(dp) :: rot_ratio, rot4
+         real(dp) :: rad4
+         real(dp) :: v_esc2, v_mod2
+         real(dp) :: alfven_no_R, R_alfven
+         real(dp) :: jdot_mb_old, jdot_mb_new, MOI
+         real(dp) :: conv_env_r, conv_env_m, sonic_cross_time, mag_field
+         common/ old_var/ tt_old
+         logical :: conv_env_found
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr .ne. 0) then
+             write(*,*) 'failed in binary_ptr'
+             return
+         end if
+ 
+ 
+         ! INITIALIZE THE VARIABLES
+         nz = s% nz
+         vel_ratio = 1d-4! s% x_ctrl(1)
+         tau_lim = 1d0 ! s% x_ctrl(2)
+ 
+         conv_env_found = .false.
+ 
+         turnover_time = 0.0
+         tt_temp = 0.0
+         tt_temp_scaled = 0.0
+ 
+         eps_nuc_lim = 1.0d-2
+         vel_diff = 0.0
+         scaled_vel = 0.0
+ 
+         MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
+ 
+         jdot_mb_new = 0d0
+         s% extra_omegadot(:) = 0d0
+  
+         ! INITIAL TURNOVER TIME CALCULATION
+         do k = nz, 1, -1 ! beginning of do loop to calculate convective turnover time
+ 
+           eps_nuc = s% eps_nuc(k)
+           ! check if the cell we are looping through satisfies our convection criteria
+           if ((s% gradr(k) .gt. s% grada(k)) .and. (eps_nuc .lt. eps_nuc_lim)) then
+               ! toggle the boolean to begin integration
+               conv_env_found = .true.
+           end if
+ 
+           ! only enter this portion if the convective boolean is true
+           ! this loop will go from the innermost cell that is convective to 
+           ! the surface. This is to try and smooth through any numeric issues
+           ! with convective zones appearing and disappearing in MESA.
+           if (conv_env_found) then
+ 
+           ! loop to calculate the size of the cell, the innermost cell
+           ! needs special consideration as it is above the core
+           if (k .lt. s% nz) then
+               dr = (s% r(k) - s% r(k + 1))
+           else
+               dr = (s% r(k) - s% R_center)
+           end if
+                     
+           ! determine the convective velocity inside each given cell
+           if (s% mixing_type(k) == convective_mixing) then
+ 
+             ! need to ensure that the convective velocity is within
+             ! our defined limits, if they are outside of these limits
+             ! set them to be the max/min value allowed.
+             vel = s% conv_vel(k)
+             lower_lim = vel_ratio * s% csound(k)
+             upper_lim = 1.0 * s% csound(k)
+ 
+             if (vel .lt. lower_lim) then
+                 vel = lower_lim
+             else if (vel .gt. upper_lim) then
+                 vel = upper_lim
+             end if
+                     
+             ! if the cell isnt defined by MESA to be convective take the
+             ! convective velocity to be equal to sound speed
+             else
+                 vel = s% csound(k)
+             end if
+ 
+             ! Final check involving the opacity of the given cell. If the 
+             ! cell isn't near the surface (low tau) then include it in our integration
+             if (s% tau(k) .gt. tau_lim) then
+                 sonic_cross_time = sonic_cross_time + (dr / s% csound(k))
+                 conv_env_r = conv_env_r + dr
+                 conv_env_m = conv_env_m + s% dm(k)
+                 tt_temp = tt_temp + (dr / vel)
+             end if
+           end if
+ 
+         end do ! end of do loop to calculate convective turnover time
+ 
+         ! reset the boolean just in case
+         conv_env_found = .false.
+ 
+         ! TURNOVER TIME CHECK, THIS IS TO TRY AND AVOID LARGE CHANGES
+ 
+         ! simply set the turnover time to the internal variable calculated above
+         turnover_time = tt_temp
+ 
+         if (s% model_number .gt. 1) then
+           ! calculate the variables used to check if our system is rapidly evolving
+           tt_diff = abs(tt_old - tt_temp) / tt_old
+           delta_mag_chk = s% dt / tt_old
+ 
+           ! check if timesteps are very small or if the relative change is very large
+           if (tt_diff .gt. delta_mag_chk) then 
+               write (*,*) "large change, adjusting accordingly"
+               turnover_time = tt_old + (tt_temp - tt_old) * min((s% dt / tt_old), 0.5)
+               mag_field = (turnover_time / 2.8d6) * (2073600. / b% period) 
+           end if ! end of timestep/relative change check
+         end if
+ 
+         ! remember the current values to be used as comparison in the next step
+         tt_old = turnover_time
+ 
+         ! MAGNETIC BRAKING CALCULATION
+         rsun4 = pow4(rsun)
+ 
+         ! check if a radiative core exists
+         call check_radiative_core(b)
+ 
+         two_pi_div_p3 = (2.0*pi/b% period)*(2.0*pi/b% period)*(2.0*pi/b% period)
+         two_pi_div_p2 = (2.0*pi/b% period)*(2.0*pi/b% period)
+ 
+         ! K as 0.07, from Reville et al. 2015
+         K2 = 0.07 * 0.07
+ 
+         ! use the formula from rappaport, verbunt, and joss.  apj, 275, 713-731. 1983.
+         if (b% have_radiative_core(b% d_i) .or. b% keep_mb_on) then
+ 
+           ! turnover time ratio, stellar/solar
+           tt_ratio = turnover_time / 2.8d6
+           tt4 = pow4(tt_ratio)
+           ! rotation rate ratio solar/stellar
+           rot_ratio = (2073600. / b% period )
+           rot4 = pow4(rot_ratio)
+           rad4 = pow4(b% r(b% d_i))
+ 
+           ! escape speed
+           v_esc2 = 2.0 * standard_cgrav * b% m(b% d_i) / b% r(b% d_i)
+           ! modified escape speed, e.g., Matt et al. 2012/Reville et al. 2015
+           v_mod2 = v_esc2 + 2.0 * two_pi_div_p2 * b% r(b% d_i) * b% r(b% d_i) / K2 
+                    
+           ! SSG edit to prevent INF values when b% mdot_system_wind(b% d_i) = 0
+           if (abs(b% mdot_system_wind(b% d_i)) > 0d0) then
+               alfven_no_R = rad4 * rot4 * tt4 / (b% mdot_system_wind(b% d_i) * b% mdot_system_wind(b% d_i)) * (1.0 / v_mod2)
+           else
+               alfven_no_R = 0d0
+           end if
+ 
+           R_alfven = b% r(b% d_i) * alfven_no_R**(1.d0/3.d0)
+           jdot_mb_new = 1d0 * (2.0/3.0) * (2.0*pi/b% period) * b% mdot_system_wind(b% d_i) * R_alfven * R_alfven
+ 
+           if (b% do_tidal_sync) then
+             return
+           else
+             do k = s% nz, 1, -1
+               ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+               if (s% omega(k) < s% dt * abs(jdot_mb_new / MOI) ) then
+                 ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+                 s% extra_omegadot(k) = - s% omega(k) / s% dt
+               else
+                 ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+                 s% extra_omegadot(k) = jdot_mb_new / MOI 
+               end if
+             end do
+           end if
+                 
+         end if
+ 
+         s% xtra1 = turnover_time
+         s% xtra2 = mag_field
+         s% xtra3 = conv_env_r
+         s% xtra4 = conv_env_m
+         s% xtra5 = sonic_cross_time
+ 
+      end subroutine carb_torque
+
+      ! Garraffo et al. (2018), ApJ, 862, 90 torque prescription
+      subroutine garraffo_torque(binary_id, s, dJdt, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         type (star_info), pointer :: s
+         integer :: j, k, mix_reg_extent, mix_reg_bot_k, mix_reg_top_k, &
+                    nz, n_conv_bdy, i
+ 
+         real(dp) :: Prot, Ro, n, Qn, dJdt, tau_convective, MOI, Om, &
+                     scale_height_at_bcz, c_const, omega_crit, & 
+                     residual_jdot, a_constant, b_constant, c_constant, &
+                     t_spindown
+ 
+         ierr = 0
+ 
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+             write(*,*) 'failed in binary_ptr'
+            return
+         end if
+ 
+         ! output info about the CONV. ENV.: the CZ location, turnover time
+         nz = s% nz
+         n_conv_bdy = s% num_conv_boundaries
+         i = s% n_conv_regions
+         tau_convective = 0d0
+         tau_convective = 0d0
+         Prot = 0d0
+         Ro = 0d0
+         a_constant = 0.03d0
+         b_constant = 0.5d0
+         c_constant = 3d41
+         n = 0d0
+         Qn = 0d0
+         scale_height_at_bcz = 0d0
+         residual_jdot = 0d0
+         dJdt = 0d0
+         s% extra_omegadot(:) = 0d0
+ 
+         if ((s% n_conv_regions > 0)) then 
+           if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
+               ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11) .and. &
+               (s% star_age > s% x_ctrl(2))) then
+ 
+             ! calculate convective turnover time
+             call calc_tau_convective(binary_id, s, tau_convective, ierr)
+ 
+             ! spin down according to Garraffo et al. 2018
+             MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
+             Om = s% omega_avg_surf
+             Prot = 2.0_dp * pi / Om
+ 
+             ! Rossby number
+             Ro = Prot / tau_convective
+ 
+             ! calculate n
+             ! a = 0.02, b = 2.0
+             n = (a_constant/pow_cr(Ro,1d0)) + (b_constant*Ro) + 1d0
+             if (n < 1d0) then
+               n = 1d0
+             else if (n > 1d99) then
+               n = 1d99
+             end if
+ 
+             ! magnetic supression factor
+             Qn = 4.05_dp*exp_cr(-1.4_dp*n)
+ 
+             ! angular momentum change per second.
+             dJdt = c_constant * powi_cr(Om, 3) * tau_convective * Qn
+             dJdt = max(0.0_dp, dJdt)
+             dJdt = -dJdt
+ 
+             ! Check if spindown timescale is shorter than timestep. Print a warning in case.
+             ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+             t_spindown = abs(s% total_angular_momentum / dJdt) ! Estimate spindown timescale
+ 
+             if (b% do_tidal_sync) then
+               !b% jdot_mb = -dJdt
+               return
+             else
+               do k = s% nz, 1, -1
+                 ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+                 if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
+                   ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+                   s% extra_omegadot(k) = - s% omega(k) / s% dt
+                 else
+                   ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+                   s% extra_omegadot(k) = dJdt / MOI 
+                 end if
+               end do
+             end if
+ 
+           else
+             t_spindown = 100 * s% dt ! To avoid decreasing the timestep in extras_finish_step
+           end if
+ 
+         else
+           t_spindown = 100 * s% dt ! To avoid decreasing the timestep in extras_finish_step     
+         end if
+ 
+      end subroutine garraffo_torque
+
+      ! As implemented in Van & Ivanova 2019 (CARB magnetic braking), ApJ, 886, L31
+      ! from files hosted on Zenodo: https://zenodo.org/record/3647683#.Y_TfedLMKUk
+      subroutine check_radiative_core(b)
+         type (binary_info), pointer :: b
+         type (star_info), pointer :: s
+             
+         real(dp) :: sum_conv, q_loc, sum_div_qloc 
+         integer :: i, k, id
+ 
+         include 'formats.inc'
+ 
+         do i=1,2
+           if (i == 1) then
+             s => b% s_donor
+             id = b% d_i
+           else if (b% point_mass_i == 0 .and. b% include_accretor_mb) then
+             s => b% s_accretor
+             id = b% a_i
+           else
+             exit
+           end if
+ 
+           ! calculate how much of inner region is convective
+           sum_conv = 0; q_loc = 0
+           do k = s% nz, 1, -1
+             q_loc = s% q(k)
+             if (q_loc > 0.5d0) exit 
+             if (s% mixing_type(k) == convective_mixing) &
+                 sum_conv = sum_conv + s% dq(k)
+           end do
+                 
+           sum_div_qloc = (b% sum_div_qloc(id) + sum_conv/q_loc)/2
+           b% sum_div_qloc(id) = sum_div_qloc
+                 
+           if (b% have_radiative_core(id)) then ! check if still have rad core
+             if (sum_div_qloc > 0.75d0) then
+               b% have_radiative_core(id) = .false.
+               write(*,*)
+               write(*,*) 'turn off magnetic braking because radiative core has gone away'
+               write(*,*)
+               ! required mdot for the implicit scheme may drop drastically,
+               ! so its neccesary to increase change factor to avoid implicit 
+               ! scheme from getting stuck
+               b% change_factor = b% max_change_factor
+             end if
+           else if (sum_div_qloc < 0.25d0) then ! check if now have rad core
+             if (.not. b% have_radiative_core(id)) then
+               write(*,*)
+               write(*,*) 'turn on magnetic braking'
+               write(*,*)
+             end if
+             b% have_radiative_core(id) = .true.
+           end if
+         end do
+                 
+       end subroutine check_radiative_core
+
+      ! calculate the convective turnover time of one star, half a 
+      ! pressure scale height above the bottom of the convection zone
+      subroutine calc_tau_convective(binary_id, s, ocz_turnover_time, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         type (star_info), pointer :: s
+         integer :: k, nz, n_conv_bdy, i, k_ocz_bot, k_ocz_top
+ 
+         real(dp) :: ocz_top_mass, ocz_bot_mass, mixing_length_at_bcz, &
+                     ocz_turnover_time, ocz_top_radius, ocz_bot_radius
+ 
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+           write(*,*) 'failed in binary_ptr'
+          return
+         end if
+ 
+         ! output info about the CONV. ENV.: the CZ location, turnover time
+         nz = s% nz
+         n_conv_bdy = s% num_conv_boundaries
+         i = s% n_conv_regions
+         k_ocz_bot = 0
+         k_ocz_top = 0
+         ocz_turnover_time = 0d0
+         ocz_top_mass = 0d0
+         ocz_bot_mass = 0d0
+         ocz_top_radius = 0d0
+         ocz_bot_radius = 0d0
+         mixing_length_at_bcz = 0d0
+
+         ocz_bot_mass = s% cz_bot_mass(i)
+         ocz_top_mass = s% cz_top_mass(i)
+
+         !get top radius information
+         !start from k=2 (second most outer zone) in order to access k-1
+         do k=2,nz
+           if (s% m(k) < ocz_top_mass) then
+             ocz_top_radius = s% r(k-1)
+             k_ocz_top = k-1
+             exit
+           end if
+         end do
+
+         ! get bottom radius information
+         if (ocz_bot_mass == 0d0) then
+           ocz_bot_radius = s% r(nz)
+           k_ocz_bot = nz
+         else
+           do k=2,nz
+             if (s% m(k) < ocz_bot_mass) then
+               ocz_bot_radius = s% r(k-1)
+               k_ocz_bot = k-1
+               exit
+             end if
+           end do
+         end if
+
+         !if the star is fully convective, then the bottom boundary is the center
+         if ((k_ocz_bot == 0) .and. (k_ocz_top > 0)) then
+           k_ocz_bot = nz
+         end if
+
+         mixing_length_at_bcz = s% mlt_mixing_length(k_ocz_bot)
+         !scale_height_at_bcz = s% scale_height(k_ocz_bot)
+         !compute the "local" turnover time a scale height above the BCZ
+         do k=k_ocz_top,k_ocz_bot
+           if (s% r(k) < (s% r(k_ocz_bot) + 0.5d0 * s% scale_height(k)) ) then
+             ocz_turnover_time = s% mixing_length_alpha * s% scale_height(k) / s% conv_vel(k)
+             exit
+           end if
+         end do   
+
+      end subroutine calc_tau_convective
+
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
@@ -864,7 +1799,6 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	       real(dp) :: r_l2, d_l2
          real(dp) :: q
          integer :: ierr
          call binary_ptr(binary_id, b, ierr)
@@ -872,83 +1806,7 @@
             return
          end if
          extras_binary_check_model = keep_going
-
-
-       if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
-          if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
-             i_don = 1
-             i_acc = 2
-               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
-                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp) * exp_cr(-0.052_dp*q) + 1.308_dp)
-                  !Condition to stop when star overflows L2
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
-                     return
-                  end if
-
-               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
-                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 1'
-                     return
-                  end if
-               end if
-          end if
-       end if
-
-       if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
-          if (b% s2% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
-             i_don = 2
-             i_acc = 1
-               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q, 1.05_dp) * exp_cr(-0.188_dp * q) + 1.004_dp)
-                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q,  0.514_dp) * exp_cr(-0.052_dp * q) + 1.308_dp)
-                  !Condition to stop when star overflows L2
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 2'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 2'
-                     return
-                  end if
-
-               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
-                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 2'
-                     return
-                  end if
-               end if
-          end if
-       end if
+       
 
        if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
          .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
@@ -973,6 +1831,8 @@
       integer function extras_binary_finish_step(binary_id)
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
+         integer:: i_don, i_acc
+	 real(dp) :: r_l2, d_l2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
@@ -1091,7 +1951,87 @@
                end if
             end if
          end if
+         
+         
+         
+         if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
+          if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+             i_don = 1
+             i_acc = 2
+               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
+                  q = b% m(i_acc) / b% m(i_don)
+                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp) * exp_cr(-0.052_dp*q) + 1.308_dp)
+                  !Condition to stop when star overflows L2
+                  if (b% r(i_don) .ge. (r_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
+                     return
+                  end if
+                  if (b% r(i_don) .ge. (d_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
+                     return
+                  end if
 
+               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
+                  q = b% m(i_acc) / b% m(i_don)
+                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
+                  if (b% r(i_don) .ge. (r_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
+                     return
+                  end if
+                  if (b% r(i_don) .ge. (d_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 1'
+                     return
+                  end if
+               end if
+          end if
+       end if
+
+       if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
+          if (b% s2% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+             i_don = 2
+             i_acc = 1
+               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
+                  q = b% m(i_acc) / b% m(i_don)
+                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q, 1.05_dp) * exp_cr(-0.188_dp * q) + 1.004_dp)
+                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q,  0.514_dp) * exp_cr(-0.052_dp * q) + 1.308_dp)
+                  !Condition to stop when star overflows L2
+                  if (b% r(i_don) .ge. (r_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 2'
+                     return
+                  end if
+                  if (b% r(i_don) .ge. (d_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 2'
+                     return
+                  end if
+
+               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
+                  q = b% m(i_acc) / b% m(i_don)
+                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
+                  if (b% r(i_don) .ge. (r_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
+                     return
+                  end if
+                  if (b% r(i_don) .ge. (d_l2)) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 2'
+                     return
+                  end if
+               end if
+          end if
+       end if
+       
+       
+       
          if (extras_binary_finish_step == terminate) then
             !write(*,*) "saving final profilesA"
             !call star_write_profile_info(b% s1% id, "LOGS1/prof_9FINAL.data", b% s1% id, ierr)
@@ -1140,6 +2080,19 @@
                if (ierr /= 0) return ! failure
             end if
          end if
+	 
+	 if (b% point_mass_i == 0) then
+             if (b% s_accretor% x_logical_ctrl(4)) then
+                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
+	            b% mass_transfer_beta = 1.0d0
+                    b% s_accretor% max_wind = 1d-12
+	        end if
+	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
+	            b% mass_transfer_beta = 0d0
+	            b% s_accretor% max_wind = 0d0
+	        end if
+             end if
+	 end if
 
       end function extras_binary_finish_step
 
