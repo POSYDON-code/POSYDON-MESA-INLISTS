@@ -1530,7 +1530,7 @@
            !check if mass transfer rate reached maximun, assume unstable regime if it happens
             if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
             write(*,'(g0)') "reached unstable regime trapping radius, CE begins..."
-            %b CE_flag = .true.
+            b% CE_flag = .true.
 
 
             !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
@@ -1620,7 +1620,7 @@
                      !write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
 
                      write(*,'(g0)') "reached unstable regime L2 overflow, CE begins..."
-                     %b CE_flag = .true.
+                     b% CE_flag = .true.
 
                      return
                   end if
@@ -1629,7 +1629,7 @@
                      !write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
                      
                      write(*,'(g0)') "reached unstable regime L2 overflow, CE begins..."
-                     %b CE_flag = .true.
+                     b% CE_flag = .true.
 
                      return
                   end if
