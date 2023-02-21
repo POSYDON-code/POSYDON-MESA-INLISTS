@@ -73,7 +73,7 @@
       ! same as MESA default but including rotational energy
       ! NOTE that we are not using rotation in these simulations,
       ! this is mostly done for future me
-      
+
       subroutine my_CE_init(binary_id, restart, ierr)
          use chem_def, only: chem_isos
          use interp_1d_def, only: pm_work_size
@@ -257,6 +257,22 @@
          end if
           
       end subroutine
+
+      real(dp) function get_ion_info(s,id,k)
+        use ionization_def, only: num_ion_vals
+        use ionization_lib, only: eval_ionization
+        integer, intent(in) :: id, k
+        integer :: ierr
+        real(dp) :: ionization_res(num_ion_vals)
+        type (star_info), pointer :: s
+        ierr = 0
+        call eval_ionization( &
+             1d0 - (s% X(k) + s% Y(k)), s% X(k), s% Rho(k), s% lnd(k)/ln10, &
+             s% T(k), s% lnT(k)/ln10, ionization_res, ierr)
+        if (ierr /= 0) ionization_res = 0
+        get_ion_info = ionization_res(id)
+      end function get_ion_info
+
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
