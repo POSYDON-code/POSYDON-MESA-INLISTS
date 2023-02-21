@@ -67,6 +67,7 @@
           b% other_mdot_edd => my_mdot_edd
 	       b% other_rlo_mdot => my_rlo_mdot
           b% other_CE_init => my_CE_init
+          b% other_CE_binary_finish_step => my_CE_binary_finish_step
 
       end subroutine extras_binary_controls
 
@@ -272,6 +273,89 @@
         if (ierr /= 0) ionization_res = 0
         get_ion_info = ionization_res(id)
       end function get_ion_info
+
+      ! Identical to the one on the main code, but fixes a bug that turns off a custom mdot prescription
+      integer function my_CE_binary_finish_step(binary_id)
+         integer, intent(in) :: binary_id
+         integer :: ierr
+         type (binary_info), pointer :: b
+         real(dp) :: h_diff, he_diff, rlobe
+         logical :: terminate_CE
+         integer :: k
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         my_CE_binary_finish_step = keep_going
+
+         terminate_CE = .false.
+         if ((b% r(b% d_i)-b% rl(b% d_i))/(b% rl(b% d_i)*b% CE_rel_rlo_for_detachment) < -1d0) then
+            terminate_CE = .true.
+            write(*,*) "Have reached CE_rel_rlo_for_detachment"
+         else if (b% CE_years_detached > b% CE_years_detached_to_terminate) then
+            terminate_CE = .true.
+            write(*,*) "Have reached CE_years_detached_to_terminate"
+         end if
+
+         if (terminate_CE) then
+            b% CE_flag = .false.
+            b% mtransfer_rate = 0d0
+            b% s_donor% mix_factor = 1d0
+            b% s_donor% dxdt_nuc_factor = 1d0
+            b% s_donor% timestep_hold = b% s_donor% model_number
+            if (b% point_mass_i == 0) then
+               b% s_accretor% mix_factor = 1d0
+               b% s_accretor% dxdt_nuc_factor = 1d0
+               b% s_accretor% timestep_hold = b% s_accretor% model_number
+            end if
+
+            b% keep_donor_fixed = .false.
+            write(*,*) "TURNING OFF CE"
+         end if
+
+         ! termination conditions
+
+         h_diff = abs(b% s_donor% center_h1 - b% s_donor% surface_h1)
+         he_diff = abs(b% s_donor% center_he4 - b% s_donor% surface_he4)
+         if (h_diff < b% CE_xa_diff_to_terminate &
+            .and. he_diff < b% CE_xa_diff_to_terminate) then
+            write(*,*) "Central and surface abundances below CE_xa_diff_to_terminate"
+            write(*,*) "Terminating evolution"
+            my_CE_binary_finish_step = terminate
+            return
+         end if
+
+         !terminate if, for the current orbital separation, stripping the star down to the point
+         !where CE_xa_diff_to_terminate would apply, the remaining layers would be Roche lobe
+         !overflowing.
+         if (b% CE_terminate_when_core_overflows) then
+            do k = 1, b% s_donor% nz
+               h_diff = abs(b% s_donor% center_h1 - b% s_donor% X(k))
+               he_diff = abs(b% s_donor% center_he4 - b% s_donor% Y(k))
+               if (h_diff < b% CE_xa_diff_to_terminate &
+                  .and. he_diff < b% CE_xa_diff_to_terminate) then
+                  rlobe = eval_rlobe(b% s_donor% m(k), b% m(b% a_i), b% separation)
+                  if (b% s_donor% r(k) > rlobe) then
+                     write(*,*) "Terminate due to CE_terminate_when_core_overflows"
+                     write(*,*) "Terminating evolution"
+                     my_CE_binary_finish_step = terminate
+                     return
+                  end if
+                  exit
+               end if
+            end do
+         end if
+
+         if (b% period < b% CE_min_period_in_minutes*60d0) then
+            write(*,*) "Orbital period is below CE_min_period_in_minutes"
+            write(*,*) "Terminating evolution"
+            my_CE_binary_finish_step = terminate
+            return
+         end if
+
+      end function my_CE_binary_finish_step
 
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
