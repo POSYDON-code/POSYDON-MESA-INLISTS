@@ -65,10 +65,198 @@
           b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
-	  b% other_rlo_mdot => my_rlo_mdot
+	       b% other_rlo_mdot => my_rlo_mdot
           b% other_CE_init => my_CE_init
 
       end subroutine extras_binary_controls
+
+      ! same as MESA default but including rotational energy
+      ! NOTE that we are not using rotation in these simulations,
+      ! this is mostly done for future me
+      
+      subroutine my_CE_init(binary_id, restart, ierr)
+         use chem_def, only: chem_isos
+         use interp_1d_def, only: pm_work_size
+         use interp_1d_lib, only: interp_pm
+         use ionization_def
+         integer, intent(in) :: binary_id
+         logical, intent(in) :: restart
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         type (star_info), pointer :: s
+         real(dp), pointer :: interp_work(:), adjusted_energy(:)
+         integer :: i, k, op_err
+         real(dp) :: rec_energy_HII_to_HI, &
+                     rec_energy_HeII_to_HeI, &
+                     rec_energy_HeIII_to_HeII, &
+                     diss_energy_H2, &
+                     frac_HI, frac_HII, &
+                     frac_HeI, frac_HeII, frac_HeIII, &
+                     avg_charge_He, energy_comp
+         include 'formats.inc'
+
+         ! TODO: no care is taken in here when model_twins_flag is true
+         ! not a priority, but needs to be sorted out whenever double core
+         ! evolution is implemented
+
+         ierr = 0
+
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+
+         write(*,*) "TURNING ON CE"
+
+         b% s_donor% mix_factor = 0d0
+         b% s_donor% dxdt_nuc_factor = 0d0
+         if (b% point_mass_i == 0) then
+            b% s_accretor% mix_factor = 0d0
+            b% s_accretor% dxdt_nuc_factor = 0d0
+         end if
+
+         if (b% d_i == 1) then
+            b% CE_num1 = b% CE_num1 + 1
+         else
+            b% CE_num2 = b% CE_num2 + 1
+         end if
+
+         b% keep_donor_fixed = .true.
+
+         b% CE_init = .true.
+
+         if (.not. restart) then
+            b% CE_years_detached = 0d0
+            s => b% s_donor
+
+            write(*,*) "Initiating common envelope phase"
+
+            allocate(b% CE_m(s% nz), b% CE_entropy(4*s% nz), stat=ierr)
+            if(ierr /= 0) then
+               write(*,*) "CE_init: Error during allocation"
+               return
+            end if
+            allocate(b% CE_U_in(4*s% nz), b% CE_U_out(4*s% nz), b% CE_Omega_in(4*s% nz), b% CE_Omega_out(4*s% nz), stat=ierr)
+            if(ierr /= 0) then
+               write(*,*) "CE_init: Error during allocation"
+               return
+            end if
+
+            ! get energy from the EOS and adjust the different contributions from recombination/dissociation
+            allocate(adjusted_energy(s% nz))
+            do k=1, s% nz
+               ! the following lines compute the fractions of HI, HII, HeI, HeII and HeIII
+               ! things like ion_ifneut_H are defined in $MESA_DIR/ionization/public/ionization.def
+               ! this file can be checked for additional ionization output available
+               frac_HI = get_ion_info(s,ion_ifneut_H,k)
+               frac_HII = 1 - frac_HI
+
+               ! ionization module provides neutral fraction and average charge of He.
+               ! use these two to compute the mass fractions of HeI and HeII
+               frac_HeI = get_ion_info(s,ion_ifneut_He,k)
+               avg_charge_He = get_ion_info(s,ion_iZ_He,k)
+               ! the following is the solution to the equations
+               !   avg_charge_He = 2*fracHeIII + 1*fracHeII
+               !               1 = fracHeI + fracHeII + fracHeIII
+               frac_HeII = 2 - 2*frac_HeI - avg_charge_He
+               frac_HeIII = 1 - frac_HeII - frac_HeI
+
+               ! recombination energies from https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html
+               rec_energy_HII_to_HI = avo*13.59843449d0*frac_HII*ev2erg*s% X(k)
+               diss_energy_H2 = avo*4.52d0/2d0*ev2erg*s% X(k)
+               rec_energy_HeII_to_HeI = avo*24.58738880d0*(frac_HeII+frac_HeIII)*ev2erg*s% Y(k)/4d0
+               rec_energy_HeIII_to_HeII = avo*54.4177650d0*frac_HeIII*ev2erg*s% Y(k)/4d0
+
+               adjusted_energy(k) = s% energy(k) &
+                                    - (1d0-b% CE_energy_factor_HII_toHI)*rec_energy_HII_to_HI &
+                                    - (1d0-b% CE_energy_factor_HeII_toHeI)*rec_energy_HeII_to_HeI &
+                                    - (1d0-b% CE_energy_factor_HeIII_toHeII)*rec_energy_HeIII_to_HeII &
+                                    - (1d0-b% CE_energy_factor_H2)*diss_energy_H2
+
+               if (adjusted_energy(k) < 0d0 .or. adjusted_energy(k) > s% energy(k)) then
+                  write(*,*) "Error when computing adjusted energy in CE, ", &
+                     "s% energy(k):", s% energy(k), " adjusted_energy, ", adjusted_energy(k)
+                  stop
+               end if
+
+               if(.false.) then
+                  ! for debug, check the mismatch between the EOS energy and that of a gas+radiation
+                  energy_comp = 3*avo*boltzm*s% T(k)/(2*s% mu(k)) + crad*pow4(s% T(k))/s% rho(k) &
+                                + rec_energy_HII_to_HI &
+                                + rec_energy_HeII_to_HeI &
+                                + rec_energy_HeIII_to_HeII &
+                                + diss_energy_H2
+
+                  write(*,*) "compare energies", k, s%m(k)/Msun, s% energy(k), energy_comp, &
+                     (s% energy(k)-energy_comp)/s% energy(k)
+               end if
+
+            end do
+
+            do k=1, s% nz
+               b% CE_m(:) = s% m(:s% nz)
+            end do
+
+            ! setup values of starting model for the interpolant
+            do k=1, s% nz
+               b% CE_entropy(4*k-3) = exp_cr(s% lnS(k))
+            end do
+
+            ! Compute internal and potential energies from the inside out, and in the opposite direction.
+            ! Here I abuse the variable for internal energy by adding rotational kinetic energy as well
+            b% CE_U_out(1) = adjusted_energy(1)*s% dm(1)
+            if (s% rotation_flag) then
+               b% CE_U_out(1) = b% CE_U_out(1) + 0.5*s% i_rot(1)*s% dm_bar(1)*pow2(s% omega(1))
+            end if
+            b% CE_Omega_out(1) = - s% cgrav(1)*s% m(1)*s% dm_bar(1)/s% r(1)
+            do k=2, s% nz
+               b% CE_U_out(4*k-3) = b% CE_U_out(4*(k-1)-3) + adjusted_energy(k)*s% dm(k)
+               if (s% rotation_flag) then
+                  b% CE_U_out(4*k-3) = b% CE_U_out(4*k-3) + 0.5*s% i_rot(k)*s% dm_bar(k)*pow2(s% omega(k))
+               end if
+               b% CE_Omega_out(4*k-3) = b% CE_Omega_out(4*(k-1)-3) - s% cgrav(k)*s% m(k)*s% dm_bar(k)/s% r(k)
+            end do
+            b% CE_U_in(4*s% nz-3) = adjusted_energy(s% nz)*s% dm(s% nz)
+            if (s% rotation_flag) then
+               b% CE_U_in(4*s% nz-3) = b% CE_U_in(4*s% nz-3) &
+                  + 0.5*s% i_rot(s% nz)*s% dm_bar(s% nz)*pow2(s% omega(s% nz))
+            end if
+            b% CE_Omega_in(4*s% nz-3) = - standard_cgrav*s% m(s% nz)*s% dm_bar(s% nz)/s% r(s% nz)
+            do k=s% nz-1, 1, -1
+               b% CE_U_in(4*k-3) = b% CE_U_in(4*(k+1)-3) + adjusted_energy(k)*s% dm(k)
+               if (s% rotation_flag) then
+                  b% CE_U_in(4*k-3) = b% CE_U_in(4*k-3) &
+                     + 0.5*s% i_rot(k)*s% dm_bar(k)*pow2(s% omega(k))
+               end if
+               b% CE_Omega_in(4*k-3) = b% CE_Omega_in(4*(k+1)-3) - standard_cgrav*s% m(k)*s% dm_bar(k)/s% r(k)
+            end do
+
+            b% CE_initial_radius = b% r(b% d_i)
+            b% CE_initial_separation = b% separation
+            b% CE_initial_Mdonor = b% m(b% d_i)
+            b% CE_initial_Maccretor = b% m(b% a_i)
+            b% CE_initial_age = s% star_age
+            b% CE_initial_model_number = s% model_number
+            b% CE_b_initial_age = b% binary_age
+            b% CE_b_initial_model_number = b% model_number
+            b% CE_nz = s% nz
+
+            allocate(interp_work(s% nz*pm_work_size), stat=ierr)
+            call interp_pm(b% CE_m, s% nz, b% CE_entropy, pm_work_size, interp_work, 'entropy interpolant', op_err)
+            call interp_pm(b% CE_m, s% nz, b% CE_U_in, pm_work_size, interp_work, 'U_in interpolant', op_err)
+            call interp_pm(b% CE_m, s% nz, b% CE_U_out, pm_work_size, interp_work, 'U_out interpolant', op_err)
+            call interp_pm(b% CE_m, s% nz, b% CE_Omega_in, pm_work_size, interp_work, 'Omega_in interpolant', op_err)
+            call interp_pm(b% CE_m, s% nz, b% CE_Omega_out, pm_work_size, interp_work, 'Omega_out interpolant', op_err)
+            if(op_err /= 0) then
+               ierr = -1
+               write(*,*) "CE_init: Error while creating interpolants"
+               return
+            end if
+            deallocate(adjusted_energy,interp_work)
+         end if
+          
+      end subroutine
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
