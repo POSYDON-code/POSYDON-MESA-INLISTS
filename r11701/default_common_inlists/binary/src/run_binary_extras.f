@@ -60,14 +60,14 @@
 
          ! Once you have set the function pointers you want, then uncomment this (or set it in your star_job inlist)
          ! to disable the printed warning message,
-          b% warn_binary_extra =.false.
+         b% warn_binary_extra =.false.
 
-          b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
-          b% other_tsync => my_tsync
-          b% other_mdot_edd => my_mdot_edd
-	       b% other_rlo_mdot => my_rlo_mdot
+         b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
+         b% other_tsync => my_tsync
+         b% other_mdot_edd => my_mdot_edd
+	      b% other_rlo_mdot => my_rlo_mdot
 
-          b% other_jdot_mb => mb_torque_selector
+         b% other_jdot_mb => mb_torque_selector
 
       end subroutine extras_binary_controls
 
