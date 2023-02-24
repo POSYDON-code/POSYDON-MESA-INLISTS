@@ -1515,6 +1515,10 @@
          !check if mass transfer rate reached maximun, assume unstable regime if it happens
           if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then       ! continue to CE     
             write(*,'(g0)') "reached unstable regime maximum mass transfer, CE begins..." ! taken care of in inlist max_implicit_abs_mdot
+            
+            if (.not. b% CE_flag) then
+               b% CE_flag = .true.
+            end if 
 
             ! extras_binary_finish_step = terminate                    !stop when larger than 0.1 Msun/yr
             ! write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
@@ -1619,8 +1623,8 @@
                      !extras_binary_finish_step = terminate
                      !write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
 
-                     write(*,'(g0)') "reached unstable regime L2 overflow, CE begins..."
-                     b% CE_flag = .true.
+                     write(*,'(g0)') "reached regime overflow from L2 (R_L2)"
+                     !b% CE_flag = .true.
 
                      return
                   end if
@@ -1628,8 +1632,8 @@
                      !extras_binary_finish_step = terminate
                      !write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
                      
-                     write(*,'(g0)') "reached unstable regime L2 overflow, CE begins..."
-                     b% CE_flag = .true.
+                     write(*,'(g0)') "reached regime overflow from L2 (D_L2) distance"
+                     !b% CE_flag = .true.
 
                      return
                   end if
