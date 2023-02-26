@@ -1103,7 +1103,7 @@
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
            end if
            call garraffo_torque(binary_id, b% s_donor, dJdt, ierr)
-           if (not b% do_jdot_ls) then
+           if (.not. b% do_jdot_ls) then
              b% jdot_mb = b% jdot_mb + dJdt
            end if
  
@@ -1115,7 +1115,7 @@
                  write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
                end if
                call garraffo_torque(binary_id, b% s_accretor, dJdt, ierr)
-               if (not b% do_jdot_ls) then
+               if (.not. b% do_jdot_ls) then
                  b% jdot_mb = b% jdot_mb + dJdt
                end if
            end if
@@ -1128,7 +1128,7 @@
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
            end if
            call matt_torque(binary_id, b% s_donor, dJdt, ierr)
-           if (not b% do_jdot_ls) then
+           if (.not. b% do_jdot_ls) then
              b% jdot_mb = b% jdot_mb + dJdt
            end if
  
@@ -1139,7 +1139,7 @@
                write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
              end if
              call matt_torque(binary_id, b% s_accretor, dJdt, ierr)
-             if (not b% do_jdot_ls) then
+             if (.not. b% do_jdot_ls) then
                b% jdot_mb = b% jdot_mb + dJdt
              end if
            end if
@@ -1152,7 +1152,7 @@
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
            end if
            call carb_torque(binary_id, b% s_donor, dJdt, ierr)
-           if (not b% do_jdot_ls) then
+           if (.not. b% do_jdot_ls) then
              b% jdot_mb = b% jdot_mb + dJdt
            end if
  
@@ -1163,7 +1163,7 @@
                write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
              end if
              call carb_torque(binary_id, b% s_accretor, dJdt, ierr)
-             if (not b% do_jdot_ls) then
+             if (.not. b% do_jdot_ls) then
                b% jdot_mb = b% jdot_mb + dJdt
              end if
            end if
@@ -1248,7 +1248,7 @@
              t_spindown = abs(s% total_angular_momentum / dJdt) ! Estimate spindown timescale
  
              ! If tidal sync is enforced, remove AM from the orbit
-             if (not b% do_jdot_ls) then
+             if (.not. b% do_jdot_ls) then
                return
 
              ! If tidal sync is not enforced, remove AM from the indiv. stars
@@ -1452,7 +1452,7 @@
            dJdt = 1d0 * (2.0/3.0) * (2.0*pi/b% period) * b% mdot_system_wind(b% d_i) * R_alfven * R_alfven
  
            ! If tidal sync is enforced, remove AM from the orbit
-           if (not b% do_jdot_ls) then
+           if (.not. b% do_jdot_ls) then
              return
 
            ! If tidal sync is not enforced, remove AM from the individual stars
@@ -1562,7 +1562,7 @@
              t_spindown = abs(s% total_angular_momentum / dJdt) ! Estimate spindown timescale
  
              ! If tidal sync is enforced, remove AM from the orbit
-             if (not b% do_jdot_ls) then
+             if (.not. b% do_jdot_ls) then
                return
 
              ! if tidal sync is not enforced, remove AM from the indiv. stars
