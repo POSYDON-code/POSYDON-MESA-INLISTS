@@ -1021,6 +1021,7 @@
          end do
          b% mdot_thin = dm
       end subroutine get_info_for_ritter_eccentric
+
       subroutine get_info_for_kolb_eccentric(b)
          type(binary_info), pointer :: b
          real(dp) :: e, dm
@@ -1076,7 +1077,6 @@
       !    <<MB option>> = 1 (Garraffo et al. 2018)
       !    <<MB option>> = 2 (Matt et al. 2015)
       !    <<MB option>> = 3 (Van & Ivanova 2019 -- CARB)
-
       subroutine mb_torque_selector(binary_id, ierr)
          use star_lib, only: star_ptr
          integer, intent(in) :: binary_id
@@ -1103,7 +1103,7 @@
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
            end if
            call garraffo_torque(binary_id, b% s_donor, dJdt, ierr)
-           if (b% do_tidal_sync) then
+           if (not b% do_jdot_ls) then
              b% jdot_mb = b% jdot_mb + dJdt
            end if
  
@@ -1115,7 +1115,7 @@
                  write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
                end if
                call garraffo_torque(binary_id, b% s_accretor, dJdt, ierr)
-               if (b% do_tidal_sync) then
+               if (not b% do_jdot_ls) then
                  b% jdot_mb = b% jdot_mb + dJdt
                end if
            end if
@@ -1128,7 +1128,7 @@
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
            end if
            call matt_torque(binary_id, b% s_donor, dJdt, ierr)
-           if (b% do_tidal_sync) then
+           if (not b% do_jdot_ls) then
              b% jdot_mb = b% jdot_mb + dJdt
            end if
  
@@ -1139,7 +1139,7 @@
                write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
              end if
              call matt_torque(binary_id, b% s_accretor, dJdt, ierr)
-             if (b% do_tidal_sync) then
+             if (not b% do_jdot_ls) then
                b% jdot_mb = b% jdot_mb + dJdt
              end if
            end if
@@ -1152,7 +1152,7 @@
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
            end if
            call carb_torque(binary_id, b% s_donor, dJdt, ierr)
-           if (b% do_tidal_sync) then
+           if (not b% do_jdot_ls) then
              b% jdot_mb = b% jdot_mb + dJdt
            end if
  
@@ -1163,7 +1163,7 @@
                write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
              end if
              call carb_torque(binary_id, b% s_accretor, dJdt, ierr)
-             if (b% do_tidal_sync) then
+             if (not b% do_jdot_ls) then
                b% jdot_mb = b% jdot_mb + dJdt
              end if
            end if
@@ -1216,9 +1216,9 @@
              Ro = Prot / tau_convective
              Rosol = 2d0 ! Amard+ 2019
              Rosat = 0.14d0 ! Amard+ 2019
-             K_const = 1.4e30 
-             m = 0.22d0
-             p = 2.6d0
+             K_const = 1.4e30 ! Solar calibrated as in Gossage et al. 2021, ApJ 912, 65
+             m = 0.22d0 ! Solar calibrated '                                    '
+             p = 2.6d0 ! Solar calibrated '                                     '
              tau_cz_sol = 12.9d0*86400d0 ! 12.9 days Matt+ 2015 [sec]
              omega_sol = 2.6d-6 !2.6E-6 s^-1 solar solid body ang. rot. rate from measured Prot of Sun...
              u = s% v_div_v_crit_avg_surf 
@@ -1247,10 +1247,11 @@
              ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
              t_spindown = abs(s% total_angular_momentum / dJdt) ! Estimate spindown timescale
  
- 
-             if (b% do_tidal_sync) then
-               !b% jdot_mb = -dJdt
+             ! If tidal sync is enforced, remove AM from the orbit
+             if (not b% do_jdot_ls) then
                return
+
+             ! If tidal sync is not enforced, remove AM from the indiv. stars
              else
                do k = s% nz, 1, -1
                  ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
@@ -1262,6 +1263,11 @@
                    s% extra_omegadot(k) = dJdt / MOI 
                  end if
                end do
+
+              ! Reset dJdt so it is not also removed from the orbit
+               dJdt = 0d0
+               return
+            
              end if
              
            else
@@ -1277,7 +1283,7 @@
       ! As implemented in Van & Ivanova 2019 (CARB magnetic braking), ApJ, 886, L31
       ! from files hosted on Zenodo: https://zenodo.org/record/3647683#.Y_TfedLMKUk
       ! Slightly modified to avoid INF values.
-      subroutine carb_torque(binary_id, s, jdot_mb_new, ierr)
+      subroutine carb_torque(binary_id, s, dJdt, ierr)
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          integer :: k, nz
@@ -1293,7 +1299,7 @@
          real(dp) :: rad4
          real(dp) :: v_esc2, v_mod2
          real(dp) :: alfven_no_R, R_alfven
-         real(dp) :: jdot_mb_old, jdot_mb_new, MOI
+         real(dp) :: dJdt, MOI
          real(dp) :: conv_env_r, conv_env_m, sonic_cross_time, mag_field
          common/ old_var/ tt_old
          logical :: conv_env_found
@@ -1322,7 +1328,7 @@
  
          MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
  
-         jdot_mb_new = 0d0
+         dJdt = 0d0
          s% extra_omegadot(:) = 0d0
   
          ! INITIAL TURNOVER TIME CALCULATION
@@ -1425,7 +1431,7 @@
            ! turnover time ratio, stellar/solar
            tt_ratio = turnover_time / 2.8d6
            tt4 = pow4(tt_ratio)
-           ! rotation rate ratio solar/stellar
+           ! rotation rate ratio solar/stellar (assuming 24 day solar Prot)
            rot_ratio = (2073600. / b% period )
            rot4 = pow4(rot_ratio)
            rad4 = pow4(b% r(b% d_i))
@@ -1443,21 +1449,29 @@
            end if
  
            R_alfven = b% r(b% d_i) * alfven_no_R**(1.d0/3.d0)
-           jdot_mb_new = 1d0 * (2.0/3.0) * (2.0*pi/b% period) * b% mdot_system_wind(b% d_i) * R_alfven * R_alfven
+           dJdt = 1d0 * (2.0/3.0) * (2.0*pi/b% period) * b% mdot_system_wind(b% d_i) * R_alfven * R_alfven
  
-           if (b% do_tidal_sync) then
+           ! If tidal sync is enforced, remove AM from the orbit
+           if (not b% do_jdot_ls) then
              return
+
+           ! If tidal sync is not enforced, remove AM from the individual stars
            else
              do k = s% nz, 1, -1
                ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
-               if (s% omega(k) < s% dt * abs(jdot_mb_new / MOI) ) then
+               if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
                  ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
                  s% extra_omegadot(k) = - s% omega(k) / s% dt
                else
                  ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
-                 s% extra_omegadot(k) = jdot_mb_new / MOI 
+                 s% extra_omegadot(k) = dJdt / MOI 
                end if
              end do
+
+             ! Reset dJdt so it is not also removed from the orbit
+             dJdt = 0d0
+             return
+
            end if
                  
          end if
@@ -1500,9 +1514,9 @@
          tau_convective = 0d0
          Prot = 0d0
          Ro = 0d0
-         a_constant = 0.03d0
-         b_constant = 0.5d0
-         c_constant = 3d41
+         a_constant = 0.03d0  ! Solar calibrated as in Gossage et al. 2021, ApJ 912, 65
+         b_constant = 0.5d0  ! Solar calibrated '                                     '
+         c_constant = 3d41 ! Solar calibrated '                                      '
          n = 0d0
          Qn = 0d0
          scale_height_at_bcz = 0d0
@@ -1547,9 +1561,11 @@
              ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
              t_spindown = abs(s% total_angular_momentum / dJdt) ! Estimate spindown timescale
  
-             if (b% do_tidal_sync) then
-               !b% jdot_mb = -dJdt
+             ! If tidal sync is enforced, remove AM from the orbit
+             if (not b% do_jdot_ls) then
                return
+
+             ! if tidal sync is not enforced, remove AM from the indiv. stars
              else
                do k = s% nz, 1, -1
                  ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
@@ -1561,6 +1577,11 @@
                    s% extra_omegadot(k) = dJdt / MOI 
                  end if
                end do
+
+              ! Reset dJdt so it is not also removed from the orbit
+               dJdt = 0d0
+               return
+
              end if
  
            else
