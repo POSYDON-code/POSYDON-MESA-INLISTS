@@ -1537,8 +1537,7 @@
             write(*,'(g0)') "reached unstable regime trapping radius, CE begins..."
             b% CE_flag = .true.
 
-
-            !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
+            !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then !already commented out !stop when larger than 0.1 Msun/yr
               !extras_binary_finish_step = terminate
               !write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
             end if
@@ -1624,8 +1623,8 @@
                      !extras_binary_finish_step = terminate
                      !write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
 
-                     write(*,'(g0)') "reached regime overflow from L2 (R_L2)"
-                     !b% CE_flag = .true.
+                     write(*,'(g0)') "reached regime overflow from L2 (R_L2), begin CE ..."
+                     b% CE_flag = .true.
 
                      return
                   end if
@@ -1633,8 +1632,8 @@
                      !extras_binary_finish_step = terminate
                      !write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
                      
-                     write(*,'(g0)') "reached regime overflow from L2 (D_L2) distance"
-                     !b% CE_flag = .true.
+                     write(*,'(g0)') "reached regime overflow from L2 (D_L2) distance, begin CE ..."
+                     b% CE_flag = .true.
 
                      return
                   end if
