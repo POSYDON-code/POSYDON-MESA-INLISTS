@@ -1513,10 +1513,11 @@
          end if
 
          !check if mass transfer rate reached maximun, assume unstable regime if it happens
-          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then       ! continue to CE     
-            write(*,'(g0)') "reached unstable regime maximum mass transfer, CE begins..." ! taken care of in inlist max_implicit_abs_mdot
+         !i think this technically does nothing because binary_evolve starts CE when mtransfer_rate == max_implicit_abs_mdot
+          if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then      
             
             if (.not. b% CE_flag) then
+               write(*,'(g0)') "reached unstable regime maximum mass transfer, CE begins..." ! taken care of in inlist max_implicit_abs_mdot
                b% CE_flag = .true.
             end if 
 

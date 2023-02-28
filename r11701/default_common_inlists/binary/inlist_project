@@ -67,4 +67,22 @@
    sync_type_1 = "structure_dependent"
    sync_type_2 = "structure_dependent"
 
+   ! CE 
+   CE_alpha = 1d0
+   CE_alpha_th = 1d0
+   CE_alpha_core = 0d0
+   CE_mass_loss_rate_high = 1d-1
+   CE_mass_loss_rate_low = 1d-6
+   CE_rel_rlo_for_detachment = 0.02d0
+   CE_years_detached_to_terminate = 1d-1
+   CE_begin_at_max_implicit_abs_mdot = .true.
+   CE_xa_diff_to_terminate = 0.01d0
+   CE_terminate_when_core_overflows = .true.
+   CE_min_period_in_minutes = 5d0
+   CE_energy_factor_HII_toHI = 1d0
+   CE_energy_factor_HeII_toHeI = 1d0
+   CE_energy_factor_HeIII_toHeII = 1d0
+   CE_energy_factor_H2 = 0d0
+   CE_fixed_lambda = -1d0
+
 / ! end of binary_controls namelist
