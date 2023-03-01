@@ -1516,13 +1516,11 @@
          !i think this technically does nothing because binary_evolve starts CE when mtransfer_rate == max_implicit_abs_mdot
           if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then      
             
-            if (.not. b% CE_flag) then
+            if (.not. b% CE_flag) then ! turn CE only once
                write(*,'(g0)') "reached unstable regime maximum mass transfer, CE begins..." ! taken care of in inlist max_implicit_abs_mdot
                b% CE_flag = .true.
             end if 
 
-            ! extras_binary_finish_step = terminate                    !stop when larger than 0.1 Msun/yr
-            ! write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
          end if
 
          ! check trapping radius only for runs with a compact object
@@ -1534,8 +1532,12 @@
 
            !check if mass transfer rate reached maximun, assume unstable regime if it happens
             if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
-            write(*,'(g0)') "reached unstable regime trapping radius, CE begins..."
-            b% CE_flag = .true.
+            
+
+            if (.not. b% CE_flag) then ! turn CE only once
+               write(*,'(g0)') "reached unstable regime trapping radius, CE begins..." 
+               b% CE_flag = .true.
+            end if 
 
             !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then !already commented out !stop when larger than 0.1 Msun/yr
               !extras_binary_finish_step = terminate
@@ -1623,8 +1625,11 @@
                      !extras_binary_finish_step = terminate
                      !write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
 
-                     write(*,'(g0)') "reached regime overflow from L2 (R_L2), begin CE ..."
-                     b% CE_flag = .true.
+                     
+                     if (.not. b% CE_flag) then ! turn CE only once
+                        write(*,'(g0)') "reached regime overflow from L2 (R_L2) surface, begin CE ..."
+                        b% CE_flag = .true.
+                     end if 
 
                      return
                   end if
@@ -1632,9 +1637,10 @@
                      !extras_binary_finish_step = terminate
                      !write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
                      
-                     write(*,'(g0)') "reached regime overflow from L2 (D_L2) distance, begin CE ..."
-                     b% CE_flag = .true.
-
+                     if (.not. b% CE_flag) then ! turn CE only once
+                        write(*,'(g0)') "reached regime overflow from L2 (D_L2) distance, begin CE ..."
+                        b% CE_flag = .true.
+                     end if 
                      return
                   end if
 
