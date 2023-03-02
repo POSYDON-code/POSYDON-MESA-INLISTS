@@ -23,7 +23,7 @@
 
    append_to_star_history = .false.
    history_interval = 1
-   terminal_interval = 10
+   terminal_interval = 1
    write_header_frequency = 100
 
    ! timestep controls
@@ -84,5 +84,8 @@
    CE_energy_factor_HeIII_toHeII = 1d0
    CE_energy_factor_H2 = 0d0
    CE_fixed_lambda = -1d0
+
+   use_other_CE_binary_finish_step = .true.
+   use_other_CE_init = .true.
 
 / ! end of binary_controls namelist
