@@ -1470,6 +1470,8 @@
           b% do_j_accretion = .true.
        end if
 
+       write(*,*) 'CE_flag = ', b% CE_flag, b% CE_init
+
       end function extras_binary_check_model
 
       ! returns either keep_going or terminate.
