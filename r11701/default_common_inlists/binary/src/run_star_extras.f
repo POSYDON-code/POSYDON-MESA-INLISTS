@@ -868,6 +868,7 @@ contains
     type (star_info), pointer :: s
     logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest
     character (len=strlen) :: photoname, stuff
+    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -976,6 +977,27 @@ contains
          s% termination_code = t_xtra2
          extras_finish_step = terminate
       endif
+      ! check for termination due to pair-instability
+      ! calculate volumetric pressure-weighted average adiabatic index -4/3, following Renzo et al. 2020
+      integral_norm = 0.0d0
+      gamma1_integral = 0.0d0
+      do i=1,s% nz
+         Pdm_over_rho = s% P(i)*s% dm(i)/s% rho(i)
+         integral_norm = integral_norm + Pdm_over_rho
+         gamma1_integral = gamma1_integral + &
+            (s% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
+      end do
+      gamma1_integral = gamma1_integral/max(1.0d-99,integral_norm)
+      if (gamma1_integral < 0.0d0) then
+         ! check central value of adiabatic index to differentiate between full and pulsational pair-instability
+         if (s% gamma1(s% nz)-4.0d0/3.0d0 < 0.0d0) then
+            write(*,'(g0)') "termination code: Single star enters pair-instability regime, terminating from run_star_extras"
+            extras_finish_step = terminate
+         else
+            write(*,'(g0)') "termination code: Single star enters pulsational pair-instability regime, term. from run_star_extras"
+            extras_finish_step = terminate
+         end if
+      end if
     endif
 
     ! check DIFFUSION: to determine whether or not diffusion should happen
