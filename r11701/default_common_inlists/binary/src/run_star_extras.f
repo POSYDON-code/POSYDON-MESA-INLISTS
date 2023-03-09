@@ -858,8 +858,8 @@ contains
   integer function extras_finish_step(id, id_extra)
     use atm_lib, only: atm_option, atm_option_str
     use kap_def, only: kap_lowT_option, lowT_AESOPUS
-    use star_utils, only: total_angular_momentum
-    use hydro_rotation, only: use_xh_to_update_i_rot_and_j_rot, set_rotation_info
+    !use star_utils, only: total_angular_momentum
+    !use hydro_rotation, only: use_xh_to_update_i_rot_and_j_rot, set_rotation_info
     
     integer, intent(in) :: id, id_extra
     integer :: ierr, i, k, nz
@@ -1012,9 +1012,9 @@ contains
           m = m + dm
           if (m >= 0.1d0*Msun) exit
        end do
-       call use_xh_to_update_i_rot_and_j_rot(s)
-       call set_rotation_info(s, ierr)
-       s% total_angular_momentum = total_angular_momentum(s)
+       !call use_xh_to_update_i_rot_and_j_rot(s)
+       !call set_rotation_info(s, ierr)
+       !s% total_angular_momentum = total_angular_momentum(s)
     end if
   end function extras_finish_step
 
