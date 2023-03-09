@@ -93,8 +93,10 @@
              (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
 	     
-         !under simplified model, mass lost from accretor also take away the spin AM    
-         b% jdot_ml = b% jdot_ml + b% s_accretor% j_rot(1) * b% mdot_system_transfer(b% a_i)
+         !under simplified model, mass lost from accretor also take away the spin AM
+	 if(b% s_accretor% x_logical_ctrl(5))then
+            b% jdot_ml = b% jdot_ml + b% s_accretor% j_rot(1) * b% mdot_system_transfer(b% a_i)
+	 end if
 	 
          !mass lost from circumbinary coplanar toroid
          b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
