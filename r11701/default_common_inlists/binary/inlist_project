@@ -53,6 +53,7 @@
 
    use_other_rlo_mdot = .true. ! to be used for reverse MT with postMS evolution of one star, with Kolb scheme.
    keep_donor_fixed = .false. ! for Kolb this does not work, so we used the use_other_rlo_mdot above
+   use_other_jdot_ml = .true. ! if simplified model is deactivated, it does not make a difference
 
    do_tidal_sync = .true. ! tides are on
    do_initial_orbit_sync_1 = .true. ! equal initial orbital and stellar spin period
