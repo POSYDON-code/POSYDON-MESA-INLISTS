@@ -66,7 +66,40 @@
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
 	  b% other_rlo_mdot => my_rlo_mdot
+	  b% other_jdot_ml => my_jdot_ml
       end subroutine extras_binary_controls
+
+      subroutine my_jdot_ml(binary_id, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         real(dp) j_rot
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         b% jdot_missing_wind = 0
+         if (b% point_mass_i /= 0) return
+
+         
+         !mass lost from vicinity of donor
+         b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
+             (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+         !mass lost from vicinity of accretor
+         b% jdot_ml = b% jdot_ml + (b% mdot_system_transfer(b% a_i) + b% mdot_system_wind(b% a_i))*&
+             (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+	     
+         !under simplified model, mass lost from accretor also take away the spin AM    
+         b% jdot_ml = b% jdot_ml + b% s_accretor% j_rot(1) * b% mdot_system_transfer(b% a_i)
+	 
+         !mass lost from circumbinary coplanar toroid
+         b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
+             sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
+      end subroutine my_jdot_ml
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
@@ -1436,11 +1469,13 @@
 	 
 	 if (b% point_mass_i == 0) then
              if (b% s_accretor% x_logical_ctrl(4)) then
-                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
+                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0) then
 	            b% mass_transfer_beta = 1.0d0
                     b% s_accretor% max_wind = 1d-12
+		    b% s_accretor% x_logical_ctrl(5) = .true.
 	        end if
 	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
+		    b% s_accretor% x_logical_ctrl(5) = .false.
 	            b% mass_transfer_beta = 0d0
 	            b% s_accretor% max_wind = 0d0
 	        end if
