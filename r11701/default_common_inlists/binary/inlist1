@@ -75,8 +75,10 @@
       star_history_txt_format = '(a32, 1x)'
 
       star_history_name = 'history.data'
-      write_profiles_flag = .false.
-
+      write_profiles_flag = .true.
+      profile_interval = 10
+      max_num_profile_models = 1000
+      
       !WHEN TO STOP
       gamma_center_limit = 10d0 ! Crystallization begins ==> white dwarf
       logQ_limit = 58d0 ! Full extent of the EOS parameter space
