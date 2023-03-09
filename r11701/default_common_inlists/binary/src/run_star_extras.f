@@ -858,13 +858,17 @@ contains
   integer function extras_finish_step(id, id_extra)
     use atm_lib, only: atm_option, atm_option_str
     use kap_def, only: kap_lowT_option, lowT_AESOPUS
+    use star_utils, only: total_angular_momentum
+    use hydro_rotation, only: use_xh_to_update_i_rot_and_j_rot, set_rotation_info
+    
     integer, intent(in) :: id, id_extra
-    integer :: ierr, i
+    integer :: ierr, i, k, nz
     real(dp) :: envelope_mass_fraction, L_He, L_tot, min_center_h1_for_diff, &
          critmass, feh, rot_full_off, rot_full_on, frac2
     real(dp), parameter :: huge_dt_limit = 3.15d16 ! ~1 Gyr
     real(dp), parameter :: new_varcontrol_target = 1d-3
     real(dp), parameter :: Zsol = 0.0142_dp
+    real(dp) :: dm, rmid, m
     type (star_info), pointer :: s
     logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest
     character (len=strlen) :: photoname, stuff
@@ -997,6 +1001,20 @@ contains
        !s% termination_code = t_xtra2
        !extras_finish_step = terminate
        write(*,'(g0)') 'Reached TPAGB'
+    end if
+    
+    if(s% x_logical_ctrl(5))then
+       nz = s% nz
+       m=0
+       do k=1,nz
+          dm = s% dm(k)
+          s% omega(k) = 0.97d0 * s% omega_crit_avg_surf
+          m = m + dm
+          if (m >= 0.1d0*Msun) exit
+       end do
+       call use_xh_to_update_i_rot_and_j_rot(s)
+       call set_rotation_info(s, ierr)
+       s% total_angular_momentum = total_angular_momentum(s)
     end if
   end function extras_finish_step
 
