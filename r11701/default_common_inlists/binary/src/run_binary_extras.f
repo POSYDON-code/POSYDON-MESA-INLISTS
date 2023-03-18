@@ -67,8 +67,64 @@
          b% other_mdot_edd => my_mdot_edd
          b% other_rlo_mdot => my_rlo_mdot
          b% other_jdot_mb => mb_torque_selector
+         b% other_jdot_ls => my_jdot_ls
 
       end subroutine extras_binary_controls
+
+      subroutine my_jdot_ls(binary_id, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         real(dp) :: delta_J, MOI
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         b% jdot_ls = 0
+         ! ignore in first step, or if not doing rotation
+         if (b% doing_first_model_of_run) &
+            return
+         ! bulk change in spin angular momentum takes tides into account
+         delta_J = b% s_donor% total_angular_momentum_old - &
+             b% s_donor% total_angular_momentum
+         ! ignore angular momentum lost through winds
+         if (b% s_donor% mstar_dot < 0) &
+            delta_J = delta_J - b% s_donor% angular_momentum_removed * &
+               abs(b% mdot_system_wind(b% d_i) / b% s_donor% mstar_dot)
+         ! Ignore angular momentum lost through magnetic braking
+         if (b% s_donor% extra_omegadot(1) < 0) then
+            MOI = dot_product(b% s_donor% dm_bar(1:b% s_donor% nz), &
+                              b% s_donor% i_rot(1:b% s_donor% nz))
+            delta_J = delta_J + (b% s_donor% extra_omegadot(1) * MOI) &
+                                * b% s_donor% dt
+         end if
+         b% jdot_ls = b% jdot_ls + delta_J
+
+         ! Repeat for accretor
+         if (b% point_mass_i == 0) then
+            delta_J = b% s_accretor% total_angular_momentum_old - &
+               b% s_accretor% total_angular_momentum
+            if (b% s_accretor% mstar_dot < 0) then
+               ! all AM lost via wind from the accretor is lost from the system
+               delta_J = delta_J - b% s_accretor% angular_momentum_removed
+            end if
+            ! Ignore angular momentum lost through magnetic braking
+            if (b% s_accretor% extra_omegadot(1) < 0) then
+               MOI = dot_product(b% s_accretor% dm_bar(1:b% s_accretor% nz), &
+                                 b% s_accretor% i_rot(1:b% s_accretor% nz))
+               delta_J = delta_J + (b% s_accretor% extra_omegadot(1) * MOI) &
+                                   * b% s_accretor% dt
+            end if
+            b% jdot_ls = b% jdot_ls + delta_J
+         else if (b% model_twins_flag) then
+            b% jdot_ls = b% jdot_ls + b% jdot_ls
+         end if
+
+         b% jdot_ls = b% jdot_ls / b% s_donor% dt
+
+      end subroutine my_jdot_ls
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
