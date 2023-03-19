@@ -1475,8 +1475,10 @@
 	            b% mass_transfer_beta = 1.0d0
                     b% s_accretor% max_wind = 1d-12
 		    b% s_accretor% x_logical_ctrl(5) = .true.
+		    b% s_accretor% use_other_torque = .true.
 	        end if
 	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
+		    b% s_accretor% use_other_torque = .false.
 		    b% s_accretor% x_logical_ctrl(5) = .false.
 	            b% mass_transfer_beta = 0d0
 	            b% s_accretor% max_wind = 0d0
