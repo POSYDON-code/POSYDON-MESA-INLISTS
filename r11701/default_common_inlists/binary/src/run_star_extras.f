@@ -52,6 +52,7 @@ contains
     !s% other_mlt => my_other_mlt
     s% other_am_mixing => TSF
     s% other_wind => other_set_mdot
+    s% other_torque => default_other_torque
 
     s% extras_startup => extras_startup
     s% extras_check_model => extras_check_model
@@ -117,7 +118,29 @@ contains
     s% overshoot_f0_above_burn_z_core  = 8.0d-3
 
   end function extras_startup
-
+  
+  subroutine default_other_torque(id, ierr)
+     integer, intent(in) :: id
+     integer, intent(out) :: ierr
+     type (star_info), pointer :: s
+     integer :: k, nz, k_below_just_added
+     real(dp) :: dt, delta_m, old_mstar, old_xmstar, new_mstar,new_xmstar,q_for_just_added,&
+                 gamma_factor, omega_crit, Lrad_div_Ledd, m, dm
+     ierr = 0
+     call star_ptr(id, s, ierr)
+     if (ierr /= 0) return
+     nz = s% nz
+     dt = s% dt
+     m=0
+     do k=1,nz
+        dm=s% dm(k)     
+        s% extra_omegadot(k) =(0.97*s% omega_crit_avg_surf  - s% omega(k))/dt
+        !s% extra_omegadot(k) =(s% x_ctrl(5)  - s% omega(k))/dt
+        m=m+dm
+        if (m >= 0.01d0*Msun) exit
+     end do
+  end subroutine default_other_torque
+  
   function f_ov_fcn_of_mass(m) result(f_ov)
     real(dp), intent(in) :: m
     real(dp) :: f_ov, frac
@@ -1006,12 +1029,12 @@ contains
     if(s% x_logical_ctrl(5))then
        nz = s% nz
        m=0
-       do k=1,nz
-          dm = s% dm(k)
-          s% omega(k) = 0.97d0 * s% omega_crit_avg_surf
-          m = m + dm
-          if (m >= 0.1d0*Msun) exit
-       end do
+       !do k=1,nz
+       !   dm = s% dm(k)
+       !   s% omega(k) = 0.97d0 * s% omega_crit_avg_surf
+       !   m = m + dm
+       !   if (m >= 0.1d0*Msun) exit
+       !end do
        !call use_xh_to_update_i_rot_and_j_rot(s)
        !call set_rotation_info(s, ierr)
        !s% total_angular_momentum = total_angular_momentum(s)
