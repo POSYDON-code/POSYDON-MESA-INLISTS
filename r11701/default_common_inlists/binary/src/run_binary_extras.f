@@ -95,7 +95,7 @@
 	     
          !under simplified model, mass lost from accretor also take away the spin AM
 	 if(b% s_accretor% x_logical_ctrl(5))then
-            b% jdot_ml = b% jdot_ml + b% s_accretor% j_rot(1) * b% mdot_system_transfer(b% a_i)
+            b% jdot_ml = b% jdot_ml + b% s_accretor% x_ctrl(6) * b% mdot_system_transfer(b% a_i)
 	 end if
 	 
          !mass lost from circumbinary coplanar toroid
@@ -1476,6 +1476,8 @@
                     b% s_accretor% max_wind = 1d-12
 		    b% s_accretor% x_logical_ctrl(5) = .true.
 		    b% s_accretor% use_other_torque = .true.
+		    b% s_accretor% x_ctrl(5) = b% s_accretor% omega(1)
+	            b% s_accretor% x_ctrl(6) = b% s_accretor% j_rot(1)
 	        end if
 	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
 		    b% s_accretor% use_other_torque = .false.
