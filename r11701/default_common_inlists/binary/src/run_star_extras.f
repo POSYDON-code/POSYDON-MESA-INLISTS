@@ -134,10 +134,10 @@ contains
      m=0
      do k=1,nz
         dm=s% dm(k)     
-        s% extra_omegadot(k) =(0.97*s% omega_crit_avg_surf  - s% omega(k))/dt
-        !s% extra_omegadot(k) =(s% x_ctrl(5)  - s% omega(k))/dt
+        !s% extra_omegadot(k) =(0.97*s% omega_crit_avg_surf  - s% omega(k))/dt
+        s% extra_omegadot(k) =(s% x_ctrl(5)  - s% omega(k))/dt
         m=m+dm
-        if (m >= 0.01d0*Msun) exit
+        if (m >= 0.1d0*Msun) exit
      end do
   end subroutine default_other_torque
   
