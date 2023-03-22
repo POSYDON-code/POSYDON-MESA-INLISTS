@@ -32,9 +32,9 @@
       use utils_lib
 
       implicit none
-
+      
       contains
-
+      
       subroutine extras_binary_controls(binary_id, ierr)
          integer :: binary_id
          integer, intent(out) :: ierr
@@ -1471,13 +1471,16 @@
 	 
 	 if (b% point_mass_i == 0) then
              if (b% s_accretor% x_logical_ctrl(4)) then
-                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0) then
-	            b% mass_transfer_beta = 1.0d0
-                    b% s_accretor% max_wind = 1d-12
-		    b% s_accretor% x_logical_ctrl(5) = .true.
-		    b% s_accretor% use_other_torque = .true.
-		    b% s_accretor% x_ctrl(5) = b% s_accretor% omega(1)
-	            b% s_accretor% x_ctrl(6) = b% s_accretor% j_rot(1)
+	        if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0) then
+	            b% s_accretor% x_ctrl(7) = b% s_accretor% x_ctrl(7) + 1
+		    if (b% s_accretor% x_ctrl(7) == 3) then
+		        b% mass_transfer_beta = 1.0d0
+                        b% s_accretor% max_wind = 1d-12
+		        b% s_accretor% x_logical_ctrl(5) = .true.
+		        b% s_accretor% use_other_torque = .true.
+		        b% s_accretor% x_ctrl(5) = b% s_accretor% omega(1)
+	                b% s_accretor% x_ctrl(6) = b% s_accretor% j_rot(1)
+		    end if
 	        end if
 	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
 		    b% s_accretor% use_other_torque = .false.
