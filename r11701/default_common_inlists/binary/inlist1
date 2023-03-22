@@ -258,6 +258,7 @@ delta_HR_ds_L = 0.125d0
       x_logical_ctrl(4) = .false.
       ! initiate simplifed model
       x_logical_ctrl(5) = .false.
+      x_ctrl(7) = 0
 
 
 / ! end of controls namelist
