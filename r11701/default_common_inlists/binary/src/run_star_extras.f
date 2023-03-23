@@ -1029,18 +1029,27 @@ contains
     if(s% x_logical_ctrl(5))then
        nz = s% nz
        m=0
-       !do k=1,nz
-       !   dm = s% dm(k)
-       !   s% omega(k) = 0.97d0 * s% omega_crit_avg_surf
-       !   m = m + dm
-       !   if (m >= 0.1d0*Msun) exit
-       !end do
+       do k=1,nz
+          dm = s% dm(k)
+          s% omega(k) = 0.97d0 * s% omega_crit_avg_surf
+          m = m + dm
+          if (m >= 0.01d0*Msun) exit
+       end do
        !call use_xh_to_update_i_rot_and_j_rot(s)
        !call set_rotation_info(s, ierr)
-       !s% total_angular_momentum = total_angular_momentum(s)
+       s% total_angular_momentum = total_angular_momentum(s)
     end if
   end function extras_finish_step
-
+  
+  real(dp) function total_angular_momentum(s) result(J)
+         type (star_info), pointer :: s
+         include 'formats'
+         if (.not. s% rotation_flag) then
+            J = 0
+         else
+            J = dot_product(s% dm_bar(1:s% nz), s% j_rot(1:s% nz))
+         end if
+   end function total_angular_momentum
 
   subroutine extras_after_evolve(id, id_extra, ierr)
     integer, intent(in) :: id, id_extra
