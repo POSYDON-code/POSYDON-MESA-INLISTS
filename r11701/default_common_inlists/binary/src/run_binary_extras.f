@@ -66,6 +66,7 @@
          b% other_tsync => my_tsync
          b% other_mdot_edd => my_mdot_edd
          b% other_rlo_mdot => my_rlo_mdot
+         
          b% other_jdot_mb => mb_torque_selector
          b% other_jdot_ls => my_jdot_ls
 
@@ -294,6 +295,7 @@
           real(dp), dimension(nz) :: j_sync, delta_j
           real(dp) :: t_sync, m, r_phot, omega_orb
           real(dp) :: a1,a2
+          real(dp) :: omegadot_mb, dj_mb_k
 
           include 'formats'
           ierr = 0
@@ -358,7 +360,11 @@
           ! Tides apply in all layers
           ! write(*,*) 'applying tides in all layers'
           do k=1,nz
-              delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*(s% j_rot(k) - a1/a2*j_sync(k))
+              ! correct for spin down due to magnetic braking:
+              omegadot_mb = s% extra_omegadot(k)
+              dj_mb_k = s% extra_omegadot(k) * s% i_rot(k) * dt_next
+              delta_j(k) = (1d0 - exp_cr(-a2*dt_next/t_sync))*&
+                           ((s% j_rot(k) + dj_mb_k) - a1/a2*j_sync(k)) 
           end do
 
 
@@ -1152,7 +1158,7 @@
          dJdt = 0d0
  
          ! turn on Garraffo+ 2018 style braking?
-         if (b% s1% x_ctrl(3) == 1) then
+         if (b% s1% x_character_ctrl(1) == 'g18') then
            if (b% model_number == 0) then
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
              write(*,*) 'Garraffo+ 2016/18 torque enabled (star 1)', b% d_i
@@ -1177,7 +1183,7 @@
            end if
  
          ! turn on Matt+ 2015 style braking?
-         else if (b% s1% x_ctrl(3) == 2) then
+         else if (b% s1% x_character_ctrl(1) == 'm15') then
            if (b% model_number == 0) then
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
              write(*,*) 'Matt+ 2015 torque enabled (star 1)'
@@ -1201,7 +1207,7 @@
            end if
          
          ! turn on Van & Ivanova 2019 (CARB) style braking?
-         else if (b% s1% x_ctrl(3) == 3) then
+         else if (b% s1% x_character_ctrl(1) == 'carb') then
            if (b% model_number == 0) then
              write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
              write(*,*) 'Van & Ivanova 2019 (CARB) torque enabled (star 1)'
