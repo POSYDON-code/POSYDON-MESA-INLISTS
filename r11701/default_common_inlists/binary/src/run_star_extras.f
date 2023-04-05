@@ -39,6 +39,8 @@ module run_star_extras
   logical :: pre_WD_check = .false.
   real(dp) :: current_wind_prscr = -1d0
 
+  real(dp) :: t_spindown
+
 contains
 
   subroutine extras_controls(id, ierr)
@@ -1147,7 +1149,7 @@ contains
 
    real(dp) :: Prot, Ro, Rosol, Rosat, K_const, m, p, u, gamma, dJdt, &
                  tau_convective, mixing_length_at_bcz, MOI, Om, rsol, &
-                 msol, omega_sol, tau_cz_sol, chi, T0, t_spindown
+                 msol, omega_sol, tau_cz_sol, chi, T0
 
    ierr = 0
    call star_ptr(id, s, ierr)
