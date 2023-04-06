@@ -133,8 +133,11 @@
                  end if
                  t_sync = 1d0/t_sync
                  !write(*,*) 'Hut_rad ', t_sync
-         else if (sync_type == "structure_dependent") then !  Calculates both timescales from "Hut_rad" and "Hut_conv" and picks the shortest
+         else if (sync_type == "structure_dependent") then !  Checks if the core is radiative or not and uses equation from Hut_con or Hut_rad respectively (Hut word refers to the envelope status)
+                  !sync_type .eq. "Hut_conv"!Convective envelope + Radiative core
+                  ! eq. (11) of Hut, P. 1981, A&A, 99, 126
                   one_div_t_sync_conv = 3.0d0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+                  !one_div_t_sync_conv2 = 3.0d0*k_div_T_posydon(b, s,2)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   one_div_t_sync_rad = 3.0d0*k_div_T_posydon(b, s, .false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
                   !write(*,*) 'star id', s% id
                   if (b% point_mass_i /= 1 .and. b% s1% id == s% id) then
@@ -151,7 +154,7 @@
                   !write(*,*) 'two 1/timescales ', one_div_t_sync_conv , one_div_t_sync_rad
                   !write(*,*) 'two timescales ', b% s1% ixtra1, b% s1% ixtra2
                   one_div_t_sync = MAX(one_div_t_sync_conv,one_div_t_sync_rad)
-                  !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad ! if we want to combine them
+                  !one_div_t_sync = one_div_t_sync_conv1 + one_div_t_sync_conv2 + one_div_t_sync_rad
                   t_sync = 1d0/one_div_t_sync
                   !write(*,*) 't_tides in years', t_sync / secyer
          else if (sync_type == "Orb_period") then ! sync on timescale of orbital period
@@ -276,7 +279,7 @@
           a1 = f2(b% eccentricity)
           a2 = pow_cr(1-pow2(b% eccentricity), 1.5d0)*f5(b% eccentricity)
 
-          ! Option for tides to apply only to the envelope. (Qin et al. 2018 implementation)
+          ! Tides apply only to the envelope. (Qin et al. 2018 implementation)
           !if (.not. b% have_radiative_core(id)) then ! convective core
           !    !write(*,*) 'applying tides only in radiative envelope'
           !    do k=1,nz
@@ -447,9 +450,9 @@
                 E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot,7.5_dp)! H-rich stars
              !write(*,*) E2, s% r(i)
              end if
-             if (isnan(E2)) then  !maybe this won't be used.
-                 k_div_T = 1d-20
-             else
+             if (isnan(E2)) then
+	        k_div_T = 1d-20
+	     else
                 k_div_T = sqrt(standard_cgrav*m*r_phot*r_phot/pow5(osep)/(Msun/pow3(Rsun)))
                 k_div_T = k_div_T*pow_cr(1d0+qratio,5d0/6d0)
                 k_div_T = k_div_T * E2
@@ -596,7 +599,20 @@
 
           if (conv_layer_calculation) then
             m_conv_core = mass_conv_core(s)
-            ! In POSYDON the calculation is done for the most important convective layer, found below
+            !write(*,'(g0)') 'm_conv_core', m_conv_core
+            !write(*,'(g0)') "s% nz, s% n_conv_regions, s% num_conv_boundaries", s% nz, s% n_conv_regions, s% num_conv_boundaries
+            !do k_boundary = 1, s% num_conv_boundaries
+            !   write(*,'(g0)') "k_boundary, s% conv_bdy_loc(k_boundary), s% top_conv_bdy(k_boundary)", &
+            !   k_boundary, s% conv_bdy_loc(k_boundary), s% top_conv_bdy(k_boundary)
+            !end do
+            !do k=1, s% n_conv_regions
+            !   top_k = 2 * s% n_conv_regions -2*(k-1)
+            !   bot_k = 2 * s% n_conv_regions -2*(k-1) -1
+            !   write(*,'(g0)') "trying with k in n_conv_regions", k, top_k, &
+            !   s% top_conv_bdy(top_k),s% r(s% conv_bdy_loc(top_k))/Rsun,&
+            !   bot_k, &
+            !   s% top_conv_bdy(bot_k), s% r(s% conv_bdy_loc(bot_k))/ Rsun
+            !end do
             n_zones_of_region(:)=0
             bot_bdy(:)=0
             top_bdy(:)=0
@@ -616,10 +632,10 @@
                 Renv_middle = 0.0d0
                 if ((cz_bot_mass_posydon(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
                     m_env = (cz_top_mass_posydon(k) - cz_bot_mass_posydon(k)) / Msun
-                    Dr_env = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k)  ! depth of the convective layer, length of the eddie
+                    Dr_env = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k)  !depth of the convective layer, length of the eddie
                     ! Corresponding to the Renv term in eq.31 of Hurley et al. 2002
                     ! and to (R-Renv) term in eq. 4 of Rasio et al. 1996  (different notation)
-                    Renv_middle = (cz_top_radius_posydon(k) + cz_bot_radius_posydon(k) )*0.5d0  ! middle of the convective layer
+                    Renv_middle = (cz_top_radius_posydon(k) + cz_bot_radius_posydon(k) )*0.5d0  !middle of the convective layer
                     ! Corresponding to the (R-0.5d0*Renv) in eq.31 of Hurley et al 2002
                     ! and to the Renv in eq. 4 of Rasio et al. 1996
                     ! where it represented the base of the convective layer (different notation)
@@ -652,7 +668,7 @@
 	     	E2 = 1d-99
 	     else
 	     	h1 = s% net_iso(ih1)
-		    Xs = s% xa(h1,1)
+		Xs = s% xa(h1,1)
 	     	! E2 is different for H-rich and He stars (Qin et al. 2018)
 	     	if (Xs < 0.4d0) then ! HeStar
 		    E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot, 6.7_dp)! HeStars
@@ -662,8 +678,8 @@
 	     	end if
 	     end if
 
-             if (isnan(E2)) then  !maybe this won't be used.
-                 k_div_T_posydon = 1d-99
+             if (isnan(E2)) then
+                k_div_T_posydon = 1d-99
              else
                 k_div_T_posydon = sqrt(standard_cgrav*m*r_phot*r_phot/pow5(osep)/(Msun/pow3(Rsun)))
                 k_div_T_posydon = k_div_T_posydon*pow_cr(1d0+qratio,5d0/6d0)
@@ -983,8 +999,8 @@
          p = b% s_donor% p(1) ! pressure at surface in dynes/cm^2
          grav = b% s_donor% cgrav(1)*b% m(b% d_i)/(b% r(b% d_i))**2 ! local gravitational acceleration
          hp = p/(grav*rho) ! pressure scale height
-         v_th = sqrt(kerg * b% s_donor% T(1) / (mp * b% s_donor% mu(1))) ! kerg = Boltzmann's constant
-         ! phase dependant RL radius
+         v_th = sqrt(kerg * b% s_donor% T(1) / (mp * b% s_donor% mu(1)))
+	 
          rl_d = b% rl(b% d_i) * (1d0 - b% eccentricity**2) / &
                 (1 + b% eccentricity * cos(b% theta_co) )
          q = b% m(b% a_i)/b% m(b% d_i) ! Mass ratio, as defined in Ritter 1988
@@ -1077,8 +1093,13 @@
          integer, intent(out) :: ierr
          integer:: i_don, i_acc
          real(dp) :: beta, trap_rad, mdot_edd, accretor_radius
+         !read(dp) :: t_sync_rad_1, t_sync_conv_1, t_sync_rad21, t_sync_conv_2
 
           ierr = 0
+          !t_sync_rad_1 = 0.0
+          !t_sync_conv_2 = 0.0
+          !t_sync_rad_1 = 0.
+          !t_sync_conv_2 = 0.0
 
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
@@ -1100,6 +1121,13 @@
          names(2) = 'acc_radius'
          vals(2) = accretor_radius ! in cm units
 
+       !if (b% point_mass_i /= 1) then
+       !   moment_of_inertia = dot_product(s% i_rot(:s% nz), s% dm_bar(:s%nz))
+       !   rGyr_squared = (moment_of_inertia/(m*r_phot*r_phot))
+       !   t_sync_rad_1 = 3.0*k_div_T_posydon(b, s, .false.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+       !   t_sync_conv_1 = 3.0*k_div_T_posydon(b, s, .true.)*(qratio*qratio/rGyr_squared)*pow6(r_phot/osep)
+       !else
+       !   t_sync_rad_1 = nan
         names(3) = 't_sync_rad_1'
         names(4) = 't_sync_conv_1'
         names(5) = 't_sync_rad_2'
@@ -1159,7 +1187,7 @@
             return
          end if
          extras_binary_check_model = keep_going
-       
+
 
        if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
          .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
@@ -1174,7 +1202,7 @@
           b% do_jdot_ml = .true.
           b% do_jdot_ls = .true.
           b% do_jdot_missing_wind = .true.
-          b% do_j_accretion = .true.
+          b% do_j_accretion = .true. !MANOS MAR20
        end if
 
       end function extras_binary_check_model
@@ -1184,7 +1212,7 @@
       integer function extras_binary_finish_step(binary_id)
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
-         integer:: i_don, i_acc
+	 integer:: i_don, i_acc
 	 real(dp) :: r_l2, d_l2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
@@ -1288,7 +1316,7 @@
             end if
          end if
 
-         ! check for L2 overflow after ZAMS, but before TAMS as in Marchant et al. 2016
+         ! check for L2 overflow after ZAMS, but before TAMS
          if(.not. b% ignore_rlof_flag .and. extras_binary_finish_step /= terminate .and. (b% point_mass_i == 0)) then ! only when we evolve both stars in MS
             if (b% s1% center_h1 > 1d-6 .and. b% s2% center_h1 > 1d-6) then
                if (b% m(1) > b% m(2)) then
@@ -1304,10 +1332,8 @@
                end if
             end if
          end if
-         
-         
-         
-         if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
+	 
+	 if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
           if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
              i_don = 1
              i_acc = 2
@@ -1382,9 +1408,6 @@
                end if
           end if
        end if
-       
-       
-       
          if (extras_binary_finish_step == terminate) then
             !write(*,*) "saving final profilesA"
             !call star_write_profile_info(b% s1% id, "LOGS1/prof_9FINAL.data", b% s1% id, ierr)
@@ -1433,20 +1456,6 @@
                if (ierr /= 0) return ! failure
             end if
          end if
-	 
-	 if (b% point_mass_i == 0) then
-             if (b% s_accretor% x_logical_ctrl(4)) then
-                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
-	            b% mass_transfer_beta = 1.0d0
-                    b% s_accretor% max_wind = 1d-12
-	        end if
-	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
-	            b% mass_transfer_beta = 0d0
-	            b% s_accretor% max_wind = 0d0
-	        end if
-             end if
-	 end if
-
       end function extras_binary_finish_step
 
       real(dp) function eval_rlobe(m1, m2, a) result(rlobe)
@@ -1469,7 +1478,7 @@
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) return
           !if (b% point_mass_i /= 1) then
-                 call star_write_profile_info(b% s1% id, "LOGS1/final_profile.data", b% s1% id, ierr)
+                 call star_write_profile_info(b% s1% id, "LOGS1/final_profile.data", b% s1% id, ierr) !MANOS: this should be checking if s1 is a point mass, but in minimum timestep cases, it is behaving like becoming a point mass.. So for now it is assuming it it is not a point mass, not sure if it works with compact object binaries.
           !end if
             if (ierr /= 0) return ! failure in profile
 
