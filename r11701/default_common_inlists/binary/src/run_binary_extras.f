@@ -1191,6 +1191,7 @@
             center_h1, center_h1_old, center_he4, center_he4_old, &
             rl23,rl2_1,trap_rad, mdot_edd
          logical :: is_ne_biggest
+         real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
          extras_binary_finish_step = keep_going
 
@@ -1383,6 +1384,58 @@
           end if
        end if
        
+         ! check for termination due to pair-instability in primary
+         if (b% point_mass_i /= 1) then
+            ! calculate volumetric pressure-weighted average adiabatic index -4/3, following Renzo et al. 2020
+            integral_norm = 0.0d0
+            gamma1_integral = 0.0d0
+            do i=1,b% s1% nz
+               Pdm_over_rho = b% s1% P(i)*b% s1% dm(i)/b% s1% rho(i)
+               integral_norm = integral_norm + Pdm_over_rho
+               gamma1_integral = gamma1_integral + &
+                  (b% s1% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
+            end do
+            gamma1_integral = gamma1_integral/max(1.0d-99,integral_norm)
+            if (gamma1_integral < 0.0d0) then
+               ! check central value of adiabatic index to differentiate between full and pulsational pair-instability
+               if (b% s1% gamma1(b% s1% nz)-4.0d0/3.0d0 < 0.0d0) then
+                  write(*,'(g0)') "termination code: Primary enters pair-instability regime"
+                  extras_binary_finish_step = terminate
+                  return
+               else
+                  write(*,'(g0)') "termination code: Primary enters pulsational pair-instability regime"
+                  extras_binary_finish_step = terminate
+                  return
+               end if
+            end if
+         end if
+
+         ! check for termination due to pair-instability in secondary
+         if (b% point_mass_i /= 2) then
+            ! calculate volumetric pressure-weighted average adiabatic index -4/3, following Renzo et al. 2020
+            integral_norm = 0.0d0
+            gamma1_integral = 0.0d0
+            do i=1,b% s2% nz
+               Pdm_over_rho = b% s2% P(i)*b% s2% dm(i)/b% s2% rho(i)
+               integral_norm = integral_norm + Pdm_over_rho
+               gamma1_integral = gamma1_integral + &
+                  (b% s2% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
+            end do
+            gamma1_integral = gamma1_integral/max(1.0d-99,integral_norm)
+            if (gamma1_integral < 0.0d0) then
+               ! check central value of adiabatic index to differentiate between full and pulsational pair-instability
+               if (b% s2% gamma1(b% s2% nz)-4.0d0/3.0d0 < 0.0d0) then
+                  write(*,'(g0)') "termination code: Secondary enters pair-instability regime"
+                  extras_binary_finish_step = terminate
+                  return
+               else
+                  write(*,'(g0)') "termination code: Secondary enters pulsational pair-instability regime"
+                  extras_binary_finish_step = terminate
+                  return
+               end if
+            end if
+         end if
+
        
        
          if (extras_binary_finish_step == terminate) then
