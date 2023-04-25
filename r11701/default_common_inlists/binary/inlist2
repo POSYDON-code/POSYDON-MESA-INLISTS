@@ -131,6 +131,7 @@
       max_rotational_mdot_boost = 1d99 ! DEF 1d4
       rotational_mdot_boost_fac = 1d99 ! DEF 1d5
       rotational_mdot_kh_fac = 1d99 ! DEF 0.3d0
+      max_mdot_jump_for_rotation = 1d99 ! DEF 2
 
       D_visc_factor = 0.0d0
       D_ST_factor = 0.0d0
