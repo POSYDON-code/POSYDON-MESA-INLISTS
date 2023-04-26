@@ -133,6 +133,10 @@
       rotational_mdot_kh_fac = 1d99 ! DEF 0.3d0
       max_mdot_jump_for_rotation = 1d99 ! DEF 2
 
+      min_abs_mdot_for_change_limits = 1d99 ! DEF in POSYDON 1d-14
+	    max_abs_mdot_factor = 1d99 ! 2
+	    min_abs_mdot_factor = 1d99 ! 0.5d0
+
       D_visc_factor = 0.0d0
       D_ST_factor = 0.0d0
       D_SH_factor = 0.0d0 !this is different from MIST2
