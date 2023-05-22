@@ -96,7 +96,7 @@ contains
     endif
 
 
-    if (s% star_mass <= 8.0d0) s% cool_wind_RGB_scheme ='Reimers'
+    if (s% star_mass <= 6.0d0) s% cool_wind_RGB_scheme ='Reimers'
 
     if(s% x_logical_ctrl(1)) then
           ! For single stars we allow to go beyong Hubble time,
@@ -1394,7 +1394,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     real(dp) :: max_ejection_mass, alfa, beta, &
          X, Y, Z, Zbase, Zsurf, w1, w2, T_high, T_low, L1, M1, R1, T1, &
          center_h1, center_he4, surface_h1, surface_he4, mdot, &
-         full_off, full_on, cool_wind, hot_wind, divisor
+         full_off, full_on, cool_wind, hot_wind, divisor, Zindex
     character (len=strlen) :: scheme
     logical :: using_wind_scheme_mdot
     real(dp), parameter :: Zsolar = 0.0142d0 ! for Vink et al formula
@@ -1403,13 +1403,13 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
     include 'formats'
 
-
-
     ierr = 0
     call star_ptr(id, s, ierr)
     if(ierr/=0) return
 
     Zbase = s% Zbase
+    Zindex = s% x_ctrl(2)  ! index for Z dependence of RSG "cold" winds
+
 
     L1 = L_phot
     M1 = M_phot
@@ -1442,6 +1442,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
        scheme = s% hot_wind_scheme
        call eval_wind_for_scheme(scheme,wind)
        if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
+
     !low-mass stars
     else
        if(T1 <= s% hot_wind_full_on_T)then
@@ -1459,9 +1460,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
           endif
           call eval_wind_for_scheme(scheme, cool_wind)
-       endif
-
-       if(T1 >= s% cool_wind_full_on_T)then
+       elseif(T1 >= s% cool_wind_full_on_T)then
           !evaluate hot wind
           scheme="Dutch"
           call eval_wind_for_scheme(scheme, hot_wind)
@@ -1493,7 +1492,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: wind
       include 'formats'
 
-      current_wind_prscr = 0d0
       wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
       if (dbg) write(*,1) 'wind', wind
       if (wind <= 0.0d0 .or. is_bad_num(wind)) then
@@ -1527,10 +1525,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if(dbg) write(*,1) 'Dutch_wind', wind
       else if (scheme == 'Reimers') then
          wind = wind * s% Reimers_scaling_factor
-         current_wind_prscr = 4d0
          if(dbg) write(*,1) 'Reimers_wind', wind
       else if (scheme == 'Vink') then
-         current_wind_prscr = 1d0
          call eval_Vink_wind(wind)
          wind = wind * s% Vink_scaling_factor
          if (dbg) write(*,1) 'Vink_wind', wind
@@ -1540,11 +1536,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if (dbg) write(*,1) 'Grafener_wind', wind
       else if (scheme == 'Blocker') then
          call eval_blocker_wind(wind)
-         current_wind_prscr = 5d0
          if (dbg) write(*,1) 'Blocker_wind', wind
       else if (scheme == 'de Jager') then
          call eval_de_Jager_wind(wind)
-         current_wind_prscr = 3d0
          wind = s% de_Jager_scaling_factor * wind
          if (dbg) write(*,1) 'de_Jager_wind', wind
       else if (scheme == 'van Loon') then
@@ -1564,9 +1558,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
       if(s% x_logical_ctrl(3)) then ! Belczynski+2010 LBV2 winds (eq. 8) with factor 1
         if ((s% center_h1 < 1.0d-4) ) then  ! postMS
-            if ((s% L(1)/Lsun > 6.0d5) .and. &
-              (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
-              current_wind_prscr = 6d0
+            if ((L1/Lsun > 6.0d5) .and. &
+              (1.0d-5 * R1/Rsun * pow_cr((L1/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
               wind  = 1.0d-4
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
             endif
@@ -1673,12 +1666,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
          w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
-        current_wind_prscr = 2d0
       else
          call eval_Vink_wind(w)
-         current_wind_prscr = 1d0
       end if
-
     end subroutine eval_highT_Dutch
 
 
@@ -1687,7 +1677,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       include 'formats'
       if (s% Dutch_wind_lowT_scheme == 'de Jager') then
          call eval_de_Jager_wind(w)
-         current_wind_prscr = 3d0
          if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
       else if (s% Dutch_wind_lowT_scheme == 'van Loon') then
          call eval_van_Loon_wind(w)
@@ -1695,6 +1684,15 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       else if (s% Dutch_wind_lowT_scheme == 'Nieuwenhuijzen') then
          call eval_Nieuwenhuijzen_wind(w)
          if (dbg) write(*,1) 'Dutch_wind = Nieuwenhuijzen', safe_log10_cr(wind), T1, T_low, T_high
+       else if (s% Dutch_wind_lowT_scheme == 'Beasor') then
+          call eval_Beasor_wind(w)
+          if (dbg) write(*,1) 'Dutch_wind = Beasor', safe_log10_cr(wind), T1, T_low, T_high
+      else if (s% Dutch_wind_lowT_scheme == 'Yang') then
+         call eval_Yang_wind(w)
+         if (dbg) write(*,1) 'Dutch_wind = Yang', safe_log10_cr(wind), T1, T_low, T_high
+       else if (s% Dutch_wind_lowT_scheme == 'Kee') then
+          call eval_Kee_wind(w)
+          if (dbg) write(*,1) 'Dutch_wind = Kee', safe_log10_cr(wind), T1, T_low, T_high
       else
          write(*,*) 'unknown value for Dutch_wind_lowT_scheme ' // &
               trim(s% Dutch_wind_lowT_scheme)
@@ -1708,22 +1706,91 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0
+
+      log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
       if (dbg) then
          write(*,1) 'de_Jager log10 wind', log10w
       end if
     end subroutine eval_de_Jager_wind
 
+    subroutine eval_Yang_wind(w)
+      ! Yang+2022 for SMC, only L dependent
+      real(dp), intent(out) :: w
+      real(dp) :: log10w, logw_highT, logw_lowT, alfa, T_high_yang, T_low_yang, T_transition
+      include 'formats'
+
+      real(dp), parameter :: Z_SMC = 0.2*Zsolar
+
+      ! Temperature of transition from de Jager to Yang+2022 winds (in a range +- 500K if that value)
+      T_transition = s% x_ctrl(1)
+      T_high_yang = T_transition+500d0
+      T_low_yang = T_transition-500d0
+      if  (T1 <= T_low_yang) then
+        log10w = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
+            + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 + Zindex*log10_cr(Z/Z_SMC)
+      else if (T1 >= T_high_yang) then
+          log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
+      else
+          logw_highT = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
+          logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
+             + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 + Zindex*log10_cr(Z/Z_SMC)
+          alfa = (T1 - T_low_yang)/(T_high_yang - T_low_yang)
+          log10w = (1-alfa)*logw_lowT + alfa*logw_highT
+      end if
+
+      w = exp10_cr(log10w)
+      if (dbg) then
+         write(*,1) 'Yang+2023 log10 wind', log10w
+      end if
+    end subroutine eval_Yang_wind
+
+    subroutine eval_Kee_wind(w)
+      ! Kee+2021 turbulent wind
+      ! metallicity independent
+      real(dp), intent(out) :: w
+      real(dp) :: gamma_edd, c_s, v_turb_cgs, R_park, rho_Rpark, &
+              Mdot_analyt, v_esc_kms, numerical_non_isothermal_factor
+      include 'formats'
+      real(dp), parameter :: kappa = 0.01 ! flux weighted mean opacity in cgs
+      real(dp), parameter :: v_turb = 18.2 ! in km/s
+
+      ! R = sqrt(L1/(4.0d0*pi*boltz_sigma*pow_cr(T1,4.0d0))
+      gamma_edd =  kappa*L1/(4.0d0*pi*standard_cgrav*M1*clight) ! in cgs
+      c_s =  sqrt(kerg*T1/mp) ! from Kee+2021
+      v_turb_cgs = v_turb * 10.0d5 !  in cgs
+      R_park = standard_cgrav*M1*(1.0d0-gamma_edd) / (2.0d0*(pow2(c_s) + pow2(v_turb_cgs))) ! eq. 5
+      rho_Rpark = 4.0d0/3.0d0  * R_park/(kappa*pow2(R1)) * &
+                exp_cr(-2.0d0*R_park/R1 + 3.d0/2.0d0) / (1.0d0-exp_cr(-2.0d0*R_park/R1)) ! eq. 14
+      Mdot_analyt = 4.0d0*pi*rho_Rpark * sqrt(pow2(c_s) + pow2(v_turb_cgs)) *  pow2(R_park) ! eq. 13
+      v_esc_kms = sqrt(2.0d0*standard_cgrav*M1/R1) / 1.0d5 ! in Km/s
+      numerical_non_isothermal_factor = pow_cr(((v_turb / 17.0d0)/ (v_esc_kms/60.0d0)),1.3d0) ! eq.25, velocities in Km/s
+      w = numerical_non_isothermal_factor * Mdot_analyt / (msol/secyer) ! metallicity independent
+
+      if (dbg) then
+         write(*,1) 'Kee+2021 log10 wind', log10_cr(w)
+      end if
+    end subroutine eval_Kee_wind
 
     subroutine eval_van_Loon_wind(w)
       ! van Loon et al. 2005, A&A, 438, 273
       real(dp), intent(out) :: w
       real(dp) :: log10w
       include 'formats'
-      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)
+      log10w = -5.65d0 + 1.05d0*log10_cr(L1/(1d4*Lsun)) - 6.3d0*log10_cr(T1/35d2)  + Zindex*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
     end subroutine eval_van_Loon_wind
+
+
+        subroutine eval_Beasor_wind(w)
+          ! Beasor+2020
+          real(dp), intent(out) :: w
+          real(dp) :: log10w
+          include 'formats'
+          log10w = -26.4d0 + 4.8d0*log10_cr(L1/Lsun) - 0.23d0*(s% initial_mass)  + Zindex*log10_cr(Z/Zsolar)
+          w = exp10_cr(log10w)
+        end subroutine eval_Beasor_wind
+
 
 
     subroutine eval_Nieuwenhuijzen_wind(w)
@@ -1734,7 +1801,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       log10w = -14.02d0 + &
            1.24d0*log10_cr(L1/Lsun) + &
            0.16d0*log10_cr(M1/Msun) + &
-           0.81d0*log10_cr(R1/Rsun)
+           0.81d0*log10_cr(R1/Rsun) + &
+           Zindex*log10_cr(Z/Zsolar)
       w = exp10_cr(log10w)
       if (dbg) then
          write(*,1) 'Nieuwenhuijzen log10 wind', log10w
@@ -1742,7 +1810,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     end subroutine eval_Nieuwenhuijzen_wind
 
   end subroutine other_set_mdot
-
 
 
 
