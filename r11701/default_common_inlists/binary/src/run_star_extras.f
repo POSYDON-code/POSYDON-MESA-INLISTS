@@ -1688,6 +1688,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
           call eval_Beasor_wind(w)
           if (dbg) write(*,1) 'Dutch_wind = Beasor', safe_log10_cr(wind), T1, T_low, T_high
       else if (s% Dutch_wind_lowT_scheme == 'Yang') then
+         write(*,1) 'MANOS 2'
          call eval_Yang_wind(w)
          if (dbg) write(*,1) 'Dutch_wind = Yang', safe_log10_cr(wind), T1, T_low, T_high
        else if (s% Dutch_wind_lowT_scheme == 'Kee') then
@@ -1722,6 +1723,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
       real(dp), parameter :: Z_SMC = 0.2*Zsolar
 
+      write(*,1) 'MANOS ', s% x_ctrl(1), Zsolar, Z_SMC, Zindex
       ! Temperature of transition from de Jager to Yang+2022 winds (in a range +- 500K if that value)
       T_transition = s% x_ctrl(1)
       T_high_yang = T_transition+500d0
