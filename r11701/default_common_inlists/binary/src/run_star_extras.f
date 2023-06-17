@@ -882,7 +882,7 @@ contains
     end if
 
     ! TP-AGB
-    if(TP_AGB_check .and. s% have_done_TP)then
+    if (TP_AGB_check .and. (s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
        TP_AGB_check = .false.
        late_AGB_check = .true.
        write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
@@ -1014,12 +1014,12 @@ contains
     end if
 
     ! TP-AGB
-    if(s% have_done_TP) then
+    !if ((s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
        !termination_code_str(t_xtra2) = 'Reached TPAGB'
        !s% termination_code = t_xtra2
        !extras_finish_step = terminate
-       write(*,'(g0)') 'Reached TPAGB'
-    end if
+    !   write(*,'(g0)') 'Reached TPAGB'
+    !end if
   end function extras_finish_step
 
 
@@ -1469,7 +1469,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
        if(T1 <= s% hot_wind_full_on_T)then
           !evaluate cool wind
           !RGB/TPAGB switch goes here
-          if (s% have_done_TP) then
+          if ((s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
              scheme = s% cool_wind_AGB_scheme
              if (dbg) &
                   write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
