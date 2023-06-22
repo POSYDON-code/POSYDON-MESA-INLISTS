@@ -1513,7 +1513,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
     subroutine eval_wind_for_scheme(scheme,wind)
       character(len=strlen) :: scheme
-      real(dp), intent(out) :: wind
+      real(dp), intent(out) :: wind, reimers_wind
       include 'formats'
 
       current_wind_prscr = 0d0
@@ -1562,9 +1562,18 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          wind = wind * s% Grafener_scaling_factor
          if (dbg) write(*,1) 'Grafener_wind', wind
       else if (scheme == 'Blocker') then
+         ! use the max of Reimers vs. Blocker. Blocker should overtake
+         ! during thermal pulses.
+         reimers_wind = wind * s% Reimers_scaling_factor
          call eval_blocker_wind(wind)
-         current_wind_prscr = 5d0
-         if (dbg) write(*,1) 'Blocker_wind', wind
+         wind = max(reimers_wind, wind)
+         if (wind > reimers_wind) then
+             current_wind_prscr = 5d0
+             if (dbg) write(*,1) 'Blocker_wind', wind
+         else
+             current_wind_prscr = 4d0
+             if (dbg) write(*,1) 'Reimers_wind', wind
+         end if
       else if (scheme == 'de Jager') then
          call eval_de_Jager_wind(wind)
          current_wind_prscr = 3d0
