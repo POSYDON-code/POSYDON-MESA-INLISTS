@@ -1466,8 +1466,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
        call eval_wind_for_scheme(scheme,wind)
        if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
     !low-mass stars
-    else
-       if(T1 <= s% hot_wind_full_on_T)then
+    else if(T1 <= s% hot_wind_full_on_T)then
           !evaluate cool wind
           !RGB/TPAGB switch goes here
           if ((s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
@@ -1513,7 +1512,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
     subroutine eval_wind_for_scheme(scheme,wind)
       character(len=strlen) :: scheme
-      real(dp), intent(out) :: wind, reimers_wind
+      real(dp), intent(out) :: wind
+      real(dp) :: reimers_wind
       include 'formats'
 
       current_wind_prscr = 0d0
