@@ -1461,52 +1461,53 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
 
     !massive stars
     !if(s% initial_mass >= 10._dp)then
-    if (T1 > s% hot_wind_full_on_T) then
-       scheme = s% hot_wind_scheme
-       call eval_wind_for_scheme(scheme,wind)
-       if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
+    !if (T1 > s% hot_wind_full_on_T) then
+    !   scheme = s% hot_wind_scheme
+    !   call eval_wind_for_scheme(scheme,wind)
+    !   if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
     !low-mass stars
-    else if(T1 <= s% hot_wind_full_on_T)then
-          !evaluate cool wind
-          !RGB/TPAGB switch goes here
-          if ((s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
-             scheme = s% cool_wind_AGB_scheme
-             if (dbg) &
-                  write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
-                  center_h1, center_he4, s% RGB_to_AGB_wind_switch
-
-          else
-             scheme= s% cool_wind_RGB_scheme
-             if (dbg) write(*,*) 'using cool_wind_RGB_scheme: "' // trim(scheme) // '"'
-
-          endif
-          call eval_wind_for_scheme(scheme, cool_wind)
-       endif
-
-       if(T1 >= s% cool_wind_full_on_T)then
-          !evaluate hot wind
-          scheme="Dutch"
-          call eval_wind_for_scheme(scheme, hot_wind)
-          if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
-
-       endif
-
-       !now we have both hot and cool wind
-
-       if(T1 < s% cool_wind_full_on_T) then
-          wind = cool_wind
-
-       elseif(T1 > s% hot_wind_full_on_T) then
-          wind = hot_wind
+    !else 
+    if(T1 <= s% hot_wind_full_on_T)then
+       !evaluate cool wind
+       !RGB/TPAGB switch goes here
+       if ((s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
+          scheme = s% cool_wind_AGB_scheme
+          if (dbg) &
+            write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
+            center_h1, center_he4, s% RGB_to_AGB_wind_switch
 
        else
-          !now combine the contributions of hot and cool winds
-          divisor = s% hot_wind_full_on_T - s% cool_wind_full_on_T
-          beta = min( (s% hot_wind_full_on_T - T1) / divisor, 1d0)
-          alfa = 1d0 - beta
-          wind = alfa*hot_wind + beta*cool_wind
+          scheme= s% cool_wind_RGB_scheme
+          if (dbg) write(*,*) 'using cool_wind_RGB_scheme: "' // trim(scheme) // '"'
+
        endif
+       call eval_wind_for_scheme(scheme, cool_wind)
     endif
+
+    if(T1 >= s% cool_wind_full_on_T)then
+       !evaluate hot wind
+       scheme="Dutch"
+       call eval_wind_for_scheme(scheme, hot_wind)
+       if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
+
+    endif
+
+    !now we have both hot and cool wind
+
+    if(T1 < s% cool_wind_full_on_T) then
+       wind = cool_wind
+
+    elseif(T1 > s% hot_wind_full_on_T) then
+       wind = hot_wind
+
+    else
+       !now combine the contributions of hot and cool winds
+       divisor = s% hot_wind_full_on_T - s% cool_wind_full_on_T
+       beta = min( (s% hot_wind_full_on_T - T1) / divisor, 1d0)
+       alfa = 1d0 - beta
+       wind = alfa*hot_wind + beta*cool_wind
+    endif
+   !endif
 
   contains
 
