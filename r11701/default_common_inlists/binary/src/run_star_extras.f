@@ -895,7 +895,7 @@ contains
        s% delta_lgTeff_hard_limit = -1d0
        s% delta_lgL_limit = -1d0
        s% delta_lgL_hard_limit = -1d0
-       s% Blocker_scaling_factor = 2.0d0
+       !s% Blocker_scaling_factor = 2.0d0 ! deprecated?
        !s% varcontrol_target = 2.0d0*s% varcontrol_target
        write(*,*) ' varcontrol_target = ', s% varcontrol_target
        write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
@@ -910,7 +910,7 @@ contains
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
           write(*,*) 'now at late AGB phase, model number ', s% model_number
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
-          s% Blocker_scaling_factor = 5.0d0
+          !s% Blocker_scaling_factor = 5.0d0 ! deprecated?
           late_AGB_check=.false.
           post_AGB_check=.true.
        endif
@@ -945,7 +945,7 @@ contains
     if(pre_WD_check)then
        if(s% Teff < 3.0d4 .and. s% L_surf < 1.0d0)then
           pre_WD_check = .false.
-          s% do_Ne22_sedimentation_heating = .true.
+          !s% do_Ne22_sedimentation_heating = .true. ! Ne22 is not in the current net, so this causes a crash
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
           write(*,*) 'now at WD phase, model number ', s% model_number
           !if(s% job% extras_lpar(2))then
@@ -1013,7 +1013,7 @@ contains
        s% diffusion_dt_limit = original_diffusion_dt_limit
     end if
 
-    ! TP-AGB
+    ! TP-AGB ! deprecated?
     !if ((s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
        !termination_code_str(t_xtra2) = 'Reached TPAGB'
        !s% termination_code = t_xtra2
@@ -1460,7 +1460,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     end if
 
     !massive stars
-    if(s% initial_mass >= 10._dp)then
+    !if(s% initial_mass >= 10._dp)then
+    if (T1 > s% hot_wind_full_on_T) then
        scheme = s% hot_wind_scheme
        call eval_wind_for_scheme(scheme,wind)
        if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
