@@ -254,6 +254,8 @@ delta_HR_ds_L = 0.125d0
       x_logical_ctrl(3) = .true.
       ! for the simplified accretion model, which will stop accretion and wind loss for the rapid rotating accretor
       x_logical_ctrl(4) = .false.
+      ! skip calculating implicit mdot
+      x_logical_ctrl(5) = .true.
 
 
 / ! end of controls namelist
