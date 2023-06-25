@@ -175,6 +175,20 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
+
+    ! check if the model is reaching the min_timestep_limit because of heavy mass transfer
+    ! This is the same condition used in star/private/evolve.f90, with a new termination 
+    ! code for this specific case
+    if (s% dt <= max(s% min_timestep_limit,0d0)) then
+      if ((abs(s% star_mdot) >= 1d-1) .or. (s% star_mass <= 8d0 .and. s% star_mdot >= 1d-6)) then
+         write(*,*) 'dt', s% dt
+         write(*,*) 'min_timestep_limit', s% min_timestep_limit
+         write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
+         extras_check_model = terminate
+         return
+      end if
+    end if
+
     extras_check_model = keep_going
   end function extras_check_model
 
