@@ -18,7 +18,7 @@
       initial_zfracs = 6
 
       relax_initial_Z = .true.
-      new_Z = 1.42d-2
+      !new_Z = 1.42d-2
 
 / ! end of star_job namelist
 

@@ -37,6 +37,7 @@ module run_star_extras
   logical :: late_AGB_check = .false.
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
+  real(dp) :: current_wind_prscr = -1d0
 
 contains
 
@@ -109,27 +110,11 @@ contains
     s% overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_nonburn_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_h_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_he_shell = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_below_burn_z_shell  = f_ov_fcn_of_mass(s% initial_mass)
 
     s% overshoot_f0_above_nonburn_core = 8.0d-3
     s% overshoot_f0_above_burn_h_core  = 8.0d-3
     s% overshoot_f0_above_burn_he_core = 8.0d-3
     s% overshoot_f0_above_burn_z_core  = 8.0d-3
-    s% overshoot_f0_above_nonburn_shell = 8.0d-3
-    s% overshoot_f0_below_nonburn_shell = 8.0d-3
-    s% overshoot_f0_above_burn_h_shell  = 8.0d-3
-    s% overshoot_f0_below_burn_h_shell  = 8.0d-3
-    s% overshoot_f0_above_burn_he_shell = 8.0d-3
-    s% overshoot_f0_below_burn_he_shell = 8.0d-3
-    s% overshoot_f0_below_burn_z_shell  = 8.0d-3
-    s% overshoot_f0_above_burn_z_shell  = 8.0d-3
 
   end function extras_startup
 
@@ -211,7 +196,7 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_history_columns = 26
+    how_many_extra_history_columns = 27
   end function how_many_extra_history_columns
 
   subroutine data_for_extra_history_columns(id, id_extra, n, names, vals, ierr)
@@ -348,9 +333,9 @@ contains
     ! output info about the ENV.: binding energy
 
     total_env_binding_E = 0.0d0
-    do k=1,s% nz
+    do k=1,s% nz - 1
        if (s% m(k) > (s% he_core_mass * Msun)) then !envelope is defined to be H-rich
-          env_binding_E = s% dm(k) * (s% energy(k) - (s% cgrav(1) * s% m(k))/s% r(k))
+          env_binding_E = s% dm(k) * (s% energy(k) - (s% cgrav(k) * s% m(k+1))/s% r(k+1))
           total_env_binding_E = total_env_binding_E + env_binding_E
        end if
     end do
@@ -625,6 +610,11 @@ contains
 
 
    deallocate(adjusted_energy)
+
+   names(27) = 'current_wind_prescription'
+   vals(27) = current_wind_prscr
+
+
   end subroutine data_for_extra_history_columns
 
   real(dp) function lambda_CE(s, adjusted_energy, star_core_mass_CE)
@@ -638,9 +628,9 @@ contains
       else
          E_bind = 0.0d0
          E_bind_shell = 0.0d0
-         do k=1, s% nz
+         do k=1, s% nz - 1
             if (s% m(k) > (star_core_mass_CE)) then !envelope is defined as everything above star_core_mass_CE.
-               E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(1) * s% m(k) * s% dm_bar(k))/(s% r(k))
+               E_bind_shell = s% dm(k) * adjusted_energy(k) - (s% cgrav(k) * s% m(k+1) * s% dm(k))/(s% r(k+1))
                E_bind = E_bind+ E_bind_shell
             end if
          end do
@@ -1407,11 +1397,13 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          full_off, full_on, cool_wind, hot_wind, divisor
     character (len=strlen) :: scheme
     logical :: using_wind_scheme_mdot
-    real(dp), parameter :: Zsolar = 0.019d0 ! for Vink et al formula
+    real(dp), parameter :: Zsolar = 0.0142d0 ! for Vink et al formula
 
     logical, parameter :: dbg = .false.
 
     include 'formats'
+
+
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -1450,7 +1442,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
        scheme = s% hot_wind_scheme
        call eval_wind_for_scheme(scheme,wind)
        if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
-
     !low-mass stars
     else
        if(T1 <= s% hot_wind_full_on_T)then
@@ -1502,6 +1493,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp), intent(out) :: wind
       include 'formats'
 
+      current_wind_prscr = 0d0
       wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
       if (dbg) write(*,1) 'wind', wind
       if (wind <= 0.0d0 .or. is_bad_num(wind)) then
@@ -1535,8 +1527,10 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if(dbg) write(*,1) 'Dutch_wind', wind
       else if (scheme == 'Reimers') then
          wind = wind * s% Reimers_scaling_factor
+         current_wind_prscr = 4d0
          if(dbg) write(*,1) 'Reimers_wind', wind
       else if (scheme == 'Vink') then
+         current_wind_prscr = 1d0
          call eval_Vink_wind(wind)
          wind = wind * s% Vink_scaling_factor
          if (dbg) write(*,1) 'Vink_wind', wind
@@ -1546,9 +1540,11 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if (dbg) write(*,1) 'Grafener_wind', wind
       else if (scheme == 'Blocker') then
          call eval_blocker_wind(wind)
+         current_wind_prscr = 5d0
          if (dbg) write(*,1) 'Blocker_wind', wind
       else if (scheme == 'de Jager') then
          call eval_de_Jager_wind(wind)
+         current_wind_prscr = 3d0
          wind = s% de_Jager_scaling_factor * wind
          if (dbg) write(*,1) 'de_Jager_wind', wind
       else if (scheme == 'van Loon') then
@@ -1570,6 +1566,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
         if ((s% center_h1 < 1.0d-4) ) then  ! postMS
             if ((s% L(1)/Lsun > 6.0d5) .and. &
               (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
+              current_wind_prscr = 6d0
               wind  = 1.0d-4
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
             endif
@@ -1676,9 +1673,12 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
          w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
+        current_wind_prscr = 2d0
       else
          call eval_Vink_wind(w)
+         current_wind_prscr = 1d0
       end if
+
     end subroutine eval_highT_Dutch
 
 
@@ -1687,6 +1687,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       include 'formats'
       if (s% Dutch_wind_lowT_scheme == 'de Jager') then
          call eval_de_Jager_wind(w)
+         current_wind_prscr = 3d0
          if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
       else if (s% Dutch_wind_lowT_scheme == 'van Loon') then
          call eval_van_Loon_wind(w)
