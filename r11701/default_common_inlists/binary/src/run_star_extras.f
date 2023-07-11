@@ -171,18 +171,22 @@ contains
   integer function extras_check_model(id, id_extra)
     integer, intent(in) :: id, id_extra
     integer :: ierr
+    real(dp) :: dt
     type (star_info), pointer :: s
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
 
+    dt = s% dt * s% timestep_factor_for_retries
+
     ! check if the model is reaching the min_timestep_limit because of heavy mass transfer
     ! This is the same condition used in star/private/evolve.f90, with a new termination 
     ! code for this specific case
-    if (s% dt <= max(s% min_timestep_limit,0d0)) then
+    if (dt <= max(s% min_timestep_limit,0d0)) then
       if ((abs(s% star_mdot) >= 1d-1) .or. (s% star_mass <= 8d0 .and. abs(s% star_mdot) >= 1d-6)) then
-         write(*,*) 'dt', s% dt
+         write(*,*) 'dt', dt
          write(*,*) 'min_timestep_limit', s% min_timestep_limit
+         write(*,*) 'abs(s% star_mdot)', abs(s% star_mdot)
          write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
          extras_check_model = terminate
          return
@@ -1302,48 +1306,52 @@ contains
 
    ! only bother calculating if star has a convective envelope and is
    ! older than the specified disk locking phase
-   if ((s% n_conv_regions > 0) .and. &
-      (s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
-      ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11)) then
+   if (s% n_conv_regions > 0) then`
+      if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
+          ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11)) then
 
-     call calc_tau_convective(id, tau_convective, ierr)
+         call calc_tau_convective(id, tau_convective, ierr)
 
-     ! rotation period based on avg surface omega
-     Prot = 2d0 * pi / s% omega_avg_surf
+         ! rotation period based on avg surface omega
+         Prot = 2d0 * pi / s% omega_avg_surf
 
-     ! rossby number
-     Ro = Prot / tau_convective
+         ! rossby number
+         Ro = Prot / tau_convective
 
-     ! calculate n (magnetic complexity parameter)
-     n = (a_const / Ro) + (b_const * Ro) + 1d0
-     if (n < 1d0) then
-       n = 1d0
-     ! was 1d99
-     else if (n > 1d1) then
-       n = 1d1
-     end if
+         ! calculate n (magnetic complexity parameter)
+         n = (a_const / Ro) + (b_const * Ro) + 1d0
+         if (n < 1d0) then
+            n = 1d0
+         ! was 1d99
+         else if (n > 1d1) then
+            n = 1d1
+         end if
 
-     ! magnetic supression factor
-     Qn = 4.05d0 * exp_cr(-1.4d0 * n)
+         ! magnetic supression factor
+         Qn = 4.05d0 * exp_cr(-1.4d0 * n)
 
-     ! angular momentum change per second [cgs]
-     dJdt = c_const * powi_cr(s% omega_avg_surf, 3) * tau_convective * Qn
-     dJdt = max(0d0, dJdt)
+         ! angular momentum change per second [cgs]
+         dJdt = c_const * powi_cr(s% omega_avg_surf, 3) * tau_convective * Qn
+         dJdt = max(0d0, dJdt)
 
-     ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
-     ! Estimate spindown timescale here
-     t_spindown = abs(s% total_angular_momentum / dJdt)
+         ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+         ! Estimate spindown timescale here
+         t_spindown = abs(s% total_angular_momentum / dJdt)
 
-     do k = s% nz, 1, -1
-       ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
-       if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
-         ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
-         s% extra_omegadot(k) = - s% omega(k) / s% dt
-       else
-         ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
-         s% extra_omegadot(k) = - dJdt / MOI 
-       end if
-     end do
+         do k = s% nz, 1, -1
+            ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+            if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
+               ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+               s% extra_omegadot(k) = - s% omega(k) / s% dt
+            else
+               ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+               s% extra_omegadot(k) = - dJdt / MOI 
+            end if
+         end do
+
+      else
+         t_spindown = 100 * s% dt ! To avoid decreasing the timestep in extras_finish_step
+      end if
 
    else
      ! To avoid decreasing the timestep in extras_finish_step
@@ -1395,53 +1403,57 @@ contains
    ! A radiative core is considered to exist below as long as less than 50% of 
    ! the core mass is convective. Only bother is there's a convective envelope
    ! and the star is older than the user-specified disk locking time
-   if ((s% n_conv_regions > 0) .and. &
-      (s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
-      ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
-      (ocz_bot_mass > 0d0)) then
+   if (s% n_conv_regions > 0) then
+      if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
+         ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
+         (ocz_bot_mass > 0d0)) then
 
-     call calc_tau_convective(id, tau_convective, ierr)
+         call calc_tau_convective(id, tau_convective, ierr)
 
-     ! MAGNETIC BRAKING CALCULATION
-     rsun4 = pow4(rsun)
-     two_pi_div_p2 = (2.0 * pi / period) * (2.0 * pi / period)
-     K2 = 0.07 * 0.07
-     tt_ratio = tau_convective / 2.8d6
-     tt4 = pow4(tt_ratio)
-     rot_ratio = (2073600d0 / period)
-     rot4 = pow4(rot_ratio)
-     rad4 = pow4(rsurf)
+         ! MAGNETIC BRAKING CALCULATION
+         rsun4 = pow4(rsun)
+         two_pi_div_p2 = (2.0 * pi / period) * (2.0 * pi / period)
+         K2 = 0.07 * 0.07
+         tt_ratio = tau_convective / 2.8d6
+         tt4 = pow4(tt_ratio)
+         rot_ratio = (2073600d0 / period)
+         rot4 = pow4(rot_ratio)
+         rad4 = pow4(rsurf)
 
-     v_esc2 = 2d0 * standard_cgrav * mstar / rsurf
-     v_mod2 = v_esc2 + 2d0 * two_pi_div_p2 * rsurf * rsurf / K2 
-                   
-     ! SSG edit to prevent INF values when s% star_mdot = 0...
-     ! Tf abs(mdot) is > zero, proceed as normal, or else set alfven_no_R to 0.
-     ! This also means that if abs(mdot) <= 0, jdot = 0.
-     if (abs(mdot) > 0d0) then
-        alfven_no_R = rad4 * rot4 * tt4 / (mdot * mdot) * (1d0 / v_mod2)
-     else
-        alfven_no_R = 0d0
-     end if
+         v_esc2 = 2d0 * standard_cgrav * mstar / rsurf
+         v_mod2 = v_esc2 + 2d0 * two_pi_div_p2 * rsurf * rsurf / K2 
+                        
+         ! SSG edit to prevent INF values when s% star_mdot = 0...
+         ! Tf abs(mdot) is > zero, proceed as normal, or else set alfven_no_R to 0.
+         ! This also means that if abs(mdot) <= 0, jdot = 0.
+         if (abs(mdot) > 0d0) then
+            alfven_no_R = rad4 * rot4 * tt4 / (mdot * mdot) * (1d0 / v_mod2)
+         else
+            alfven_no_R = 0d0
+         end if
 
-     R_alfven = rsurf * alfven_no_R**(1d0 / 3d0)
+         R_alfven = rsurf * alfven_no_R**(1d0 / 3d0)
 
-     jdot_mb = (2d0 / 3d0) * (2d0 * pi / period) * mdot * R_alfven * R_alfven
-                
-     ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
-     ! Estimate spindown timescale here
-     t_spindown = abs(s% total_angular_momentum / jdot_mb)
+         jdot_mb = (2d0 / 3d0) * (2d0 * pi / period) * mdot * R_alfven * R_alfven
+                     
+         ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+         ! Estimate spindown timescale here
+         t_spindown = abs(s% total_angular_momentum / jdot_mb)
 
-     do k = s% nz, 1, -1
-       ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
-       if (s% omega(k) < s% dt * abs(jdot_mb / MOI) ) then
-         ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
-         s% extra_omegadot(k) = - s% omega(k) / s% dt
-       else
-         ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
-         s% extra_omegadot(k) = jdot_mb / MOI 
-       end if
-     end do
+         do k = s% nz, 1, -1
+            ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+            if (s% omega(k) < s% dt * abs(jdot_mb / MOI) ) then
+               ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+               s% extra_omegadot(k) = - s% omega(k) / s% dt
+            else
+               ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+               s% extra_omegadot(k) = jdot_mb / MOI 
+            end if
+         end do
+      else
+        ! To avoid decreasing the timestep in extras_finish_step
+        t_spindown = 1d2 * s% dt
+      end if
 
    else
      ! To avoid decreasing the timestep in extras_finish_step
@@ -1481,33 +1493,36 @@ contains
    ! A radiative core is considered to exist below as long as less than 50% of 
    ! the core mass is convective. Only bother is there's a convective envelope
    ! and the star is older than the user-specified disk locking time
-   if ((s% n_conv_regions > 0) .and. &
-      (s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
-      ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
-      (ocz_bot_mass > 0d0)) then
+   if ((s% n_conv_regions > 0) then 
+      if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
+          ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
+          (ocz_bot_mass > 0d0)) then
 
-     ! MAGNETIC BRAKING CALCULATION
-     rsun4 = pow4(rsun)
+         ! MAGNETIC BRAKING CALCULATION
+         rsun4 = pow4(rsun)
 
-     omega_3 = s% omega_avg_surf * s% omega_avg_surf * s% omega_avg_surf
+         omega_3 = s% omega_avg_surf * s% omega_avg_surf * s% omega_avg_surf
 
-     jdot_mb = -3.8d-30 * mstar * rsun4 * &            
-               pow_cr(rstar_div_rsun, magnetic_braking_gamma) * omega_3
-     
-     ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
-     ! Estimate spindown timescale here           
-     t_spindown = abs(s% total_angular_momentum / jdot_mb)
+         jdot_mb = -3.8d-30 * mstar * rsun4 * &            
+                     pow_cr(rstar_div_rsun, magnetic_braking_gamma) * omega_3
+         
+         ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+         ! Estimate spindown timescale here           
+         t_spindown = abs(s% total_angular_momentum / jdot_mb)
 
-     do k = s% nz, 1, -1
-       ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
-       if (s% omega(k) < s% dt * abs(jdot_mb / MOI) ) then
-         ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
-         s% extra_omegadot(k) = - s% omega(k) / s% dt
-       else
-         ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
-         s% extra_omegadot(k) = jdot_mb / MOI 
-       end if
-     end do
+         do k = s% nz, 1, -1
+            ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+            if (s% omega(k) < s% dt * abs(jdot_mb / MOI) ) then
+               ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+               s% extra_omegadot(k) = - s% omega(k) / s% dt
+            else
+               ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+               s% extra_omegadot(k) = jdot_mb / MOI 
+            end if
+         end do
+      else`
+         t_spindown = 1d2 * s% dt
+      end if         
 
    else
      ! To avoid decreasing the timestep in extras_finish_step
