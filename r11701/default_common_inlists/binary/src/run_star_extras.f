@@ -1493,7 +1493,7 @@ contains
    ! A radiative core is considered to exist below as long as less than 50% of 
    ! the core mass is convective. Only bother is there's a convective envelope
    ! and the star is older than the user-specified disk locking time
-   if ((s% n_conv_regions > 0) then 
+   if (s% n_conv_regions > 0) then 
       if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
           ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
           (ocz_bot_mass > 0d0)) then
@@ -1520,7 +1520,7 @@ contains
                s% extra_omegadot(k) = jdot_mb / MOI 
             end if
          end do
-      else`
+      else
          t_spindown = 1d2 * s% dt
       end if         
 
