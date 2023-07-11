@@ -1306,7 +1306,7 @@ contains
 
    ! only bother calculating if star has a convective envelope and is
    ! older than the specified disk locking phase
-   if (s% n_conv_regions > 0) then`
+   if (s% n_conv_regions > 0) then
       if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
           ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11)) then
 
