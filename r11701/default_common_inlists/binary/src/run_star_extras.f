@@ -61,6 +61,8 @@ contains
     s% data_for_extra_history_columns => data_for_extra_history_columns
     s% how_many_extra_history_header_items => how_many_extra_history_header_items
     s% data_for_extra_history_header_items => data_for_extra_history_header_items
+    s% how_many_extra_profile_columns => how_many_extra_profile_columns
+    s% data_for_extra_profile_columns => data_for_extra_profile_columns
   !  s% how_many_extra_profile_header_items => how_many_extra_profile_header_items
   !  s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
     s% job% warn_run_star_extras =.false.
@@ -836,7 +838,8 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    how_many_extra_profile_columns = 0
+
+    how_many_extra_profile_columns = 2
 
   end function how_many_extra_profile_columns
 
@@ -852,6 +855,12 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
+
+    names(1) = 'entropy'
+    vals(1) = s% entropy
+    names(2) = 'energy'
+    vals(2) = s% energy
+
   end subroutine data_for_extra_profile_columns
 
 
@@ -1466,7 +1475,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     !   call eval_wind_for_scheme(scheme,wind)
     !   if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
     !low-mass stars
-    !else 
+    !else
     if(T1 <= s% hot_wind_full_on_T)then
        !evaluate cool wind
        !RGB/TPAGB switch goes here
