@@ -857,9 +857,12 @@ contains
     if (ierr /= 0) return
 
     names(1) = 'entropy'
-    vals(1) = s% entropy
     names(2) = 'energy'
-    vals(2) = s% energy
+
+    do k=1, nz
+       vals(k,1) = s% entropy(k)
+       vals(k,2) = s% energy(k)
+    end do
 
   end subroutine data_for_extra_profile_columns
 
