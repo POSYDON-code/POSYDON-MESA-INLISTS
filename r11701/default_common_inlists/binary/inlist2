@@ -75,7 +75,8 @@
       star_history_txt_format = '(a32, 1x)'
 
       star_history_name = 'history.data'
-      write_profiles_flag = .false.
+      write_profiles_flag = .true.
+      profile_interval = 50
 
       !WHEN TO STOP
       gamma_center_limit = 10d0 ! Crystallization begins ==> white dwarf
