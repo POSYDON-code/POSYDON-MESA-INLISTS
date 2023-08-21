@@ -96,7 +96,7 @@ contains
     endif
 
 
-    if (s% star_mass <= 6.0d0) s% cool_wind_RGB_scheme ='Reimers'
+    if (s% star_mass <= 5.0d0) s% cool_wind_RGB_scheme ='Reimers'
 
     if(s% x_logical_ctrl(1)) then
           ! For single stars we allow to go beyong Hubble time,
