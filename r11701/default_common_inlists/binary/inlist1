@@ -261,7 +261,7 @@ delta_HR_ds_L = 0.125d0
 
 !HYDRO DEBUGGING
 report_hydro_solver_progress = .true.
-report_ierr = .true.
+report_ierr = .false.
 hydro_show_correction_info = .true.
 
 report_why_dt_limits = .true.
