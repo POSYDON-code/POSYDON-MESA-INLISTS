@@ -257,5 +257,22 @@ delta_HR_ds_L = 0.125d0
       ! skip calculating implicit mdot
       x_logical_ctrl(5) = .true.
 
+      !HYDRO DEBUGGING
+      report_hydro_solver_progress = .true.
+      report_ierr = .true.
+      hydro_show_correction_info = .true.
+      
+      report_why_dt_limits = .true.
+      report_all_dt_limits = .true.
+      report_hydro_dt_info = .true.
+      
+      hydro_check_everything = .true.
+      hydro_inspectB_flag = .true.
+      
+      hydro_numerical_jacobian = .true.
+      hydro_save_numjac_plot_data = .true.
+      hydro_dump_call_number = 195000
+      hydro_dump_iter_number = 5
+
 
 / ! end of controls namelist
