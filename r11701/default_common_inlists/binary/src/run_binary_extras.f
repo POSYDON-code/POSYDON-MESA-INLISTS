@@ -1126,6 +1126,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
+         real(dp) :: rl_gap_1, rl_gap_2
          logical, intent(in) :: restart
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
@@ -1146,7 +1147,10 @@
          end if
          extras_binary_startup = keep_going
 
-         write(*,'(g0)') "MANOS-1", b% doing_first_model_of_run, b% rl_relative_gap(b% d_i)
+         rl_gap_1 = (b% s1% photosphere_r - b% rl(1) * (1 - b% eccentricity) )/b% rl(1)
+         rl_gap_2 = (b% s2% photosphere_r - b% rl(2) * (1 - b% eccentricity) )/b% rl(2)
+         write(*,'(g0)') "MANOS-1", b% doing_first_model_of_run, b% terminate_if_initial_overflow, b% rl_relative_gap(b% d_i)
+         write(*,'(g0)') "MANOS-1", b% s1% photosphere_r, b% s2% photosphere_r ,rl_gap_1, rl_gap_2
          if (b% doing_first_model_of_run .and. b% terminate_if_initial_overflow &
                   .and. (.not. b% ignore_rlof_flag .or. b% model_twins_flag)) then
                if (b% rl_relative_gap(b% d_i) >= 0.0d0 &
@@ -1164,6 +1168,7 @@
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
          real(dp) :: q
+         real(dp) :: rl_gap_1, rl_gap_2
          integer :: ierr
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
@@ -1187,7 +1192,10 @@
           b% do_jdot_missing_wind = .true.
           b% do_j_accretion = .true.
        end if
-       write(*,'(g0)') "MANOS0", b% doing_first_model_of_run, b% rl_relative_gap(b% d_i)
+       rl_gap_1 = (b% s1% photosphere_r - b% rl(1) * (1 - b% eccentricity) )/b% rl(1)
+       rl_gap_2 = (b% s2% photosphere_r - b% rl(2) * (1 - b% eccentricity) )/b% rl(2)
+       write(*,'(g0)') "MANOS0", b% doing_first_model_of_run, b% terminate_if_initial_overflow, b% rl_relative_gap(b% d_i)
+       write(*,'(g0)') "MANOS0", b% s1% photosphere_r, b% s2% photosphere_r ,rl_gap_1, rl_gap_2
        if (b% doing_first_model_of_run .and. b% terminate_if_initial_overflow &
                 .and. (.not. b% ignore_rlof_flag .or. b% model_twins_flag)) then
              if (b% rl_relative_gap(b% d_i) >= 0.0d0 &
@@ -1199,13 +1207,16 @@
 
       end function extras_binary_check_model
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! returns either keep_going or terminate.
       ! note: cannot request retry or backup; extras_check_model can do that.
       integer function extras_binary_finish_step(binary_id)
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	 real(dp) :: r_l2, d_l2
+	        real(dp) :: r_l2, d_l2
+          real(dp) :: rl_gap_1, rl_gap_2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
