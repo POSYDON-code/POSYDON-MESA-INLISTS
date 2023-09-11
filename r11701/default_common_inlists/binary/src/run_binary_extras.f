@@ -1126,7 +1126,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-         real(dp) :: rl_gap_1, rl_gap_2
+         !real(dp) :: rl_gap_1, rl_gap_2
          logical, intent(in) :: restart
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
