@@ -1220,7 +1220,12 @@
             return
          end if
 
+         ! s% photosphere_r
+         !(b% r(2) - b% rl(2) * (1 - b% eccentricity) ) / &
+         rl_gap_1 = (b% s1% photosphere_r - b% rl(1) * (1 - b% eccentricity) )/b% rl(1)
+         rl_gap_2 = (b% s2% photosphere_r - b% rl(2) * (1 - b% eccentricity) )/b% rl(2)
          write(*,'(g0)') "MANOS1", b% doing_first_model_of_run, b% terminate_if_initial_overflow, b% rl_relative_gap(b% d_i)
+         write(*,'(g0)') "MANOS1", b% s1% photosphere_r, b% s2% photosphere_r ,rl_gap_1, rl_gap_2
          if (b% doing_first_model_of_run .and. b% terminate_if_initial_overflow &
                   .and. (.not. b% ignore_rlof_flag .or. b% model_twins_flag)) then
                if (b% rl_relative_gap(b% d_i) >= 0.0d0 &
