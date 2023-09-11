@@ -1145,6 +1145,7 @@
             end if
          end if
          extras_binary_startup = keep_going
+         write(*,'(g0)') "MANOS-1", b% doing_first_model_of_run
       end function  extras_binary_startup
 
       !Return either rety,backup,keep_going or terminate
@@ -1176,7 +1177,7 @@
           b% do_jdot_missing_wind = .true.
           b% do_j_accretion = .true.
        end if
-
+       write(*,'(g0)') "MANOS0", b% doing_first_model_of_run
       end function extras_binary_check_model
 
       ! returns either keep_going or terminate.
@@ -1200,6 +1201,7 @@
             return
          end if
 
+         write(*,'(g0)') "MANOS1", b% doing_first_model_of_run, b% terminate_if_initial_overflow, b% rl_relative_gap(b% d_i)
          if (b% doing_first_model_of_run .and. b% terminate_if_initial_overflow &
                   .and. (.not. b% ignore_rlof_flag .or. b% model_twins_flag)) then
                if (b% rl_relative_gap(b% d_i) >= 0.0d0 &
