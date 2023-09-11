@@ -1147,6 +1147,8 @@
          end if
          extras_binary_startup = keep_going
 
+         write(*,'(g0)') "MANOS-1", b% s1% photosphere_r, b% s2% photosphere_r
+         write(*,'(g0)') "MANOS-1", b% rl(1), b% eccentricity
          rl_gap_1 = (b% s1% photosphere_r - b% rl(1) * (1 - b% eccentricity) )/b% rl(1)
          rl_gap_2 = (b% s2% photosphere_r - b% rl(2) * (1 - b% eccentricity) )/b% rl(2)
          write(*,'(g0)') "MANOS-1", b% doing_first_model_of_run, b% terminate_if_initial_overflow, b% rl_relative_gap(b% d_i)
