@@ -373,13 +373,13 @@
            real(dp) :: dm_limit
            include 'formats'
            mass_conv_core = 0.0d0
-           dm_limit = s% conv_core_gap_dq_limit*s% xmstar
+           dm_limit = s% conv_core__dq_limit*s% xmstar
            nz = s% nz
            do j = 1, s% n_conv_regions
-              ! ignore possible small gap at center
+              ! ignore possible small  at center
               if (s% cz_bot_mass(j) <= s% m(nz) + dm_limit) then
                  mass_conv_core = s% cz_top_mass(j)/Msun
-                 ! jump over small gaps
+                 ! jump over small s
                  do k = j+1, s% n_conv_regions
                     if (s% cz_bot_mass(k) - s% cz_top_mass(k-1) >= dm_limit) exit
                     mass_conv_core = s% cz_top_mass(k)/Msun
@@ -1201,7 +1201,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	        real(dp) :: r_l2, d_l2
+	 real(dp) :: r_l2, d_l2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
