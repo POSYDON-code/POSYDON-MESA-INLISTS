@@ -373,13 +373,13 @@
            real(dp) :: dm_limit
            include 'formats'
            mass_conv_core = 0.0d0
-           dm_limit = s% conv_core__dq_limit*s% xmstar
+           dm_limit = s% conv_core_gap_dq_limit*s% xmstar
            nz = s% nz
            do j = 1, s% n_conv_regions
-              ! ignore possible small  at center
+              ! ignore possible small gap at center
               if (s% cz_bot_mass(j) <= s% m(nz) + dm_limit) then
                  mass_conv_core = s% cz_top_mass(j)/Msun
-                 ! jump over small s
+                 ! jump over small gaps
                  do k = j+1, s% n_conv_regions
                     if (s% cz_bot_mass(k) - s% cz_top_mass(k-1) >= dm_limit) exit
                     mass_conv_core = s% cz_top_mass(k)/Msun
@@ -1149,7 +1149,7 @@
 
          if (b% doing_first_model_of_run .and. b% terminate_if_initial_overflow &
                   .and. (.not. b% ignore_rlof_flag .or. b% model_twins_flag)) then
-              rl_gap_1 = (b% s1% photosphere_r - b% rl(1)/Rsun * (1 - b% eccentricity) )/(b% rl(1)/Rsun)
+               rl_gap_1 = (b% s1% photosphere_r - b% rl(1)/Rsun * (1 - b% eccentricity) )/(b% rl(1)/Rsun)
                if (b% rl_relative_gap(b% d_i) >= 0.0d0 &
                      .or. (b% point_mass_i == 0 .and. b% rl_relative_gap(b% a_i) >= 0.0d0) &
                      .or. rl_gap_1 >= 0.0 ) then
