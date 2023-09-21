@@ -1126,6 +1126,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
+         real(dp) :: rl_gap_1
          logical, intent(in) :: restart
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
@@ -1145,6 +1146,18 @@
             end if
          end if
          extras_binary_startup = keep_going
+
+         if (b% doing_first_model_of_run .and. b% terminate_if_initial_overflow &
+                  .and. (.not. b% ignore_rlof_flag .or. b% model_twins_flag)) then
+               rl_gap_1 = (b% s1% photosphere_r - b% rl(1)/Rsun * (1 - b% eccentricity) )/(b% rl(1)/Rsun)
+               if (b% rl_relative_gap(b% d_i) >= 0.0d0 &
+                     .or. (b% point_mass_i == 0 .and. b% rl_relative_gap(b% a_i) >= 0.0d0) &
+                     .or. rl_gap_1 >= 0.0 ) then
+                  extras_binary_startup = terminate
+                  write(*,'(g0)') "termination code: Terminate because of overflowing initial model"
+               end if
+            end if
+
       end function  extras_binary_startup
 
       !Return either rety,backup,keep_going or terminate
@@ -1159,7 +1172,7 @@
             return
          end if
          extras_binary_check_model = keep_going
-       
+
 
        if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
          .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
@@ -1177,8 +1190,11 @@
           b% do_j_accretion = .true.
        end if
 
+
       end function extras_binary_check_model
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! returns either keep_going or terminate.
       ! note: cannot request retry or backup; extras_check_model can do that.
       integer function extras_binary_finish_step(binary_id)
@@ -1199,7 +1215,6 @@
          if (ierr /= 0) then ! failure in  binary_ptr
             return
          end if
-
 
          if (b% point_mass_i == 0) then
             ! Check for simultaneous RLOF from both stars after TAMS of one star
@@ -1305,9 +1320,9 @@
                end if
             end if
          end if
-         
-         
-         
+
+
+
          if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
           if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
              i_don = 1
@@ -1383,7 +1398,7 @@
                end if
           end if
        end if
-       
+
          ! check for termination due to pair-instability in primary
          if (b% point_mass_i /= 1) then
             ! calculate volumetric pressure-weighted average adiabatic index -4/3, following Renzo et al. 2020
@@ -1436,8 +1451,8 @@
             end if
          end if
 
-       
-       
+
+
          if (extras_binary_finish_step == terminate) then
             !write(*,*) "saving final profilesA"
             !call star_write_profile_info(b% s1% id, "LOGS1/prof_9FINAL.data", b% s1% id, ierr)
@@ -1486,7 +1501,7 @@
                if (ierr /= 0) return ! failure
             end if
          end if
-	 
+
 	 if (b% point_mass_i == 0) then
              if (b% s_accretor% x_logical_ctrl(4)) then
                 if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
