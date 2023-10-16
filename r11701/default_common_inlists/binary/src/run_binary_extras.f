@@ -744,7 +744,7 @@
          integer, intent(in) :: binary_id
          real(dp), intent(out) :: mdot_edd
          integer, intent(out) :: ierr
-         real(dp) :: mdot_edd_eta, mdot_edd_old, mdot_edd_limi
+         real(dp) :: mdot_edd_eta, mdot_edd_old, mdot_edd_limit
          real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
          type (binary_info), pointer :: b
          ierr = 0
