@@ -116,7 +116,7 @@
       w_div_wcrit_max = 0.9d0
 
       max_mdot_redo_cnt = 200 !DEF: 0 (explicit).
-      surf_avg_tau_min = 1d0 !DEF: 1
+      surf_avg_tau_min = 10d0 !DEF: 1
       surf_avg_tau = 100d0 !DEF: 100
       min_years_dt_for_redo_mdot = 0d0 !DEF:0
       surf_w_div_w_crit_limit = 0.95d0 !DEF:0.99
