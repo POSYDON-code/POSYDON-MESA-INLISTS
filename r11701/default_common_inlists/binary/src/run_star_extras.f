@@ -162,7 +162,6 @@ contains
        integer, intent(out) :: ierr
 
        integer :: nz, k
-       real(dp), pointer :: vals(:,:)
        real(dp) :: beta
        real(dp), pointer :: vals(:,:)
        real(dp), parameter :: weight = 1d0
