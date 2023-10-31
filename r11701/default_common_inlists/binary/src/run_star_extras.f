@@ -162,6 +162,7 @@ contains
        integer, intent(out) :: ierr
 
        integer :: nz, k
+       real(dp), pointer :: vals(:,:)
        real(dp) :: beta
        real(dp), pointer :: vals(:,:)
        real(dp), parameter :: weight = 1d0
@@ -176,11 +177,15 @@ contains
        nz = s% nz
 
        names(1) = "outer_mesh_Pgas_div_P_exponent"
+       gval_is_xa_function(1) = .false.
+       vals(1:nz,1:nfcns) => vals1(1:nz*nfcns)
 
        do k=1,nz
           beta = s% Pgas(k)/s% P(k)
           if (s% m(k)/s% m(1) > mass_coord_threshold) then
-               vals1(k,1) = weight * 1d0*pow_cr(beta, outer_mesh_Pgas_div_P_exponent)
+               vals(k,1) = weight * 1d0*pow_cr(beta, outer_mesh_Pgas_div_P_exponent)
+          else
+              vals(k,1) = 1d0
           end if
        end do
 
