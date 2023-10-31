@@ -65,6 +65,9 @@ contains
   !  s% data_for_extra_profile_header_items => data_for_extra_profile_header_items
     s% job% warn_run_star_extras =.false.
 
+    s% how_many_other_mesh_fcns => how_many_other_mesh_fcns
+    s% other_mesh_fcn_data => other_mesh_fcn_data
+
 
     original_diffusion_dt_limit = s% diffusion_dt_limit
 
@@ -141,6 +144,47 @@ contains
     if (ierr /= 0) return
     extras_check_model = keep_going
   end function extras_check_model
+
+  subroutine how_many_other_mesh_fcns(id, n)
+      integer, intent(in) :: id
+      integer, intent(out) :: num_mesh_func
+      n=1
+  end subroutine how_many_other_mesh_fcns
+
+  subroutine other_mesh_fcn_data (&
+               id, nfcns, names, gval_is_xa_function, vals1, ierr)
+       use const_def, only: dp
+       integer, intent(in) :: id
+       integer, intent(in) :: nfcns
+       character (len=*) :: names(:)
+       logical, intent(out) :: gval_is_xa_function(:) ! (nfcns)
+       real(dp), pointer :: vals1(:) ! =(nz, nfcns)
+       integer, intent(out) :: ierr
+
+       integer :: nz, k
+       real(dp), pointer :: vals(:,:)
+       real(dp), parameter :: weight = 1d0
+       real(dp), parameter :: mass_coord_threshold = 0.666d0 ! remeshing will occur only
+                                                  !  above this relative mass coordinate
+       real(dp), parameter :: outer_mesh_Pgas_div_P_exponent = 2d0
+
+       type (star_info), pointer :: s
+       ierr = 0
+       call star_ptr(id, s, ierr)
+       if (ierr /= 0) return
+       nz = s% nz
+
+       names(1) = "outer_mesh_Pgas_div_P_exponent"
+
+       do k=1,nz
+          beta = s% Pgas(k)/s% P(k)
+          if (s% m(k)/s% m(1) > mass_coord_threshold) then
+               vals1(k,1) = weight * 1d0*pow_cr(beta, outer_mesh_Pgas_div_P_exponent)
+          end if
+       end do
+
+  end subroutine other_mesh_fcn_data
+
 
   subroutine how_many_extra_history_header_items(id, id_extra, num_cols)
       integer, intent(in) :: id, id_extra
@@ -1466,7 +1510,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     !   call eval_wind_for_scheme(scheme,wind)
     !   if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
     !low-mass stars
-    !else 
+    !else
     if(T1 <= s% hot_wind_full_on_T)then
        !evaluate cool wind
        !RGB/TPAGB switch goes here
