@@ -131,7 +131,7 @@
                         !we want a value > 0 so that mesh_delta_coeff becomes much lower (i.e. higher spatial resolution)
                         !when Pgas/(Prad+Pgas) becomes low (close to the surface))
 
-      use_other_mesh_functions = .false. ! instead of the above value, we change
+      use_other_mesh_functions = .true. ! instead of the above value, we change
             ! the outer_mesh_Pgas_div_P_exponent in the implemented use_other_mesh_functions
             ! in the run_star_extras.f so that we only apply it to the outer part of the star
 

@@ -182,9 +182,11 @@ contains
        do k=1,nz
           beta = s% Pgas(k)/s% P(k)
           if (s% m(k)/s% m(1) > mass_coord_threshold) then
-               vals(k,1) = weight * 1d0*pow_cr(beta, outer_mesh_Pgas_div_P_exponent)
+               !vals(k,1) = weight * 1d0*pow_cr(beta, outer_mesh_Pgas_div_P_exponent)
+               vals(k,1) = 0d0
           else
-              vals(k,1) = 1d0
+              !vals(k,1) = 1d0
+              vals(k,1) = 0d0
           end if
        end do
 
