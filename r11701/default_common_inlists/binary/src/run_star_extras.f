@@ -147,7 +147,7 @@ contains
 
   subroutine how_many_other_mesh_fcns(id, n)
       integer, intent(in) :: id
-      integer, intent(out) :: num_mesh_func
+      integer, intent(out) :: n
       n=1
   end subroutine how_many_other_mesh_fcns
 
@@ -162,6 +162,7 @@ contains
        integer, intent(out) :: ierr
 
        integer :: nz, k
+       real(dp) :: beta
        real(dp), pointer :: vals(:,:)
        real(dp), parameter :: weight = 1d0
        real(dp), parameter :: mass_coord_threshold = 0.666d0 ! remeshing will occur only
