@@ -1185,7 +1185,7 @@
          end if
           ! Turning back on binary orbital evolution
           if (b% s_donor% x_logical_ctrl(6)) then
-              b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
+              b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing stars
           end if
           b% do_jdot_gr = .true.
           b% do_jdot_ml = .true.
