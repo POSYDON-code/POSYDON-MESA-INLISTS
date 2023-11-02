@@ -7,6 +7,6 @@
 &controls
      x_ctrl(1) = 1.0d0 ! Eddinton limit
 
-     ! implement magnetic braking for this star (do_jdot_mb=.true.). We have the option to not implement it for He_Stars in the CO-He_star grid
+     ! Allow for magnetic breaking to be turned on, when the star fills its Roche lobe. If true, in run_binary_extras, do_jdot_mb will be set to .true. when the star fills its Roche lobe. If .false. then magnetic breaking is never turned on.
      x_logical_ctrl(6) = .false.
 / ! end of controls namelist
