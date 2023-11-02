@@ -483,9 +483,11 @@ contains
                            - diss_energy_H2
 
        if (adjusted_energy(k) < 0d0 .or. adjusted_energy(k) > s% energy(k)) then
-          write(*,*) "Error when computing adjusted energy in CE, ", &
-             "s% energy(k):", s% energy(k), " adjusted_energy, ", adjusted_energy(k)
-             sticking_to_energy_without_recombination_corr = .true.
+          if (.not. sticking_to_energy_without_recombination_corr) then
+             write(*,*) "Error when computing adjusted energy in CE, ", &
+                "s% energy(k):", s% energy(k), " adjusted_energy, ", adjusted_energy(k)
+          end if
+          sticking_to_energy_without_recombination_corr = .true.
        end if
 
       if(.false.) then
