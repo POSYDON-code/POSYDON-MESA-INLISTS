@@ -7,6 +7,7 @@
 &controls
      x_ctrl(1) = 1.0d0 ! Eddinton limit
 
-     ! implement magnetic braking for this star (do_jdot_mb=.true.). We have the option to not implement it for He_Stars in the CO-He_star grid
-     x_logical_ctrl(6) = .false.
+     ! if true, avoid implementing magnetic braking for this star at RLO (do_jdot_mb stays .false.). in run_binary_extras
+     ! We have the option this not implement it for He_Stars in the CO-He_star grid
+     x_logical_ctrl(6) = .true.
 / ! end of controls namelist

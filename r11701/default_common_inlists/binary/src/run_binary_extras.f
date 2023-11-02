@@ -1184,7 +1184,7 @@
            b% s_donor => b% s2
          end if
           ! Turning back on binary orbital evolution
-          if (b% s_donor% x_logical_ctrl(6)) then
+          if (.not. b% s_donor% x_logical_ctrl(6)) then
               b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
           end if
           b% do_jdot_gr = .true.

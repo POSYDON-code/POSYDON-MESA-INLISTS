@@ -256,8 +256,9 @@ delta_HR_ds_L = 0.125d0
       x_logical_ctrl(4) = .false.
       ! skip calculating implicit mdot
       x_logical_ctrl(5) = .true.
-      ! implement magnetic braking for this star (do_jdot_mb=.true.). We have the option to not implement it for He_Stars in the CO-He_star grid
-      x_logical_ctrl(6) = .true.
+      ! if true, avoid implementing magnetic braking for this star at RLO (do_jdot_mb stays .false.). in run_binary_extras
+      ! We have the option this not implement it for He_Stars in the CO-He_star grid
+      x_logical_ctrl(6) = .false.
 
 
 / ! end of controls namelist
