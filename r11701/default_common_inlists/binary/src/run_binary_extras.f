@@ -1178,11 +1178,15 @@
          .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
          if (b% point_mass_i/=1) then
            i_don = 1
+           b% s_donor => b% s1
          else
            i_don = 2
+           b% s_donor => b% s2
          end if
-          ! Binary evolution
-          b% do_jdot_mb = .true.
+          ! Turning back on binary orbital evolution
+          if (.not. b% s_donor% x_logical_ctrl(6)) then
+              b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
+          end if
           b% do_jdot_gr = .true.
           b% do_jdot_ml = .true.
           b% do_jdot_ls = .true.
