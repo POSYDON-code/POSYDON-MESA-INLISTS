@@ -7,6 +7,6 @@
 &controls
      x_ctrl(1) = 1.0d0 ! Eddinton limit
 
-     ! Allow for magnetic breaking to be turned on, when the star fills its Roche lobe. If true, in run_binary_extras, do_jdot_mb will be set to .true. when the star fills its Roche lobe. If .false. then magnetic breaking is never turned on.
+     ! Allow for magnetic breaking to be turned on, when the star fills its Roche lobe. If true, in run_binary_extras, do_jdot_mb will be set to .true. when the star fills its Roche lobe. If .false. then magnetic breaking is never turned on. For He stars, we do not apply magnetic breaking.
      x_logical_ctrl(6) = .false.
 / ! end of controls namelist
