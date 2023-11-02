@@ -163,7 +163,7 @@ contains
       call star_ptr(id,s,ierr)
       if(ierr/=0) return
       !here is an example for adding an extra history header item
-      !set num_cols=1 in how_many_extra_history_header_items and then unccomment these lines
+      !set num_cols=1 in how_many_extra_history_header_items and then uncomment these lines
       initial_X = 0._dp
       initial_Y = 0._dp
       initial_Z = 0._dp
@@ -1466,7 +1466,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     !   call eval_wind_for_scheme(scheme,wind)
     !   if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
     !low-mass stars
-    !else 
+    !else
     if(T1 <= s% hot_wind_full_on_T)then
        !evaluate cool wind
        !RGB/TPAGB switch goes here
