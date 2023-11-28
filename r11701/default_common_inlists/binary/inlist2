@@ -127,7 +127,7 @@
       implicit_mdot_boost = 0.1d0 !DEF:0.1
       max_mdot_jump_for_rotation = 10d0 ! for smooth transition from mass accretion to mass loss
 
-      mesh_Pgas_div_P_exponent = 2 !DEF = 0 ! mesh_delta_coeff*(Pgas/Ptotal)^mesh_Pgas_div_P_exponent
+      mesh_Pgas_div_P_exponent = 0 !DEF = 0 ! mesh_delta_coeff*(Pgas/Ptotal)^mesh_Pgas_div_P_exponent
                         !we want a value > 0 so that mesh_delta_coeff becomes much lower (i.e. higher spatial resolution)
                         !when Pgas/(Prad+Pgas) becomes low (close to the surface))
 
@@ -186,7 +186,7 @@
       convective_bdy_weight = 0.5d0
       varcontrol_target = 1d-3
       max_timestep_factor = 1.2d0
-      max_allowed_nz = 50000
+      max_allowed_nz = 20000
       max_dq = 1d-3
 
       newton_iterations_limit = 20
