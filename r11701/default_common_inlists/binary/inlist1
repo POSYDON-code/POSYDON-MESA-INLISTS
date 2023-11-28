@@ -186,7 +186,7 @@
       convective_bdy_weight = 0.5d0
       varcontrol_target = 1d-3
       max_timestep_factor = 1.2d0
-      max_allowed_nz = 50000
+      max_allowed_nz = 20000
       max_dq = 1d-3
 
       newton_iterations_limit = 20
