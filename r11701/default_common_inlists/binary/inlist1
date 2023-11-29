@@ -95,6 +95,7 @@
       mlt_option = 'Mihalas'
       mlt_use_rotation_correction = .false.
       okay_to_reduce_gradT_excess = .true.
+      gradT_excess_f2 = 0.1d0
 
       use_ledoux_criterion = .true.
       alpha_semiconvection = 0.1d0
@@ -182,6 +183,12 @@
       convective_bdy_weight = 0.5d0
       varcontrol_target = 1d-3
       max_timestep_factor = 1.2d0
+      max_logT_for_k_below_const_q = 1.0d2
+      max_q_for_k_below_const_q = 0.995d0
+      min_q_for_k_below_const_q = 0.995d0
+      max_logT_for_k_const_mass = 1.0d2
+      max_q_for_k_const_mass = 0.99d0
+      min_q_for_k_const_mass = 0.99d0
       max_allowed_nz = 20000
       max_dq = 1d-3
 
