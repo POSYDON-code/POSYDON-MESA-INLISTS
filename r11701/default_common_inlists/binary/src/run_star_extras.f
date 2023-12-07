@@ -1395,15 +1395,16 @@ contains
    s% extra_jdot(:) = 0d0
    s% extra_omegadot(:) = 0d0
 
-   ocz_bot_mass = s% cz_bot_mass(i)
-   ocz_top_mass = s% cz_top_mass(i)
-
    ! INITIAL TURNOVER TIME CALCULATION
    ! As prescribed, magnetic braking only operates if there is a radiative core.
    ! A radiative core is considered to exist below as long as less than 50% of 
    ! the core mass is convective. Only bother is there's a convective envelope
    ! and the star is older than the user-specified disk locking time
    if (s% n_conv_regions > 0) then
+
+      ocz_bot_mass = s% cz_bot_mass(i)
+      ocz_top_mass = s% cz_top_mass(i)
+
       if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
          ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
          (ocz_bot_mass > 0d0)) then
@@ -1486,14 +1487,15 @@ contains
 
    s% extra_omegadot(:) = 0d0
 
-   ocz_bot_mass = s% cz_bot_mass(i)
-   ocz_top_mass = s% cz_top_mass(i)
-
    ! As prescribed, magnetic braking only operates if there is a radiative core.
    ! A radiative core is considered to exist below as long as less than 50% of 
    ! the core mass is convective. Only bother is there's a convective envelope
    ! and the star is older than the user-specified disk locking time
    if (s% n_conv_regions > 0) then 
+
+      ocz_bot_mass = s% cz_bot_mass(i)
+      ocz_top_mass = s% cz_top_mass(i)
+
       if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
           ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
           (ocz_bot_mass > 0d0)) then
