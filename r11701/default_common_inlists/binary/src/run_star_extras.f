@@ -39,6 +39,8 @@ module run_star_extras
   logical :: pre_WD_check = .false.
   real(dp) :: current_wind_prscr = -1d0
 
+  real(dp) :: t_spindown
+
 contains
 
   subroutine extras_controls(id, ierr)
@@ -67,6 +69,40 @@ contains
 
 
     original_diffusion_dt_limit = s% diffusion_dt_limit
+
+    if (s% use_other_torque) then
+      if (s% x_character_ctrl(1) == 'g18') then
+        write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        write(*,*) 'Garraffo+ 2016/18 torque enabled (star ', id, ').'
+        write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+        s% other_torque => garraffo_torque
+      else if (s% x_character_ctrl(1) == 'm15') then
+         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         write(*,*) 'Matt+ 2015 torque enabled (star ', id, ').'
+         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         s% other_torque => matt_torque
+      else if (s% x_character_ctrl(1) == 'carb') then
+         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         write(*,*) 'Van & Ivanova 2019 (CARB) torque enabled (star ', id, ').'
+         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         s% other_torque => carb_torque
+      else if (s% x_character_ctrl(1) == 'rvj83') then
+         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         write(*,*) 'Rappaport, Verbunt, & Joss 1983 torque enabled (star ', id, ').'
+         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         s% other_torque => rvj_torque
+      else 
+         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         write(*,*) 'WARNING: defaulting to Matt+ 2015 torque (star ', id, ').'
+         write(*,*) 'To select a different magnetic braking law, set x_character_ctrl equal to one of the following:'
+         write(*,*) '  >> x_character_ctrl = ''g18'' for Garraffo+ 2016/18 torque'
+         write(*,*) '  >> x_character_ctrl = ''m15'' for Matt+ 2015 torque'
+         write(*,*) '  >> x_character_ctrl = ''carb'' for Van & Ivanova 2019 (CARB) torque'
+         write(*,*) '  >> x_character_ctrl = ''rvj83'' for Rappaport, Verbunt, & Joss 1983 torque'
+         write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+         s% other_torque => matt_torque
+      end if
+    end if
 
   end subroutine extras_controls
 
@@ -135,10 +171,28 @@ contains
   integer function extras_check_model(id, id_extra)
     integer, intent(in) :: id, id_extra
     integer :: ierr
+    real(dp) :: dt
     type (star_info), pointer :: s
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
+
+    dt = s% dt * s% timestep_factor_for_retries
+
+    ! check if the model is reaching the min_timestep_limit because of heavy mass transfer
+    ! This is the same condition used in star/private/evolve.f90, with a new termination 
+    ! code for this specific case
+    if (dt <= max(s% min_timestep_limit,0d0)) then
+      if ((abs(s% star_mdot) >= 1d-1) .or. (s% star_mass <= 8d0 .and. abs(s% star_mdot) >= 1d-6)) then
+         write(*,*) 'dt', dt
+         write(*,*) 'min_timestep_limit', s% min_timestep_limit
+         write(*,*) 'abs(s% star_mdot)', abs(s% star_mdot)
+         write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
+         extras_check_model = terminate
+         return
+      end if
+    end if
+
     extras_check_model = keep_going
   end function extras_check_model
 
@@ -868,6 +922,7 @@ contains
     type (star_info), pointer :: s
     logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest
     character (len=strlen) :: photoname, stuff
+    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -881,7 +936,7 @@ contains
     end if
 
     ! TP-AGB
-    if(TP_AGB_check .and. s% have_done_TP)then
+    if (TP_AGB_check .and. (s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
        TP_AGB_check = .false.
        late_AGB_check = .true.
        write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
@@ -894,7 +949,7 @@ contains
        s% delta_lgTeff_hard_limit = -1d0
        s% delta_lgL_limit = -1d0
        s% delta_lgL_hard_limit = -1d0
-       s% Blocker_scaling_factor = 2.0d0
+       !s% Blocker_scaling_factor = 2.0d0 ! deprecated?
        !s% varcontrol_target = 2.0d0*s% varcontrol_target
        write(*,*) ' varcontrol_target = ', s% varcontrol_target
        write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
@@ -909,7 +964,7 @@ contains
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
           write(*,*) 'now at late AGB phase, model number ', s% model_number
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++'
-          s% Blocker_scaling_factor = 5.0d0
+          !s% Blocker_scaling_factor = 5.0d0 ! deprecated?
           late_AGB_check=.false.
           post_AGB_check=.true.
        endif
@@ -944,7 +999,7 @@ contains
     if(pre_WD_check)then
        if(s% Teff < 3.0d4 .and. s% L_surf < 1.0d0)then
           pre_WD_check = .false.
-          s% do_Ne22_sedimentation_heating = .true.
+          !s% do_Ne22_sedimentation_heating = .true. ! Ne22 is not in the current net, so this causes a crash
           write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
           write(*,*) 'now at WD phase, model number ', s% model_number
           !if(s% job% extras_lpar(2))then
@@ -976,6 +1031,27 @@ contains
          s% termination_code = t_xtra2
          extras_finish_step = terminate
       endif
+      ! check for termination due to pair-instability
+      ! calculate volumetric pressure-weighted average adiabatic index -4/3, following Renzo et al. 2020
+      integral_norm = 0.0d0
+      gamma1_integral = 0.0d0
+      do i=1,s% nz
+         Pdm_over_rho = s% P(i)*s% dm(i)/s% rho(i)
+         integral_norm = integral_norm + Pdm_over_rho
+         gamma1_integral = gamma1_integral + &
+            (s% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
+      end do
+      gamma1_integral = gamma1_integral/max(1.0d-99,integral_norm)
+      if (gamma1_integral < 0.0d0) then
+         ! check central value of adiabatic index to differentiate between full and pulsational pair-instability
+         if (s% gamma1(s% nz)-4.0d0/3.0d0 < 0.0d0) then
+            write(*,'(g0)') "termination code: Single star enters pair-instability regime, terminating from run_star_extras"
+            extras_finish_step = terminate
+         else
+            write(*,'(g0)') "termination code: Single star enters pulsational pair-instability regime, term. from run_star_extras"
+            extras_finish_step = terminate
+         end if
+      end if
     endif
 
     ! check DIFFUSION: to determine whether or not diffusion should happen
@@ -991,13 +1067,13 @@ contains
        s% diffusion_dt_limit = original_diffusion_dt_limit
     end if
 
-    ! TP-AGB
-    if(s% have_done_TP) then
+    ! TP-AGB ! deprecated?
+    !if ((s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
        !termination_code_str(t_xtra2) = 'Reached TPAGB'
        !s% termination_code = t_xtra2
        !extras_finish_step = terminate
-       write(*,'(g0)') 'Reached TPAGB'
-    end if
+    !   write(*,'(g0)') 'Reached TPAGB'
+    !end if
   end function extras_finish_step
 
 
@@ -1103,7 +1179,431 @@ contains
 
   end subroutine move_extra_info
 
+  ! Matt et al. (2015), ApJ, 799, L23 magnetic braking prescription
+  subroutine matt_torque(id, ierr)
+   integer, intent(in) :: id
+   integer, intent(out) :: ierr
+   type (star_info), pointer :: s
+   integer :: j, k, mix_reg_extent, mix_reg_bot_k, mix_reg_top_k, &
+           nz, n_conv_bdy, i, k_ocz_bot, k_ocz_top
 
+   real(dp) :: Prot, Ro, Rosol, Rosat, K_const, m, p, u, gamma, dJdt, &
+                 tau_convective, mixing_length_at_bcz, MOI, Om, rsol, &
+                 msol, omega_sol, tau_cz_sol, chi, T0
+
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+
+   ! number of convective regions; corresponds to outer CZ as an index
+   i = s% n_conv_regions
+
+   Prot = 0d0
+   Ro = 0d0
+   dJdt = 0d0
+   s% extra_omegadot(:) = 0d0
+
+   if ((s% n_conv_regions > 0)) then 
+     if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
+           ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11)) then
+
+        call calc_tau_convective(id, tau_convective, ierr)  
+
+        MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
+        Om = s% omega_avg_surf !s% total_angular_momentum / MOI
+        ! surface rotation period
+        Prot = 2d0 * pi / Om
+
+        ! rossby number
+        Ro = Prot / tau_convective
+        Rosol = 2d0 ! Amard+ 2019
+        Rosat = 0.14d0 ! Amard+ 2019
+        K_const = 1.4e30 ! Solar calibrated as in Gossage et al. 2021, ApJ 912, 65
+        m = 0.22d0 ! Solar calibrated '                                    '
+        p = 2.6d0 ! Solar calibrated '                                     '
+        tau_cz_sol = 12.9d0*86400d0 ! 12.9 days Matt+ 2015 [sec]
+        omega_sol = 2.6d-6 !2.6E-6 s^-1 solar solid body ang. rot. rate from measured Prot of Sun...
+        u = s% v_div_v_crit_avg_surf 
+        msol = 1.99d33 ! g
+        rsol = 6.96d10 ! cm
+        chi = Rosol / Rosat
+
+        gamma = pow_cr(1.0+powi_cr(u / 0.072, 2), 0.5d0)
+        T0 = K_const * pow_cr(pow_cr(10d0, s% log_surface_radius), 3.1d0) * &
+              pow_cr(s% star_mass, 0.5d0) * pow_cr(gamma, -2.0d0 * m)
+
+        ! saturated regime
+        if (Ro .lt. Rosat) then
+           dJdt = T0 * pow_cr(chi, p) * (Om / omega_sol)
+        ! unsaturated regime
+        else
+           dJdt = T0 * pow_cr(tau_convective/tau_cz_sol, p) * &
+                       pow_cr(Om / omega_sol, p + 1.0d0)
+        end if
+
+        ! angular momentum change per second.
+        dJdt = max(0.0d0, dJdt)
+
+        do k = s% nz, 1, -1
+           ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+           if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
+             ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+             s% extra_omegadot(k) = - s% omega(k) / s% dt
+           else
+             ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+             s% extra_omegadot(k) = - dJdt / MOI 
+           end if
+         end do
+
+        ! Check if spindown timescale is shorter than timestep. Print a warning in case.
+        ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+        t_spindown = abs(s% total_angular_momentum / dJdt) ! Estimate spindown timescale
+        
+        return
+        
+     else
+        t_spindown = 100 * s% dt ! To avoid decreasing the timestep in extras_finish_step
+     end if
+
+   else
+      t_spindown = 100 * s% dt ! To avoid decreasing the timestep in extras_finish_step
+   end if
+
+ end subroutine matt_torque
+
+ ! Garraffo et al. (2018), ApJ, 862, 90 torque prescription
+ subroutine garraffo_torque(id, ierr)
+   integer, intent(in) :: id
+   integer, intent(out) :: ierr
+   type (star_info), pointer :: s
+   integer :: j, k, nz, i
+   real(dp) :: tau_convective, Prot, Ro, n, Qn, dJdt, &
+               MOI, scale_height_at_bcz, omega_crit, &
+               c_const, a_const, b_const
+
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+
+   nz = s% nz
+   i = s% n_conv_regions
+
+   tau_convective = 0d0
+   Prot = 0d0
+   Ro = 0d0
+   n = 0d0
+   Qn = 0d0
+   dJdt = 0d0
+   scale_height_at_bcz = 0d0
+   MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
+
+   ! calibration constants
+   a_const = 0.03d0  ! Solar calibrated as in Gossage et al. 2021, ApJ 912, 65
+   b_const = 0.5d0  ! Solar calibrated '                                     '
+   c_const = 3d41 ! Solar calibrated 
+
+   s% extra_omegadot(:) = 0d0
+
+   ! only bother calculating if star has a convective envelope and is
+   ! older than the specified disk locking phase
+   if (s% n_conv_regions > 0) then
+      if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
+          ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11)) then
+
+         call calc_tau_convective(id, tau_convective, ierr)
+
+         ! rotation period based on avg surface omega
+         Prot = 2d0 * pi / s% omega_avg_surf
+
+         ! rossby number
+         Ro = Prot / tau_convective
+
+         ! calculate n (magnetic complexity parameter)
+         n = (a_const / Ro) + (b_const * Ro) + 1d0
+         if (n < 1d0) then
+            n = 1d0
+         ! was 1d99
+         else if (n > 1d1) then
+            n = 1d1
+         end if
+
+         ! magnetic supression factor
+         Qn = 4.05d0 * exp_cr(-1.4d0 * n)
+
+         ! angular momentum change per second [cgs]
+         dJdt = c_const * powi_cr(s% omega_avg_surf, 3) * tau_convective * Qn
+         dJdt = max(0d0, dJdt)
+
+         ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+         ! Estimate spindown timescale here
+         t_spindown = abs(s% total_angular_momentum / dJdt)
+
+         do k = s% nz, 1, -1
+            ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+            if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
+               ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+               s% extra_omegadot(k) = - s% omega(k) / s% dt
+            else
+               ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+               s% extra_omegadot(k) = - dJdt / MOI 
+            end if
+         end do
+
+      else
+         t_spindown = 100 * s% dt ! To avoid decreasing the timestep in extras_finish_step
+      end if
+
+   else
+     ! To avoid decreasing the timestep in extras_finish_step
+     t_spindown = 1d2 * s% dt
+   end if
+
+ end subroutine garraffo_torque
+
+ ! As implemented in Van & Ivanova 2019 (CARB magnetic braking), ApJ, 886, L31
+ ! based on files hosted on Zenodo: https://zenodo.org/record/3647683#.Y_TfedLMKUk,
+ ! but modified to operate on single stars.
+ subroutine carb_torque(id, ierr)
+   integer, intent(in) :: id
+   integer, intent(out) :: ierr
+   integer :: i, k, nz
+   type (star_info), pointer :: s
+   real(dp) :: tau_convective
+   real(dp) :: rsun4, two_pi_div_p2, K2
+   real(dp) :: tt_ratio, tt4
+   real(dp) :: rot_ratio, rot4
+   real(dp) :: rad4
+   real(dp) :: v_esc2, v_mod2
+   real(dp) :: alfven_no_R, R_alfven
+   real(dp) :: jdot_mb
+   real(dp) :: period, MOI, mdot, rsurf, mstar
+   real(dp) :: ocz_bot_mass, ocz_top_mass
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+
+   ! INITIALIZE THE VARIABLES
+   nz = s% nz
+   i = s% n_conv_regions
+   tau_convective = 0d0
+   period = 2d0 * pi / s% omega_avg_surf
+   MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
+   mdot = s% star_mdot * msun / 3.154d7 ! [g/sec]
+   rsurf = rsun * pow_cr(10d0, s% log_surface_radius) ! [cm]
+   mstar = s% star_mass * msun ! [g]
+
+   s% extra_jdot(:) = 0d0
+   s% extra_omegadot(:) = 0d0
+
+   ! INITIAL TURNOVER TIME CALCULATION
+   ! As prescribed, magnetic braking only operates if there is a radiative core.
+   ! A radiative core is considered to exist below as long as less than 50% of 
+   ! the core mass is convective. Only bother is there's a convective envelope
+   ! and the star is older than the user-specified disk locking time
+   if (s% n_conv_regions > 0) then
+
+      ocz_bot_mass = s% cz_bot_mass(i)
+      ocz_top_mass = s% cz_top_mass(i)
+
+      if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
+         ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
+         (ocz_bot_mass > 0d0)) then
+
+         call calc_tau_convective(id, tau_convective, ierr)
+
+         ! MAGNETIC BRAKING CALCULATION
+         rsun4 = pow4(rsun)
+         two_pi_div_p2 = (2.0 * pi / period) * (2.0 * pi / period)
+         K2 = 0.07 * 0.07
+         tt_ratio = tau_convective / 2.8d6
+         tt4 = pow4(tt_ratio)
+         rot_ratio = (2073600d0 / period)
+         rot4 = pow4(rot_ratio)
+         rad4 = pow4(rsurf)
+
+         v_esc2 = 2d0 * standard_cgrav * mstar / rsurf
+         v_mod2 = v_esc2 + 2d0 * two_pi_div_p2 * rsurf * rsurf / K2 
+                        
+         ! SSG edit to prevent INF values when s% star_mdot = 0...
+         ! Tf abs(mdot) is > zero, proceed as normal, or else set alfven_no_R to 0.
+         ! This also means that if abs(mdot) <= 0, jdot = 0.
+         if (abs(mdot) > 0d0) then
+            alfven_no_R = rad4 * rot4 * tt4 / (mdot * mdot) * (1d0 / v_mod2)
+         else
+            alfven_no_R = 0d0
+         end if
+
+         R_alfven = rsurf * alfven_no_R**(1d0 / 3d0)
+
+         jdot_mb = (2d0 / 3d0) * (2d0 * pi / period) * mdot * R_alfven * R_alfven
+                     
+         ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+         ! Estimate spindown timescale here
+         t_spindown = abs(s% total_angular_momentum / jdot_mb)
+
+         do k = s% nz, 1, -1
+            ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+            if (s% omega(k) < s% dt * abs(jdot_mb / MOI) ) then
+               ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+               s% extra_omegadot(k) = - s% omega(k) / s% dt
+            else
+               ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+               s% extra_omegadot(k) = jdot_mb / MOI 
+            end if
+         end do
+      else
+        ! To avoid decreasing the timestep in extras_finish_step
+        t_spindown = 1d2 * s% dt
+      end if
+
+   else
+     ! To avoid decreasing the timestep in extras_finish_step
+     t_spindown = 1d2 * s% dt
+   end if
+
+ end subroutine carb_torque
+
+ ! Torque from Rappaport, Verbunt, and Joss 1983, ApJ, 275, 713
+ subroutine rvj_torque(id, ierr)
+   integer, intent(in) :: id
+   integer, intent(out) :: ierr
+   integer :: i, k, nz
+   type (star_info), pointer :: s
+   real(dp) :: rsun4, omega_3, &
+               rstar_div_rsun, rad4, jdot_mb, &
+               magnetic_braking_gamma, MOI, rsurf, &
+               mstar, ocz_bot_mass, ocz_top_mass
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+
+   nz = s% nz
+   i = s% n_conv_regions
+   magnetic_braking_gamma = 4d0
+   MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
+   mstar = s% star_mass * msun
+   rsurf = rsun * pow_cr(10d0, s% log_surface_radius)
+   rstar_div_rsun = pow_cr(10d0, s% log_surface_radius)
+
+   s% extra_omegadot(:) = 0d0
+
+   ! As prescribed, magnetic braking only operates if there is a radiative core.
+   ! A radiative core is considered to exist below as long as less than 50% of 
+   ! the core mass is convective. Only bother is there's a convective envelope
+   ! and the star is older than the user-specified disk locking time
+   if (s% n_conv_regions > 0) then 
+
+      ocz_bot_mass = s% cz_bot_mass(i)
+      ocz_top_mass = s% cz_top_mass(i)
+
+      if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
+          ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
+          (ocz_bot_mass > 0d0)) then
+
+         ! MAGNETIC BRAKING CALCULATION
+         rsun4 = pow4(rsun)
+
+         omega_3 = s% omega_avg_surf * s% omega_avg_surf * s% omega_avg_surf
+
+         jdot_mb = -3.8d-30 * mstar * rsun4 * &            
+                     pow_cr(rstar_div_rsun, magnetic_braking_gamma) * omega_3
+         
+         ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
+         ! Estimate spindown timescale here           
+         t_spindown = abs(s% total_angular_momentum / jdot_mb)
+
+         do k = s% nz, 1, -1
+            ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+            if (s% omega(k) < s% dt * abs(jdot_mb / MOI) ) then
+               ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+               s% extra_omegadot(k) = - s% omega(k) / s% dt
+            else
+               ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+               s% extra_omegadot(k) = jdot_mb / MOI 
+            end if
+         end do
+      else
+         t_spindown = 1d2 * s% dt
+      end if         
+
+   else
+     ! To avoid decreasing the timestep in extras_finish_step
+     t_spindown = 1d2 * s% dt
+   end if
+
+ end subroutine rvj_torque
+
+ ! calculate the convective turnover time of one star, half a 
+ ! pressure scale height above the bottom of the convection zone
+ subroutine calc_tau_convective(id, ocz_turnover_time, ierr)
+  integer, intent(in) :: id
+  integer, intent(out) :: ierr
+  type (star_info), pointer :: s
+  integer :: k, nz, n_conv_bdy, i, k_ocz_bot, k_ocz_top
+
+  real(dp) :: ocz_top_mass, ocz_bot_mass, mixing_length_at_bcz, &
+              ocz_turnover_time, ocz_top_radius, ocz_bot_radius
+
+  ierr = 0
+  call star_ptr(id, s, ierr)
+  if (ierr /= 0) return
+
+  ! output info about the CONV. ENV.: the CZ location, turnover time
+  nz = s% nz
+  n_conv_bdy = s% num_conv_boundaries
+  i = s% n_conv_regions
+  k_ocz_bot = 0
+  k_ocz_top = 0
+  ocz_turnover_time = 0d0
+  ocz_top_mass = 0d0
+  ocz_bot_mass = 0d0
+  ocz_top_radius = 0d0
+  ocz_bot_radius = 0d0
+  mixing_length_at_bcz = 0d0
+
+  ocz_bot_mass = s% cz_bot_mass(i)
+  ocz_top_mass = s% cz_top_mass(i)
+
+  !get top radius information
+  !start from k=2 (second most outer zone) in order to access k-1
+  do k=2,nz
+    if (s% m(k) < ocz_top_mass) then
+      ocz_top_radius = s% r(k-1)
+      k_ocz_top = k-1
+      exit
+    end if
+  end do
+
+  ! get bottom radius information
+  if (ocz_bot_mass == 0d0) then
+    ocz_bot_radius = s% r(nz)
+    k_ocz_bot = nz
+  else
+    do k=2,nz
+      if (s% m(k) < ocz_bot_mass) then
+        ocz_bot_radius = s% r(k-1)
+        k_ocz_bot = k-1
+        exit
+      end if
+    end do
+  end if
+
+  !if the star is fully convective, then the bottom boundary is the center
+  if ((k_ocz_bot == 0) .and. (k_ocz_top > 0)) then
+    k_ocz_bot = nz
+  end if
+
+  mixing_length_at_bcz = s% mlt_mixing_length(k_ocz_bot)
+  !scale_height_at_bcz = s% scale_height(k_ocz_bot)
+  !compute the "local" turnover time a scale height above the BCZ
+  do k=k_ocz_top,k_ocz_bot
+    if (s% r(k) < (s% r(k_ocz_bot) + 0.5d0 * s% scale_height(k)) ) then
+      ocz_turnover_time = s% mixing_length_alpha * s% scale_height(k) / s% conv_vel(k)
+      exit
+    end if
+  end do   
+
+end subroutine calc_tau_convective
 
 subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy, top_bdy, &
       cz_bot_mass_posydon, cz_bot_radius_posydon, cz_top_mass_posydon, cz_top_radius_posydon)
@@ -1438,59 +1938,61 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     end if
 
     !massive stars
-    if(s% initial_mass >= 10._dp)then
-       scheme = s% hot_wind_scheme
-       call eval_wind_for_scheme(scheme,wind)
-       if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
+    !if(s% initial_mass >= 10._dp)then
+    !if (T1 > s% hot_wind_full_on_T) then
+    !   scheme = s% hot_wind_scheme
+    !   call eval_wind_for_scheme(scheme,wind)
+    !   if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
     !low-mass stars
-    else
-       if(T1 <= s% hot_wind_full_on_T)then
-          !evaluate cool wind
-          !RGB/TPAGB switch goes here
-          if (s% have_done_TP) then
-             scheme = s% cool_wind_AGB_scheme
-             if (dbg) &
-                  write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
-                  center_h1, center_he4, s% RGB_to_AGB_wind_switch
-
-          else
-             scheme= s% cool_wind_RGB_scheme
-             if (dbg) write(*,*) 'using cool_wind_RGB_scheme: "' // trim(scheme) // '"'
-
-          endif
-          call eval_wind_for_scheme(scheme, cool_wind)
-       endif
-
-       if(T1 >= s% cool_wind_full_on_T)then
-          !evaluate hot wind
-          scheme="Dutch"
-          call eval_wind_for_scheme(scheme, hot_wind)
-          if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
-
-       endif
-
-       !now we have both hot and cool wind
-
-       if(T1 < s% cool_wind_full_on_T) then
-          wind = cool_wind
-
-       elseif(T1 > s% hot_wind_full_on_T) then
-          wind = hot_wind
+    !else 
+    if(T1 <= s% hot_wind_full_on_T)then
+       !evaluate cool wind
+       !RGB/TPAGB switch goes here
+       if ((s% he_core_mass - s% c_core_mass < 1d-1) .and. (s% center_he4 < 1d-6)) then
+          scheme = s% cool_wind_AGB_scheme
+          if (dbg) &
+            write(*,1) 'using cool_wind_AGB_scheme: "' // trim(scheme) // '"', &
+            center_h1, center_he4, s% RGB_to_AGB_wind_switch
 
        else
-          !now combine the contributions of hot and cool winds
-          divisor = s% hot_wind_full_on_T - s% cool_wind_full_on_T
-          beta = min( (s% hot_wind_full_on_T - T1) / divisor, 1d0)
-          alfa = 1d0 - beta
-          wind = alfa*hot_wind + beta*cool_wind
+          scheme= s% cool_wind_RGB_scheme
+          if (dbg) write(*,*) 'using cool_wind_RGB_scheme: "' // trim(scheme) // '"'
+
        endif
+       call eval_wind_for_scheme(scheme, cool_wind)
     endif
+
+    if(T1 >= s% cool_wind_full_on_T)then
+       !evaluate hot wind
+       scheme="Dutch"
+       call eval_wind_for_scheme(scheme, hot_wind)
+       if (dbg) write(*,*) 'using hot_wind_scheme: "' // trim(scheme) // '"'
+
+    endif
+
+    !now we have both hot and cool wind
+
+    if(T1 < s% cool_wind_full_on_T) then
+       wind = cool_wind
+
+    elseif(T1 > s% hot_wind_full_on_T) then
+       wind = hot_wind
+
+    else
+       !now combine the contributions of hot and cool winds
+       divisor = s% hot_wind_full_on_T - s% cool_wind_full_on_T
+       beta = min( (s% hot_wind_full_on_T - T1) / divisor, 1d0)
+       alfa = 1d0 - beta
+       wind = alfa*hot_wind + beta*cool_wind
+    endif
+   !endif
 
   contains
 
     subroutine eval_wind_for_scheme(scheme,wind)
       character(len=strlen) :: scheme
       real(dp), intent(out) :: wind
+      real(dp) :: reimers_wind
       include 'formats'
 
       current_wind_prscr = 0d0
@@ -1539,9 +2041,18 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          wind = wind * s% Grafener_scaling_factor
          if (dbg) write(*,1) 'Grafener_wind', wind
       else if (scheme == 'Blocker') then
+         ! use the max of Reimers vs. Blocker. Blocker should overtake
+         ! during thermal pulses.
+         reimers_wind = wind * s% Reimers_scaling_factor
          call eval_blocker_wind(wind)
-         current_wind_prscr = 5d0
-         if (dbg) write(*,1) 'Blocker_wind', wind
+         wind = max(reimers_wind, wind)
+         if (wind > reimers_wind) then
+             current_wind_prscr = 5d0
+             if (dbg) write(*,1) 'Blocker_wind', wind
+         else
+             current_wind_prscr = 4d0
+             if (dbg) write(*,1) 'Reimers_wind', wind
+         end if
       else if (scheme == 'de Jager') then
          call eval_de_Jager_wind(wind)
          current_wind_prscr = 3d0
