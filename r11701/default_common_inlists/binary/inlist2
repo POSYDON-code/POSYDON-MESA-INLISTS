@@ -95,7 +95,6 @@
       mlt_option = 'Mihalas'
       mlt_use_rotation_correction = .false.
       okay_to_reduce_gradT_excess = .true.
-      gradT_excess_f2 = 0.1d0
 
       use_ledoux_criterion = .true.
       alpha_semiconvection = 0.1d0
@@ -117,11 +116,11 @@
       w_div_wcrit_max = 0.9d0
 
       max_mdot_redo_cnt = 200 !DEF: 0 (explicit).
-      surf_avg_tau_min = 10d0 !DEF: 1
-      surf_avg_tau = 100d0 !DEF: 100
+      surf_avg_tau_min = 0d0 !DEF: 1
+      surf_avg_tau = 10d0 !DEF: 100
       min_years_dt_for_redo_mdot = 0d0 !DEF:0
-      surf_w_div_w_crit_limit = 0.95d0 !DEF:0.99
-      surf_w_div_w_crit_tol = 0.1d0 !DEF:0.05
+      surf_w_div_w_crit_limit = 0.99d0 !DEF:0.99
+      surf_w_div_w_crit_tol = 0.05d0 !DEF:0.05
       rotational_mdot_boost_fac = 1d10 !DEF:1d5
       rotational_mdot_kh_fac = 1d10 !DEF: 0.3d0
       mdot_revise_factor = 1.2d0 !DEF:1.1
@@ -187,12 +186,6 @@
       convective_bdy_weight = 0.5d0
       varcontrol_target = 1d-3
       max_timestep_factor = 1.2d0
-      max_logT_for_k_below_const_q = 1.0d2
-      max_q_for_k_below_const_q = 0.995d0
-      min_q_for_k_below_const_q = 0.995d0
-      max_logT_for_k_const_mass = 1.0d2
-      max_q_for_k_const_mass = 0.99d0
-      min_q_for_k_const_mass = 0.99d0
       max_allowed_nz = 20000
       max_dq = 1d-3
 
