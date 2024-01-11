@@ -879,7 +879,8 @@ contains
     call store_extra_info(s)
     if(s% x_logical_ctrl(2)) then ! this should only up for the 2 step of He star formation
       ! consistent with H-ZAMS definition from Aaron
-      if (s% power_he_burn * Lsun / s% L(1) > 0.985)  extras_finish_step = terminate
+      if ((s% power_nuc_burn * Lsun / s% L(1) > 0.985) .and. &
+          (s% power_he_burn > 0.5*s% power_nuc_burn))  extras_finish_step = terminate
       if (extras_finish_step == terminate) s% termination_code =t_extras_finish_step
     end if
 
