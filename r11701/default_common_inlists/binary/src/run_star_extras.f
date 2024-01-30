@@ -1690,6 +1690,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       else if (s% Dutch_wind_lowT_scheme == 'Yang') then
          call eval_Yang_wind(w)
          if (dbg) write(*,1) 'Dutch_wind = Yang', safe_log10_cr(wind), T1, T_low, T_high
+     else if (s% Dutch_wind_lowT_scheme == 'Antoniadis') then
+        call eval_Antoniadis_wind(w)
+        if (dbg) write(*,1) 'Dutch_wind = Antoniadis', safe_log10_cr(wind), T1, T_low, T_high
        else if (s% Dutch_wind_lowT_scheme == 'Kee') then
           call eval_Kee_wind(w)
           if (dbg) write(*,1) 'Dutch_wind = Kee', safe_log10_cr(wind), T1, T_low, T_high
@@ -1713,6 +1716,27 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          write(*,1) 'de_Jager log10 wind', log10w
       end if
     end subroutine eval_de_Jager_wind
+
+    subroutine eval_Antoniadis_wind(w)
+      ! Antoniadis+2024 RSG winds based on LMC sample
+      real(dp), intent(out) :: w
+      real(dp) :: log10w
+      include 'formats'
+
+      real(dp), parameter :: Z_LMC = 0.45*Zsolar
+      real(dp), parameter :: logL_kink = 4.4
+
+      if  (log10_cr(L1/Lsun) < logL_kink) then
+        log10w = 0.26d0*log10_cr(L1/Lsun) - 14.19d0*log10_cr(T1/4000) - 9.17d0 + Zindex*log10_cr(Z/Z_LMC)
+      else
+        log10w = 2.5d0*log10_cr(L1/Lsun) - 31.78d0*log10_cr(T1/4000) - 17.47d0 + Zindex*log10_cr(Z/Z_LMC)
+      endif
+
+      w = exp10_cr(log10w)
+      if (dbg) then
+         write(*,1) 'Antoniadis log10 wind', log10w
+      end if
+    end subroutine eval_Antoniadis_wind
 
     subroutine eval_Yang_wind(w)
       ! Yang+2022 for SMC, only L dependent
