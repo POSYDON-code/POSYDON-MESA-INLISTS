@@ -10,6 +10,6 @@
    do_initial_orbit_sync_1 = .false.
    mdot_scheme = 'Kolb'
 
-   limit_retention_by_mdot_edd = .true.     ! Use Eddington accretion rate
-   use_other_mdot_edd = .true.
+   limit_retention_by_mdot_edd = .false.     ! Use Eddington accretion rate
+   use_other_mdot_edd = .false.
 / ! end of binary_controls namelist
