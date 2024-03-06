@@ -777,8 +777,6 @@
 	     mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
                  /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
          end if
-         mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
-                  /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
           !b% s1% x_ctrl(1) used to adjust the Eddington limit in inlist1
           mdot_edd = mdot_edd * b% s1% x_ctrl(1)
       end subroutine my_mdot_edd
