@@ -1199,7 +1199,7 @@
        ! less than 1 day. Units are seconds
        t_hi = 3.154d7
        t_lo = 8.64d4
-       if (b% point_mass_i == 0) then
+       if (b% point_mass_i /= 1) then
          if ((b% s1% dt < t_hi) .and. (b% s1% dt >= t_lo)) then
             b% mass_transfer_beta = (t_hi - b% s1% dt) / (t_hi - t_lo)
          else if (b% s1% dt < t_lo) then
