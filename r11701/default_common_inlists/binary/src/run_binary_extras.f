@@ -1194,6 +1194,14 @@
           b% do_j_accretion = .true.
        end if
 
+       if (b% point_mass_i /= 1) then
+         ! setting use_dedt_form_of_energy_eqn to true at the start of a run can cause a crash, 
+         ! so set it at model 2 for primary star
+         if (b% model_number == 2) then
+           b% s1% use_dedt_form_of_energy_eqn = .true.
+         end if
+       end if
+
 
       end function extras_binary_check_model
 
