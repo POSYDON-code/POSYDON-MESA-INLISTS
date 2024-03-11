@@ -1165,7 +1165,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-         real(dp) :: q, t_hi, t_lo
+         real(dp) :: q, t_hi, t_lo, min_dt
          integer :: ierr
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
@@ -1199,14 +1199,13 @@
        ! less than 1 day. Units are seconds
        t_hi = 3.154d7
        t_lo = 8.64d4
-       if (b% point_mass_i /= 1) then
-         if ((b% s1% dt < t_hi) .and. (b% s1% dt >= t_lo)) then
-            b% mass_transfer_beta = (t_hi - b% s1% dt) / (t_hi - t_lo)
-         else if (b% s1% dt < t_lo) then
-            b% mass_transfer_beta = 1d0
-         else
-            b% mass_transfer_beta = 0d0
-         end if
+       min_dt = min(b% s1% dt, b% s2% dt)
+       if ((min_dt < t_hi) .and. (min_dt >= t_lo)) then
+          b% mass_transfer_beta = (t_hi - min_dt) / (t_hi - t_lo)
+       else if (min_dt < t_lo) then
+          b% mass_transfer_beta = 1d0
+       else
+          b% mass_transfer_beta = 0d0
        end if
 
 
