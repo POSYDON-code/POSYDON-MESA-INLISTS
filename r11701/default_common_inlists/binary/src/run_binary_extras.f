@@ -1196,10 +1196,17 @@
 
        ! linearly reduce mass transfer onto the accretor if the timestep
        ! becomes shorter than 1 yr. Linear reduction is zeroed when dt is
-       ! less than 1 day. Units are seconds
+       ! less than 1 day. Timestep units are seconds
        t_hi = 3.154d7
        t_lo = 8.64d4
-       min_dt = min(b% s1% dt, b% s2% dt)
+       min_dt = t_hi
+       if (b% point_mass_i /= 1) then
+         min_dt = min(min_dt, b% s1% dt)
+       end if
+       if (b% point_mass_i /= 2) then
+         min_dt = min(min_dt, b% s2% dt)
+       end if
+
        if ((min_dt < t_hi) .and. (min_dt >= t_lo)) then
           b% mass_transfer_beta = (t_hi - min_dt) / (t_hi - t_lo)
        else if (min_dt < t_lo) then
@@ -1520,18 +1527,18 @@
             end if
          end if
 
-	 if (b% point_mass_i == 0) then
-             if (b% s_accretor% x_logical_ctrl(4)) then
-                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
-	            b% mass_transfer_beta = 1.0d0
-                    b% s_accretor% max_wind = 1d-12
-	        end if
-	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
-	            b% mass_transfer_beta = 0d0
-	            b% s_accretor% max_wind = 0d0
-	        end if
-             end if
-	 end if
+         if (b% point_mass_i == 0) then
+            if (b% s_accretor% x_logical_ctrl(4)) then
+               if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
+                     b% mass_transfer_beta = 1.0d0
+                        b% s_accretor% max_wind = 1d-12
+               end if
+               if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
+                     b% mass_transfer_beta = 0d0
+                     b% s_accretor% max_wind = 0d0
+               end if
+            end if
+         end if
 
       end function extras_binary_finish_step
 
