@@ -1715,26 +1715,26 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     end subroutine eval_de_Jager_wind
 
     subroutine eval_Yang_wind(w)
-      ! Yang+2022 for SMC, only L dependent
+      ! Yang+2023 for SMC, only L dependent
       real(dp), intent(out) :: w
       real(dp) :: log10w, logw_highT, logw_lowT, alfa, T_high_yang, T_low_yang, T_transition
       include 'formats'
 
       real(dp), parameter :: Z_SMC = 0.2*Zsolar
 
-      ! Temperature of transition from de Jager to Yang+2022 winds (in a range +- 500K if that value)
+      ! Temperature of transition from de Jager to Yang+2023 winds (in a range +- 500K if that value)
       T_transition = s% x_ctrl(3)
       T_high_yang = T_transition+500d0
       T_low_yang = T_transition-500d0
       if  (T1 <= T_low_yang) then
-        log10w = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
-            + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 + Zindex*log10_cr(Z/Z_SMC)
+        log10w = 20.93d0*log10_cr(L1/Lsun) - 5.26*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
+            + 0.45*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 34.56 + Zindex*log10_cr(Z/Z_SMC)
       else if (T1 >= T_high_yang) then
           log10w = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
       else
           logw_highT = 1.769d0*log10_cr(L1/Lsun) - 1.676d0*log10_cr(T1) - 8.158d0 + Zindex*log10_cr(Z/Zsolar)
-          logw_lowT = 20.30d0*log10_cr(L1/Lsun) - 5.09*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
-             + 0.44*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 33.91 + Zindex*log10_cr(Z/Z_SMC)
+          log10w = 20.93d0*log10_cr(L1/Lsun) - 5.26*pow_cr(log10_cr(L1/Lsun) , 2.0d0) &
+              + 0.45*pow_cr(log10_cr(L1/Lsun) , 3.0d0) - 34.56 + Zindex*log10_cr(Z/Z_SMC)
           alfa = (T1 - T_low_yang)/(T_high_yang - T_low_yang)
           log10w = (1-alfa)*logw_lowT + alfa*logw_highT
       end if
@@ -1758,7 +1758,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       ! R = sqrt(L1/(4.0d0*pi*boltz_sigma*pow_cr(T1,4.0d0))
       gamma_edd =  kappa*L1/(4.0d0*pi*standard_cgrav*M1*clight) ! in cgs
       c_s =  sqrt(kerg*T1/mp) ! from Kee+2021
-      v_turb_cgs = v_turb * 10.0d5 !  in cgs
+      v_turb_cgs = v_turb * 1.0d5 !  in cgs
       R_park = standard_cgrav*M1*(1.0d0-gamma_edd) / (2.0d0*(pow2(c_s) + pow2(v_turb_cgs))) ! eq. 5
       rho_Rpark = 4.0d0/3.0d0  * R_park/(kappa*pow2(R1)) * &
                 exp_cr(-2.0d0*R_park/R1 + 3.d0/2.0d0) / (1.0d0-exp_cr(-2.0d0*R_park/R1)) ! eq. 14
@@ -1787,7 +1787,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
           real(dp), intent(out) :: w
           real(dp) :: log10w
           include 'formats'
-          log10w = -26.4d0 + 4.8d0*log10_cr(L1/Lsun) - 0.23d0*(s% initial_mass)  + Zindex*log10_cr(Z/Zsolar)
+          log10w = -21.5d0 + 3.6d0*log10_cr(L1/Lsun) - 0.15d0*(s% initial_mass)  + Zindex*log10_cr(Z/Zsolar)
           w = exp10_cr(log10w)
         end subroutine eval_Beasor_wind
 

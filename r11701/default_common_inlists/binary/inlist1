@@ -255,7 +255,7 @@ delta_HR_ds_L = 0.5d0
       x_logical_ctrl(3) = .true.
 
       x_ctrl(2) = 0.0d0 ! index for Z dependence of RSG "cold" winds
-      x_ctrl(3) = 5000d0 ! Temperature of transition from de Jager to Yang+2022 winds (in a range ±500K if that value)
+      x_ctrl(3) = 5000d0 ! Temperature of transition from de Jager to Yang+2023 winds (in a range ±500K if that value)
 
 delta_lg_star_mass_limit = 5d-4 !def 5d-3
 delta_lg_star_mass_hard_limit = -1
