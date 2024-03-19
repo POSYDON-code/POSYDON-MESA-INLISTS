@@ -65,8 +65,123 @@
          b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
          b% other_tsync => my_tsync
          b% other_mdot_edd => my_mdot_edd
-	      b% other_rlo_mdot => my_rlo_mdot
+         b% other_rlo_mdot => my_rlo_mdot
+         b% other_jdot_ml => my_jdot_ml
       end subroutine extras_binary_controls
+
+      subroutine my_jdot_ml(binary_id, ierr)
+         use const_def, only: dp
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         real(dp) :: osep, q, M, rA1, m1dot_rlo, m2dot_rlo, gamma_fast, gamma_iso, ang_mom_j
+         real(dp) :: jdot, xfer_frac_rlo
+         real(dp) :: m1dot_wind, m2dot_wind, xfer_frac_wind
+
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /=0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         !========================!
+         write(*,*) "calling my jdot"
+         !========================!
+         ! Get relevant quantities - cgs
+         osep = b% separation
+         q = b% m(b% d_i) / b% m(b% a_i)
+         M = b% m(b% d_i) + b% m(b% a_i)
+         rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep)
+         gamma_iso = q  ! isotropic re-emission, lost from accretor
+         ang_mom_j = b% angular_momentum_j
+         m1dot_rlo = b% mtransfer_rate
+
+         if (m1dot_rlo == 0) then   ! No mass transfer
+            xfer_frac_rlo = 0d0
+            m2dot_rlo = 0d0
+            adot_rlo = 0d0
+            jdot_rlo = 0d0
+         else      ! Mass transfer phase 
+            xfer_frac_rlo = b% xfer_fraction
+            m2dot_rlo = - b% xfer_fraction * m1dot_rlo
+            
+            ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
+            adot_rlo = 2 * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1 - powi_cr(b% eccentricity, 2)) *&
+                     (b% eccentricity * rA1 / osep)
+            adot_rlo = adot_rlo + (2 * osep * m1dot_rlo / b% m(b% d_i) &
+                     * sqrt(1 - powi_cr(b% eccentricity, 2))&
+                     * ((xfer_frac_rlo * q - 1d0) + (1d0 - xfer_frac_rlo) * (gamma_iso + .5d0) * q/(1d0+q)))
+           
+            ! Translate to binary ang. mom.
+            jdot_rlo = .5d0 * (adot_rlo / osep + 2 * m1dot_rlo / b% m(b% d_i) + 2 * m2dot_rlo / b% m(b% a_i) - &
+                  (m1dot_rlo + m2dot_rlo) / M &
+                 - 2 * b% eccentricity * edot_rlo / (1 - powi_cr(b% eccentricity, 2))) * ang_mom_j
+         end if
+         
+         ! Wind contribution
+         !m1dot_wind = b% mdot_wind_transfer(b% d_i) 
+         !xfer_frac_wind = b% wind_xfer_fraction(b% d_i) 
+         !m2dot_wind = - xfer_frac_wind * m1dot_wind     
+         !adot_wind = - (1-xfer_frac_wind) / xfer_frac_wind * m2dot_wind / M * osep
+         !jdot_wind = .5d0 * (adot_wind / osep + 2 * m1dot_wind / b% m(b% d_i) + 2 * m2dot_wind / b% m(b% a_i) - &
+         !     (m1dot_wind + m2dot_wind) / M &
+         !     - 2 * b% eccentricity * edot_wind / (1 - powi_cr(b% eccentricity, 2))) * ang_mom_j
+         jdot_wind = 0d0
+
+         ! Add all contributions
+         adot = adot_rlo + adot_wind
+         b% jdot_ml = jdot_rlo + jdot_wind
+         
+      end subroutine my_jdot
+
+      subroutine my_edot(binary_id, ierr)
+         use const_def, only: dp
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         real(dp) :: osep, q, rA1, m2dot_rlo, m2dot_wind, gamma_fast, gamma_iso, M, ang_mom_j
+         real(dp) :: m1dot_rlo, xfer_frac_rlo
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /=0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         
+         write(*,*) 'Calling my edot!'
+
+         ! Get relevant quantities
+         osep = b% separation
+         q = b% m(b% d_i) / b% m(b% a_i)
+         M = b% m(b% d_i) + b% m(b% a_i)
+         rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep)
+         gamma_iso = q  ! isotropic re-emission, lost from accretor
+
+         if (b% mtransfer_rate == 0) then ! No mass transfer
+            xfer_frac_rlo = 0
+            m2dot_rlo = 0
+            b% extra_edot = 0d0
+         else ! In mass transfer phase
+            xfer_frac_rlo = b% xfer_fraction
+            m1dot_rlo = b% mtransfer_rate
+            m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
+            m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
+
+            ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
+            edot_rlo = m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2)) &
+                      * rA1 / osep
+            edot_rlo = edot_rlo + (2 * m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2)) * (1d0 - b% eccentricity) &
+                        * ((xfer_frac_rlo * q - 1d0) + (1d0 - xfer_frac_rlo) * (gamma_iso + .5d0) * q / (1d0 + q)))
+         end if
+         ! Wind contribution
+         !edot_wind = ((1/sqrt(1 - powi_cr(b% eccentricity,2)) - 1) *&
+         !         pow_cr(1-powi_cr(b% eccentricity, 2), 1.5d0) / b% eccentricity) * &
+         !         m2dot_wind / b% m(b% a_i) 
+         edot_wind = 0d0
+
+         b% extra_edot = edot_rlo + edot_wind
+      end subroutine my_edot
+
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
