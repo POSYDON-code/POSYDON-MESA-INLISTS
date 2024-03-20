@@ -67,4 +67,8 @@
    sync_type_1 = "structure_dependent"
    sync_type_2 = "structure_dependent"
 
+   ! calculate edot from eccentric MT
+   use_other_extra_edot = .true.
+   use_other_jdot_ml = .true.
+
 / ! end of binary_controls namelist
