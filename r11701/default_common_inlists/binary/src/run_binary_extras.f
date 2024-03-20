@@ -67,7 +67,33 @@
          b% other_mdot_edd => my_mdot_edd
          b% other_rlo_mdot => my_rlo_mdot
          b% other_jdot_ml => my_jdot_ml
+         b% other_extra_edot => my_edot
       end subroutine extras_binary_controls
+
+      subroutine default_jdot_ml(binary_id, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         real(dp) :: alfa
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         !mass lost from vicinity of donor
+         b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
+             (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+         !mass lost from vicinity of accretor
+         b% jdot_ml = b% jdot_ml + (b% mdot_system_transfer(b% a_i) + b% mdot_system_wind(b% a_i))*&
+             (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+         !mass lost from circumbinary coplanar toroid
+         b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
+             sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
+      end subroutine default_jdot_ml
+
 
       subroutine my_jdot_ml(binary_id, ierr)
          use const_def, only: dp
@@ -77,6 +103,9 @@
          real(dp) :: jdot, xfer_frac_rlo
          real(dp) :: m1dot_wind, m2dot_wind, xfer_frac_wind
 
+         real(dp) :: jdot_wind_donor, jdot_wind_accretor, jdot_RLOF_donor, jdot_RLOF_accretor
+         real(dp) :: adot_rlo, jdot_ecc_RLOF_accretor, edot_RLOF
+
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -84,39 +113,59 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
+         ! From default_jdot_ml, but separating standard Jdot RLOF contribution
+         !mass lost from vicinity of donor
+         jdot_wind_donor = b% mdot_system_wind(b% d_i)*&
+             (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+         jdot_RLO_donor = b% mdot_system_transfer(b% d_i) *&
+            (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+            sqrt(1 - b% eccentricity**2)
+         
+         !mass lost from vicinity of accretor
+         jdot_wind_accretor = b% mdot_system_wind(b% a_i)*&
+             (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+         jdot_RLOF_accretor = b% mdot_system_transfer(b% d_i) *&
+            (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+            sqrt(1 - b% eccentricity**2)
+         
+         !mass lost from circumbinary coplanar toroid
+         b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
+             sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
+         
+         ! Now we calculate the Jdot_ml from eccentric RLOF
          !========================!
          write(*,*) "calling my jdot"
          !========================!
+
          ! Get relevant quantities - cgs
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
-         rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep)
+         !rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep)
+         rA1 = b% r(b% d_i) ! donor radius
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
+         m2dot_rlo = - b% xfer_fraction * m1dot_rlo
+         xfer_frac_rlo = b% xfer_fraction
+         
+         ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
+         ! where a compact object accretor with rA2 term is set to zero.
+         adot_rlo = 2 * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1 - powi_cr(b% eccentricity, 2)) *&
+                  (b% eccentricity * rA1 / osep)
+         adot_rlo = adot_rlo + (2 * osep * m1dot_rlo / b% m(b% d_i) &
+                  * sqrt(1 - powi_cr(b% eccentricity, 2))&
+                  * ((xfer_frac_rlo * q - 1d0) + (1d0 - xfer_frac_rlo) * (gamma_iso + .5d0) * q/(1d0+q)))
+         
+         ! Translate to binary ang. mom.
+         edot_RLOF = b% extra_edot ! calculated in my_edot
+         jdot_rlo = .5d0 * (adot_rlo / osep + 2 * m1dot_rlo / b% m(b% d_i) + 2 * m2dot_rlo / b% m(b% a_i) - &
+               (m1dot_rlo + m2dot_rlo) / M &
+               - 2 * b% eccentricity * edot_RLOF / (1 - powi_cr(b% eccentricity, 2))) * ang_mom_j
 
-         if (m1dot_rlo == 0) then   ! No mass transfer
-            xfer_frac_rlo = 0d0
-            m2dot_rlo = 0d0
-            adot_rlo = 0d0
-            jdot_rlo = 0d0
-         else      ! Mass transfer phase 
-            xfer_frac_rlo = b% xfer_fraction
-            m2dot_rlo = - b% xfer_fraction * m1dot_rlo
-            
-            ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-            adot_rlo = 2 * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1 - powi_cr(b% eccentricity, 2)) *&
-                     (b% eccentricity * rA1 / osep)
-            adot_rlo = adot_rlo + (2 * osep * m1dot_rlo / b% m(b% d_i) &
-                     * sqrt(1 - powi_cr(b% eccentricity, 2))&
-                     * ((xfer_frac_rlo * q - 1d0) + (1d0 - xfer_frac_rlo) * (gamma_iso + .5d0) * q/(1d0+q)))
-           
-            ! Translate to binary ang. mom.
-            jdot_rlo = .5d0 * (adot_rlo / osep + 2 * m1dot_rlo / b% m(b% d_i) + 2 * m2dot_rlo / b% m(b% a_i) - &
-                  (m1dot_rlo + m2dot_rlo) / M &
-                 - 2 * b% eccentricity * edot_rlo / (1 - powi_cr(b% eccentricity, 2))) * ang_mom_j
-         end if
+         jdot_ecc_RLOF_accretor = jdot_rlo
          
          ! Wind contribution
          !m1dot_wind = b% mdot_wind_transfer(b% d_i) 
@@ -126,13 +175,28 @@
          !jdot_wind = .5d0 * (adot_wind / osep + 2 * m1dot_wind / b% m(b% d_i) + 2 * m2dot_wind / b% m(b% a_i) - &
          !     (m1dot_wind + m2dot_wind) / M &
          !     - 2 * b% eccentricity * edot_wind / (1 - powi_cr(b% eccentricity, 2))) * ang_mom_j
-         jdot_wind = 0d0
+         !jdot_wind = 0d0
 
          ! Add all contributions
-         adot = adot_rlo + adot_wind
-         b% jdot_ml = jdot_rlo + jdot_wind
-         
-      end subroutine my_jdot
+         !adot = adot_rlo + adot_wind
+         !b% jdot_ml = jdot_rlo + jdot_wind
+
+         ! if do eccentric MT
+         if (b% s1% x_logical_ctrl(5)) then
+            b% jdot_ml = jdot_wind_donor + jdot_RLOF_donor +&
+               jdot_wind_accretor + jdot_ecc_RLOF_accretor
+         else
+            b% jdot_ml = jdot_wind_donor + jdot_RLOF_donor +&
+                  jdot_wind_accretor + jdot_RLOF_accretor
+         end if
+         ! store data
+         b% s1% xtra3 = jdot_wind_donor
+         b% s1% xtra4 = jdot_wind_accretor
+         b% s1% xtra5 = jdot_RLOF_donor
+         b% s1% xtra6 = jdot_RLOF_accretor
+         b% s1% xtra7 = jdot_ecc_RLOF_accretor
+         b% s1% xtra8 = adot_rlo
+      end subroutine my_jdot_ml
 
       subroutine my_edot(binary_id, ierr)
          use const_def, only: dp
@@ -148,31 +212,28 @@
             return
          end if
          
-         write(*,*) 'Calling my edot!'
+         write(*,*) 'Calling my extra edot!'
 
          ! Get relevant quantities
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
-         rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep)
+         !rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep)
+         rA1 = b% r(b% d_i) ! donor radius
          gamma_iso = q  ! isotropic re-emission, lost from accretor
 
-         if (b% mtransfer_rate == 0) then ! No mass transfer
-            xfer_frac_rlo = 0
-            m2dot_rlo = 0
-            b% extra_edot = 0d0
-         else ! In mass transfer phase
-            xfer_frac_rlo = b% xfer_fraction
-            m1dot_rlo = b% mtransfer_rate
-            m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
-            m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
+         xfer_frac_rlo = b% xfer_fraction
+         m1dot_rlo = b% mtransfer_rate
+         m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
+         m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
 
-            ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
-            edot_rlo = m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2)) &
-                      * rA1 / osep
-            edot_rlo = edot_rlo + (2 * m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2)) * (1d0 - b% eccentricity) &
-                        * ((xfer_frac_rlo * q - 1d0) + (1d0 - xfer_frac_rlo) * (gamma_iso + .5d0) * q / (1d0 + q)))
-         end if
+         ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
+         ! where a compact object accretor with rA2 term is set to zero.
+         edot_rlo = m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2)) &
+                     * rA1 / osep
+         edot_rlo = edot_rlo + (2 * m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2)) * (1d0 - b% eccentricity) &
+                     * ((xfer_frac_rlo * q - 1d0) + (1d0 - xfer_frac_rlo) * (gamma_iso + .5d0) * q / (1d0 + q)))
+
          ! Wind contribution
          !edot_wind = ((1/sqrt(1 - powi_cr(b% eccentricity,2)) - 1) *&
          !         pow_cr(1-powi_cr(b% eccentricity, 2), 1.5d0) / b% eccentricity) * &
@@ -1179,7 +1240,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 6
+         how_many_extra_binary_history_columns = 12
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -1234,6 +1295,19 @@
           vals(6) = -1.0d0
         end if
          !write(*,*) "synchr timescales: ", b% s1% xtra1, b% s1% xtra2, b% s2% xtra1, b% s2% xtra2
+        ! Eccentric MT
+        names(7) = 'jdot_wind_donor'
+        names(8) = 'jdot_wind_accretor'
+        names(9) = 'jdot_RLOF_donor'
+        names(10) = 'jdot_RLOF_accretor'
+        names(11) = 'jdot_ecc_RLOF_accretor'
+        names(12) = 'adot_rlo'
+        vals(7) = b% s1% xtra3
+        vals(8) = b% s1% xtra4
+        vals(9) = b% s1% xtra5
+        vals(10) = b% s1% xtra6
+        vals(11) = b% s1% xtra7
+        vals(12) = b% s1% xtra8
       end subroutine data_for_extra_binary_history_columns
 
 
