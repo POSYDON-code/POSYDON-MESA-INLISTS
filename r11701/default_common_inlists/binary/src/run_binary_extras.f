@@ -104,7 +104,7 @@
          real(dp) :: m1dot_wind, m2dot_wind, xfer_frac_wind
 
          real(dp) :: jdot_wind_donor, jdot_wind_accretor, jdot_RLOF_donor, jdot_RLOF_accretor
-         real(dp) :: adot_rlo, jdot_ecc_RLOF_accretor, edot_RLOF
+         real(dp) :: adot_rlo, jdot_ecc_RLOF_accretor, edot_RLOF, jdot_rlo
 
          type (binary_info), pointer :: b
          ierr = 0
@@ -118,7 +118,7 @@
          jdot_wind_donor = b% mdot_system_wind(b% d_i)*&
              (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
-         jdot_RLO_donor = b% mdot_system_transfer(b% d_i) *&
+         jdot_RLOF_donor = b% mdot_system_transfer(b% d_i) *&
             (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
             sqrt(1 - b% eccentricity**2)
          
@@ -203,7 +203,7 @@
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          real(dp) :: osep, q, rA1, m2dot_rlo, m2dot_wind, gamma_fast, gamma_iso, M, ang_mom_j
-         real(dp) :: m1dot_rlo, xfer_frac_rlo
+         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, edot_wind
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
