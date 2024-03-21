@@ -1165,7 +1165,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-         real(dp) :: q, t_hi, t_lo, min_dt
+         real(dp) :: q
          integer :: ierr
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
@@ -1194,28 +1194,6 @@
           b% do_j_accretion = .true.
        end if
 
-       ! linearly reduce mass transfer onto the accretor if the timestep
-       ! becomes shorter than 1 yr. Linear reduction is zeroed when dt is
-       ! less than 1 day. Timestep units are seconds
-       t_hi = 3.154d7
-       t_lo = 8.64d4
-       min_dt = t_hi
-       if (b% point_mass_i /= 1) then
-         min_dt = min(min_dt, b% s1% dt)
-       end if
-       if (b% point_mass_i /= 2) then
-         min_dt = min(min_dt, b% s2% dt)
-       end if
-
-       if ((min_dt < t_hi) .and. (min_dt >= t_lo)) then
-          b% mass_transfer_beta = (t_hi - min_dt) / (t_hi - t_lo)
-       else if (min_dt < t_lo) then
-          b% mass_transfer_beta = 1d0
-       else
-          b% mass_transfer_beta = 0d0
-       end if
-
-
       end function extras_binary_check_model
 
 
@@ -1226,11 +1204,11 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	 real(dp) :: r_l2, d_l2
+	      real(dp) :: r_l2, d_l2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23,rl2_1,trap_rad, mdot_edd
+            rl23,rl2_1,trap_rad, mdot_edd, t_hi, t_lo, min_dt
          logical :: is_ne_biggest
          real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
@@ -1537,6 +1515,29 @@
                      b% mass_transfer_beta = 0d0
                      b% s_accretor% max_wind = 0d0
                end if
+            end if
+         end if
+
+         if (b% s1% x_logical_ctrl(7) .or. b% s2% x_logical_ctrl(7))
+            ! linearly reduce mass transfer onto the accretor if the timestep
+            ! becomes shorter than 1 yr. Linear reduction is zeroed when dt is
+            ! less than 1 day. Timestep units are seconds
+            t_hi = 3.154d7
+            t_lo = 8.64d4
+            min_dt = t_hi
+            if (b% point_mass_i /= 1) then
+               min_dt = min(min_dt, b% s1% dt)
+            end if
+            if (b% point_mass_i /= 2) then
+               min_dt = min(min_dt, b% s2% dt)
+            end if
+
+            if ((min_dt < t_hi) .and. (min_dt >= t_lo)) then
+               b% mass_transfer_beta = (t_hi - min_dt) / (t_hi - t_lo)
+            else if (min_dt < t_lo) then
+               b% mass_transfer_beta = 1d0
+            else
+               b% mass_transfer_beta = 0d0
             end if
          end if
 
