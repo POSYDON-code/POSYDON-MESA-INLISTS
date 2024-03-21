@@ -48,6 +48,10 @@
       log_Gamma_all_PC = 1.3010299956d0
       PC_min_Z = 0.999d0
 
+      ! use Pgas (instead of density) as the basic variable for solving eps_grav
+      change_initial_lnPgas_flag = .true.
+      new_lnPgas_flag = .true.
+
 / ! end of star_job namelist
 
 &controls
@@ -176,6 +180,9 @@
       diffusion_use_full_net = .true.
       do_Ne22_sedimentation_heating = .true.
 
+      ! STRUCTURE EQUATIONS
+      include_composition_in_eps_grav = .true. ! include composition terms in calculating eps_grav
+
       !CORE MASS DEFINITION
       he_core_boundary_h1_fraction = 1d-2
       c_core_boundary_he4_fraction = 1d-1
@@ -248,7 +255,7 @@
      timestep_factor_for_retries = 0.75d0
 
 ! HRD, Radius resolution
-delta_HR_ds_L = 0.125d0
+ delta_HR_ds_L = 0.125d0
  delta_HR_ds_Teff = 2.0d0
     !### delta_HR_limit
     !### delta_HR_hard_limit
