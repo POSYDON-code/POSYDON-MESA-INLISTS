@@ -263,4 +263,6 @@ delta_HR_ds_L = 0.125d0
       x_logical_ctrl(4) = .false.
       ! skip calculating implicit mdot
       x_logical_ctrl(5) = .true.
+      ! enable/disable mass transfer being limited when timesteps drop below 1 year (for helping numerical convergence in some cases)
+      x_logical_ctrl(7) = .true.
  / ! end of controls namelist
