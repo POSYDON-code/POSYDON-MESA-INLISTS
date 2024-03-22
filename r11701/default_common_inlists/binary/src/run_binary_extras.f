@@ -1518,7 +1518,7 @@
             end if
          end if
 
-         if (b% s1% x_logical_ctrl(7) .or. b% s2% x_logical_ctrl(7))
+         if (b% s1% x_logical_ctrl(7) .or. b% s2% x_logical_ctrl(7)) then
             ! linearly reduce mass transfer onto the accretor if the timestep
             ! becomes shorter than 1 yr. Linear reduction is zeroed when dt is
             ! less than 1 day. Timestep units are seconds
