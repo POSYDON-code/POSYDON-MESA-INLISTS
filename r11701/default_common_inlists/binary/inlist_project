@@ -70,5 +70,7 @@
    ! calculate edot from eccentric MT
    use_other_extra_edot = .true.
    use_other_jdot_ml = .true.
+   do_tidal_circ = .true. ! tidal circularization (edot)
+   circ_type_1 = "Hut_rad"
 
 / ! end of binary_controls namelist
