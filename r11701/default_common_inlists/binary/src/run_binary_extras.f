@@ -1196,9 +1196,9 @@
 
        if (b% s1% x_logical_ctrl(7) .or. b% s2% x_logical_ctrl(7)) then
          ! linearly reduce mass transfer onto the accretor if the timestep
-         ! becomes shorter than 1 yr. Linear reduction is zeroed when dt is
+         ! becomes shorter than 10 yrs. Linear reduction is zeroed when dt is
          ! less than 1 day. Timestep units are seconds
-         t_hi = 3.154d7
+         t_hi = 3.154d8
          t_lo = 8.64d4
          min_dt = t_hi
          if (b% point_mass_i /= 1) then
@@ -1217,6 +1217,11 @@
          end if
        end if
 
+      !check if mass transfer rate reached maximun, assume unstable regime if it happens
+       if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
+         extras_binary_check_model = terminate
+         write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
+       end if
 
       end function extras_binary_check_model
 
