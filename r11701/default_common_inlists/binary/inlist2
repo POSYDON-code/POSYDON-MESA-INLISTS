@@ -64,7 +64,7 @@
       photo_directory = 'photos2'
       log_directory = 'LOGS2'
       history_interval = 1
-      terminal_interval = 1
+      terminal_interval = 10
       write_header_frequency = 100
       photo_digits = 5
       photo_interval = 0
