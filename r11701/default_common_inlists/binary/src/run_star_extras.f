@@ -134,35 +134,13 @@ contains
 
   integer function extras_check_model(id, id_extra)
     integer, intent(in) :: id, id_extra
-    integer :: ierr, i, k, nz
-    real(dp) :: dm, rmid, m
+    integer :: ierr
     type (star_info), pointer :: s
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
     extras_check_model = keep_going
-    if (s% w_div_w_crit_avg_surf <= 0.97d0) then
-        nz = s% nz
-        m=0
-        do k=1,nz
-            dm = s% dm(k)
-            s% omega(k) = 0.9d0 * s% omega_crit_avg_surf
-            m = m + dm
-            if (m >= 0.1d0*Msun) exit
-        end do
-        s% total_angular_momentum = total_angular_momentum(s)
-    end if
   end function extras_check_model
-  
-  real(dp) function total_angular_momentum(s) result(J)
-    type (star_info), pointer :: s
-    include 'formats'
-    if (.not. s% rotation_flag) then
-       J = 0
-    else
-       J = dot_product(s% dm_bar(1:s% nz), s% j_rot(1:s% nz))
-    end if    
-  end function total_angular_momentum
 
   subroutine how_many_extra_history_header_items(id, id_extra, num_cols)
       integer, intent(in) :: id, id_extra
