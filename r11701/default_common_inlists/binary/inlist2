@@ -64,7 +64,7 @@
       photo_directory = 'photos2'
       log_directory = 'LOGS2'
       history_interval = 1
-      terminal_interval = 10
+      terminal_interval = 1
       write_header_frequency = 100
       photo_digits = 5
       photo_interval = 0
@@ -75,7 +75,9 @@
       star_history_txt_format = '(a32, 1x)'
 
       star_history_name = 'history.data'
-      write_profiles_flag = .false.
+      write_profiles_flag = .true.
+      profile_interval = 1
+      max_num_profile_models = 3000
 
       !WHEN TO STOP
       gamma_center_limit = 10d0 ! Crystallization begins ==> white dwarf
