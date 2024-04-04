@@ -23,7 +23,7 @@
 
    append_to_star_history = .false.
    history_interval = 1
-   terminal_interval = 10
+   terminal_interval = 1
    write_header_frequency = 100
 
    ! timestep controls
