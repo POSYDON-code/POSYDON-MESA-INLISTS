@@ -146,6 +146,7 @@ contains
       s% omega(k) = 0.9d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k)))
       s% j_rot(k) = s% i_rot(k)*s% omega(k)
       if (tau >= s% surf_avg_tau) exit
+    end do
     
   end subroutine my_other_after_struct_burn_mix
 
