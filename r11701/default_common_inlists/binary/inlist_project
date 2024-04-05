@@ -34,7 +34,7 @@
    fa_hard = 1d-2 !DEF: 2d-2
    fm = 5d-3 !DEF: 1d-2
    fj = 8d-3 !DEF: 1d-3
-   fj_hard = 1d-2 !DEF: 1d-2
+   fj_hard = 1d-1 !DEF: 1d-2
    dt_softening_factor = 0.4d0
 
    limit_retention_by_mdot_edd = .false. ! turned-on for accretion onto compact objects in run_binary_extras
