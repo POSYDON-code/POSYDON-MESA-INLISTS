@@ -90,6 +90,7 @@
       Pextra_factor = 2.0d0
 
       !CONVECTION + MIXING
+      use_other_after_struct_burn_mix = .true.
       do_conv_premix = .false.
       conv_premix_avoid_increase = .true.
 
