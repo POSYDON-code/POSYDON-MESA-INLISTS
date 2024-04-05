@@ -181,6 +181,7 @@ contains
       write(*,*) 'deactivate', s% w_div_w_crit_avg_surf, s% omega(1)
     end if
     tau = s% tau_factor*s% tau_base
+    m=0
     if (s% x_logical_ctrl(5)) then
       do k = 1, s% nz - 1
         kap = s% opacity(k)
