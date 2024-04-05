@@ -127,6 +127,7 @@ contains
     integer, intent(out) :: res ! keep_going, redo, retry, backup, terminate
     integer :: k
     real(dp) :: dm, dtau, rmid, kap, tau
+    type (star_info), pointer :: s
     res = keep_going
 
     do k = 1, s% nz - 1
