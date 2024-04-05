@@ -129,7 +129,6 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    write(*,*) s% omega(1),sqrt(s% cgrav(1)* s% m_grav(1)/pow3(s% r_equatorial(1))), s% w_div_w_crit_avg_surf
     if (s% w_div_w_crit_avg_surf>0.8 .and. s% mstar_dot>0) then
       s% x_logical_ctrl(5) = .true.
       write(*,*) 'activate', s% w_div_w_crit_avg_surf, s% omega(1)
