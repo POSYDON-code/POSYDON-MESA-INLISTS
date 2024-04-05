@@ -158,6 +158,7 @@ contains
         s% j_rot(k) = s% i_rot(k)*s% omega(k)
         if (tau >= s% surf_avg_tau) exit
       end do
+      s% max_mdot_redo_cnt = -1
       write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1)
     end if
     
