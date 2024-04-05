@@ -120,11 +120,12 @@ contains
 
   end function extras_startup
 
-  subroutine default_other_torque(id, ierr)
+  subroutine my_torque(id, ierr)
     integer, intent(in) :: id
     integer, intent(out) :: ierr
     type (star_info), pointer :: s
     integer :: k
+    real(dp) :: dm, dtau, rmid, kap, tau
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
@@ -155,7 +156,7 @@ contains
       end do
       write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1),s% extra_omegadot(1),s% dt
     end if
-  end subroutine default_other_torque
+  end subroutine my_torque
   
   subroutine my_other_after_struct_burn_mix(id, dt, res)
     use const_def, only: dp
