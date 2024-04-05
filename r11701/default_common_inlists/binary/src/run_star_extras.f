@@ -165,7 +165,7 @@ contains
     real(dp), intent(in) :: dt
     integer, intent(out) :: res ! keep_going, redo, retry, backup, terminate
     integer :: k, ierr
-    real(dp) :: dm, dtau, rmid, kap, tau
+    real(dp) :: dm, dtau, rmid, kap, tau, m
     type (star_info), pointer :: s
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -194,7 +194,8 @@ contains
         tau = tau + dtau
         s% omega(k) = 0.8d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k)))
         s% j_rot(k) = s% i_rot(k)*s% omega(k)
-        if (tau >= s% surf_avg_tau) exit
+        m=m+dm
+        if (m >= 0.1d0*Msun) exit
       end do
       s% max_mdot_redo_cnt = -1
       s% was_in_implicit_wind_limit = .false.
