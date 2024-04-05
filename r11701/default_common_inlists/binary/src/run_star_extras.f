@@ -125,11 +125,13 @@ contains
     integer, intent(in) :: id
     real(dp), intent(in) :: dt
     integer, intent(out) :: res ! keep_going, redo, retry, backup, terminate
-    integer :: k
+    integer :: k, ierr
     real(dp) :: dm, dtau, rmid, kap, tau
     type (star_info), pointer :: s
+    ierr = 0
+    call star_ptr(id, s, ierr)
+    if (ierr /= 0) return
     res = keep_going
-
     do k = 1, s% nz - 1
       kap = s% opacity(k)
       if (s% fitted_fp_ft_i_rot) then
