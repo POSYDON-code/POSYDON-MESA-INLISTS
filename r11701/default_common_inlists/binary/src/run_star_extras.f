@@ -177,7 +177,7 @@ contains
     end if
     if (s% w_div_w_crit_avg_surf<0.5 .or. s% mstar_dot<0) then
       s% x_logical_ctrl(5) = .false.
-      s% max_mdot_redo_cnt = 200
+      !s% max_mdot_redo_cnt = 200
       write(*,*) 'deactivate', s% w_div_w_crit_avg_surf, s% omega(1)
     end if
     tau = s% tau_factor*s% tau_base
@@ -193,13 +193,13 @@ contains
         dm = s% dm(k)
         dtau = dm*kap/(4*pi*rmid*rmid)
         tau = tau + dtau
-        s% omega(k) = 0.8d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k)))
+        s% omega(k) = 0.8d0 * sqrt(s% cgrav(1)* s% m_grav(1) / pow3(s% r_equatorial(1)))
         s% j_rot(k) = s% i_rot(k)*s% omega(k)
         m=m+dm
         if (m >= 0.1d0*Msun) exit
       end do
-      s% max_mdot_redo_cnt = -1
-      s% was_in_implicit_wind_limit = .false.
+      !s% max_mdot_redo_cnt = -1
+      !s% was_in_implicit_wind_limit = .false.
       write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1),s% was_in_implicit_wind_limit
     end if
     
