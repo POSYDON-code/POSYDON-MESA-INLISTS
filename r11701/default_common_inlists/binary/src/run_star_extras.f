@@ -149,7 +149,8 @@ contains
         dm = s% dm(k)
         dtau = dm*kap/(4*pi*rmid*rmid)
         m = m + dm
-        s% extra_omegadot(k) = (0.1d0 * sqrt(s% cgrav(1)* s% m_grav(1) / pow3(s% r_equatorial(1)))-s% omega(1))/s% dt
+        !s% extra_omegadot(k) = (0.1d0 * sqrt(s% cgrav(1)* s% m_grav(1) / pow3(s% r_equatorial(1)))-s% omega(1))/s% dt
+        s% extra_omegadot(k) = -s% omega(1)/s% dt
         if (m >= 0.1d0*Msun ) exit
       end do
       write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1)
