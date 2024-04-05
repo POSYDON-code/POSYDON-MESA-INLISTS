@@ -1160,12 +1160,12 @@
          end if
          extras_binary_check_model = keep_going
 
-         if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-8) then
-	   b% s_accretor% use_other_after_struct_burn_mix = .true.
-         end if
-	 if (abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-8) then
-           b% s_accretor% use_other_after_struct_burn_mix = .false.
-	 end if
+         !if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-8) then
+	 !  b% s_accretor% use_other_after_struct_burn_mix = .true.
+         !end if
+	 !if (abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-8) then
+         !  b% s_accretor% use_other_after_struct_burn_mix = .false.
+	 !end if
        
 
        if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
