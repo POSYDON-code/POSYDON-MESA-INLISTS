@@ -138,6 +138,7 @@ contains
     end if
     if (s% w_div_w_crit_avg_surf<0.5 .or. s% mstar_dot<0) then
       s% x_logical_ctrl(5) = .false.
+      s% max_mdot_redo_cnt = 200
       write(*,*) 'deactivate', s% w_div_w_crit_avg_surf, s% omega(1)
     end if
     if (s% x_logical_ctrl(5)) then
@@ -159,6 +160,7 @@ contains
         if (tau >= s% surf_avg_tau) exit
       end do
       s% max_mdot_redo_cnt = -1
+      s% was_in_implicit_wind_limit = .false.
       write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1)
     end if
     
