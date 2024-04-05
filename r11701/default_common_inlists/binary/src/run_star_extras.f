@@ -53,7 +53,8 @@ contains
     s% other_am_mixing => TSF
     s% other_wind => other_set_mdot
     s% other_after_struct_burn_mix => my_other_after_struct_burn_mix
-
+    s% other_torque => my_torque
+    
     s% extras_startup => extras_startup
     s% extras_check_model => extras_check_model
     s% extras_finish_step => extras_finish_step
@@ -119,6 +120,43 @@ contains
 
   end function extras_startup
 
+  subroutine default_other_torque(id, ierr)
+    integer, intent(in) :: id
+    integer, intent(out) :: ierr
+    type (star_info), pointer :: s
+    integer :: k
+    ierr = 0
+    call star_ptr(id, s, ierr)
+    if (ierr /= 0) return
+    if (s% omega(1)/sqrt(s% cgrav(1)* s% m_grav(1)/pow3(s% r_equatorial(1)))>0.8 .and. s% mstar_dot>0) then
+      s% x_logical_ctrl(5) = .true.
+      write(*,*) 'activate', s% w_div_w_crit_avg_surf, s% omega(1)
+    end if
+    if (s% omega(1)/sqrt(s% cgrav(1)* s% m_grav(1)/pow3(s% r_equatorial(1)))<0.5 .or. s% mstar_dot<0) then
+      s% x_logical_ctrl(5) = .false.
+      write(*,*) 'deactivate', s% w_div_w_crit_avg_surf, s% omega(1)
+    end if
+    if (s% x_logical_ctrl(5)) then
+      do k = 1, s% nz - 1
+        kap = s% opacity(k)
+        if (s% fitted_fp_ft_i_rot) then
+          rmid = 0.5d0*(s% r_equatorial(k) + s% r_equatorial(k+1))
+        else
+          rmid = s% rmid(k)
+        end if
+        dm = s% dm(k)
+        dtau = dm*kap/(4*pi*rmid*rmid)
+        if (tau + dtau <= s% surf_avg_tau_min) then
+          tau = tau + dtau
+          cycle
+        end if
+        s% extra_omegadot(k) = (0.5d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k)))-s% omega(k))/s% dt
+        if (tau >= s% surf_avg_tau) exit
+      end do
+      write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1),s% extra_omegadot(1),s% dt
+    end if
+  end subroutine default_other_torque
+  
   subroutine my_other_after_struct_burn_mix(id, dt, res)
     use const_def, only: dp
     use star_def
