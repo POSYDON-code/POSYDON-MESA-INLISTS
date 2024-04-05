@@ -132,23 +132,27 @@ contains
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
     res = keep_going
-    do k = 1, s% nz - 1
-      kap = s% opacity(k)
-      if (s% fitted_fp_ft_i_rot) then
-        rmid = 0.5d0*(s% r_equatorial(k) + s% r_equatorial(k+1))
-      else
-        rmid = s% rmid(k)
-      end if
-      dm = s% dm(k)
-      dtau = dm*kap/(4*pi*rmid*rmid)
-      if (tau + dtau <= s% surf_avg_tau_min) then
-        tau = tau + dtau
-        cycle
-      end if
-      s% omega(k) = 0.9d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k)))
-      s% j_rot(k) = s% i_rot(k)*s% omega(k)
-      if (tau >= s% surf_avg_tau) exit
-    end do
+    if (s% w_div_w_crit_avg_surf>0.8 .and. s% mstar_dot>0) then
+      write(*,*) 'activate', s% w_div_w_crit_avg_surf, s% omega(1)
+      do k = 1, s% nz - 1
+        kap = s% opacity(k)
+        if (s% fitted_fp_ft_i_rot) then
+          rmid = 0.5d0*(s% r_equatorial(k) + s% r_equatorial(k+1))
+        else
+          rmid = s% rmid(k)
+        end if
+        dm = s% dm(k)
+        dtau = dm*kap/(4*pi*rmid*rmid)
+        if (tau + dtau <= s% surf_avg_tau_min) then
+          tau = tau + dtau
+          cycle
+        end if
+        s% omega(k) = 0.8d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k)))
+        s% j_rot(k) = s% i_rot(k)*s% omega(k)
+        if (tau >= s% surf_avg_tau) exit
+      end do
+      write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1)
+    end if
     
   end subroutine my_other_after_struct_burn_mix
 
