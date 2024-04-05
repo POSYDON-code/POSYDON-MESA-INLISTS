@@ -52,6 +52,7 @@ contains
     !s% other_mlt => my_other_mlt
     s% other_am_mixing => TSF
     s% other_wind => other_set_mdot
+    s% other_after_struct_burn_mix => my_other_after_struct_burn_mix
 
     s% extras_startup => extras_startup
     s% extras_check_model => extras_check_model
@@ -117,6 +118,35 @@ contains
     s% overshoot_f0_above_burn_z_core  = 8.0d-3
 
   end function extras_startup
+
+  subroutine my_other_after_struct_burn_mix(id, dt, res)
+    use const_def, only: dp
+    use star_def
+    integer, intent(in) :: id
+    real(dp), intent(in) :: dt
+    integer, intent(out) :: res ! keep_going, redo, retry, backup, terminate
+    integer :: k
+    real(dp) :: dm, dtau, rmid, kap, tau
+    res = keep_going
+
+    do k = 1, s% nz - 1
+      kap = s% opacity(k)
+      if (s% fitted_fp_ft_i_rot) then
+        rmid = 0.5d0*(s% r_equatorial(k) + s% r_equatorial(k+1))
+      else
+        rmid = s% rmid(k)
+      end if
+      dm = s% dm(k)
+      dtau = dm*kap/(4*pi*rmid*rmid)
+      if (tau + dtau <= s% surf_avg_tau_min) then
+        tau = tau + dtau
+        cycle
+      end if
+      s% omega(k) = 0.9d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k))
+      s% j_rot(k) = s% i_rot(k)*s% omega(k)
+      if (tau >= s% surf_avg_tau) exit
+    
+  end subroutine my_other_after_struct_burn_mix
 
   function f_ov_fcn_of_mass(m) result(f_ov)
     real(dp), intent(in) :: m
