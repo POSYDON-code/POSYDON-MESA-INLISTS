@@ -180,6 +180,7 @@ contains
       s% max_mdot_redo_cnt = 200
       write(*,*) 'deactivate', s% w_div_w_crit_avg_surf, s% omega(1)
     end if
+    tau = s% tau_factor*s% tau_base
     if (s% x_logical_ctrl(5)) then
       do k = 1, s% nz - 1
         kap = s% opacity(k)
@@ -190,17 +191,14 @@ contains
         end if
         dm = s% dm(k)
         dtau = dm*kap/(4*pi*rmid*rmid)
-        if (tau + dtau <= s% surf_avg_tau_min) then
-          tau = tau + dtau
-          cycle
-        end if
+        tau = tau + dtau
         s% omega(k) = 0.8d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k)))
         s% j_rot(k) = s% i_rot(k)*s% omega(k)
         if (tau >= s% surf_avg_tau) exit
       end do
       s% max_mdot_redo_cnt = -1
       s% was_in_implicit_wind_limit = .false.
-      write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1)
+      write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1),s% was_in_implicit_wind_limit
     end if
     
   end subroutine my_other_after_struct_burn_mix
