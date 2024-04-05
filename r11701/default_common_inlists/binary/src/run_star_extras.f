@@ -125,7 +125,7 @@ contains
     integer, intent(out) :: ierr
     type (star_info), pointer :: s
     integer :: k
-    real(dp) :: dm, dtau, rmid, kap, tau
+    real(dp) :: dm, dtau, rmid, kap, tau, m 
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
