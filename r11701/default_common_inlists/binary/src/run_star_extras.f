@@ -129,11 +129,12 @@ contains
     ierr = 0
     call star_ptr(id, s, ierr)
     if (ierr /= 0) return
-    if (s% omega(1)/sqrt(s% cgrav(1)* s% m_grav(1)/pow3(s% r_equatorial(1)))>0.8 .and. s% mstar_dot>0) then
+    write(*,*) s% omega(1),sqrt(s% cgrav(1)* s% m_grav(1)/pow3(s% r_equatorial(1)), s% w_div_w_crit_avg_surf
+    if (s% w_div_w_crit_avg_surf>0.8 .and. s% mstar_dot>0) then
       s% x_logical_ctrl(5) = .true.
       write(*,*) 'activate', s% w_div_w_crit_avg_surf, s% omega(1)
     end if
-    if (s% omega(1)/sqrt(s% cgrav(1)* s% m_grav(1)/pow3(s% r_equatorial(1)))<0.5 .or. s% mstar_dot<0) then
+    if (s% w_div_w_crit_avg_surf<0.5 .or. s% mstar_dot<0) then
       s% x_logical_ctrl(5) = .false.
       write(*,*) 'deactivate', s% w_div_w_crit_avg_surf, s% omega(1)
     end if
@@ -154,7 +155,7 @@ contains
         s% extra_omegadot(k) = (0.5d0 * sqrt(s% cgrav(k)* s% m_grav(k) / pow3(s% r_equatorial(k)))-s% omega(k))/s% dt
         if (tau >= s% surf_avg_tau) exit
       end do
-      write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1),s% extra_omegadot(1),s% dt
+      write(*,*) 'modified', s% w_div_w_crit_avg_surf, s% omega(1), tau, s% surf_avg_tau
     end if
   end subroutine my_torque
   
