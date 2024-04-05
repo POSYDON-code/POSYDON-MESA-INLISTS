@@ -133,7 +133,14 @@ contains
     if (ierr /= 0) return
     res = keep_going
     if (s% w_div_w_crit_avg_surf>0.8 .and. s% mstar_dot>0) then
+      s% x_logical_ctrl(5) = .true.
       write(*,*) 'activate', s% w_div_w_crit_avg_surf, s% omega(1)
+    end if
+    if (s% w_div_w_crit_avg_surf<0.5 .or. s% mstar_dot<0) then
+      s% x_logical_ctrl(5) = .false.
+      write(*,*) 'deactivate', s% w_div_w_crit_avg_surf, s% omega(1)
+    end if
+    if (s% x_logical_ctrl(5)) then
       do k = 1, s% nz - 1
         kap = s% opacity(k)
         if (s% fitted_fp_ft_i_rot) then
