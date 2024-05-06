@@ -12,7 +12,7 @@
    do_jdot_mb = .false.
    do_jdot_missing_wind = .true.
    do_j_accretion = .true. ! according to De Mink et al. 2013
-
+   use_other_accreted_material_j = .true.
    mdot_scheme = "contact" ! This switches to 'Kolb' after one of the two stars reaches TAMS
 
    ! Mass transfer efficiency controls
