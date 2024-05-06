@@ -69,7 +69,7 @@
           b% other_accreted_material_j => my_accreted_material_j
       end subroutine extras_binary_controls
 
-      subroutine null_other_accreted_material_j(binary_id, ierr)
+      subroutine my_accreted_material_j(binary_id, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
@@ -87,7 +87,7 @@
          b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
              sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
          
-      end subroutine null_other_accreted_material_j
+      end subroutine my_accreted_material_j
       
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
