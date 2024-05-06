@@ -66,8 +66,29 @@
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
 	  b% other_rlo_mdot => my_rlo_mdot
+          b% other_accreted_material_j => my_accreted_material_j
       end subroutine extras_binary_controls
 
+      subroutine null_other_accreted_material_j(binary_id, ierr)
+         use const_def, only: dp
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         b% accretion_mode = 2
+         b% s_accretor% accreted_material_j = &
+	     2.0d0/3.0d0*b% r(b% a_i)*b% r(b% a_i)*&
+             (b% s_accretor% omega_crit_avg_surf - b% s_accretor% omega_avg_surf)
+         b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
+             sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+         
+      end subroutine null_other_accreted_material_j
+      
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
          character (len=strlen), intent(in) :: sync_type !synchronization timescale
