@@ -73,6 +73,7 @@
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
+	 real(dp) :: Lrad_div_Ledd,gamma_factor,omega_crit
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -80,14 +81,38 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
+	 Lrad_div_Ledd = get_Lrad_div_Ledd(b% s_accretor%,1)
+         gamma_factor = 1d0 - min(Lrad_div_Ledd, 0.9999d0)
+	 omega_crit = sqrt(gamma_factor*b% s_accretor% cgrav(1)*b% m(b% a_i)/pow3(b% r(b% a_i)))
          b% accretion_mode = 2
          b% s_accretor% accreted_material_j = &
 	     2.0d0/3.0d0*b% r(b% a_i)*b% r(b% a_i)*&
-             (b% s_accretor% omega_crit_avg_surf - b% s_accretor% omega_avg_surf)
+             (omega_crit - b% s_accretor% omega(1))
          b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
              sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
-         
+	     
       end subroutine my_accreted_material_j
+
+      real(dp) function get_Lrad_div_Ledd(s,k) result(L_rad_div_Ledd)
+         type (star_info), pointer :: s
+         integer, intent(in) :: k
+         integer :: j
+         real(dp) :: del_m, del_T4, area
+         if (s% cgrav(k) <= 0) then
+            L_rad_div_Ledd = 0d0
+            return
+         end if
+         if (k == 1) then
+            j = 2
+         else
+            j = k
+         end if
+         del_m = s% dm_bar(j)
+         del_T4 = pow4(s% T(j-1)) - pow4(s% T(j))
+         area = 4*pi*s% r(j)*s% r(j)
+         L_rad_div_Ledd = &
+            -(area*area*crad*(del_T4/del_m)/3)/(pi4*s% cgrav(j)*s% m_grav(j))
+      end function get_Lrad_div_Ledd
       
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
