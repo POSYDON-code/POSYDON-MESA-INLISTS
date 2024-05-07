@@ -81,7 +81,7 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-	 Lrad_div_Ledd = get_Lrad_div_Ledd(b% s_accretor%,1)
+	 Lrad_div_Ledd = get_Lrad_div_Ledd(b% s_accretor,1)
          gamma_factor = 1d0 - min(Lrad_div_Ledd, 0.9999d0)
 	 omega_crit = sqrt(gamma_factor*b% s_accretor% cgrav(1)*b% m(b% a_i)/pow3(b% r(b% a_i)))
          b% accretion_mode = 2
