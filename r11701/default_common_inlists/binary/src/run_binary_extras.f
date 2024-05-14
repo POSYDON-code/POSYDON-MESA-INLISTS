@@ -1194,6 +1194,21 @@
           b% do_j_accretion = .true.
        end if
 
+       if (b% model_number >= 1) then
+
+         if ((b% point_mass_i /= 1) .and. (.not. b% s1% use_eps_mdot)) then
+           b% s1% use_dedt_form_of_energy_eqn = .true.
+           b% s1% use_eps_mdot = .true.
+           b% s1% eps_mdot_leak_frac_factor = 0d0
+         end if
+
+         if ((b% point_mass_i /= 2) .and. (.not. b% s1% use_eps_mdot)) then
+           b% s2% use_dedt_form_of_energy_eqn = .true.
+           b% s2% use_eps_mdot = .true.
+           b% s2% eps_mdot_leak_frac_factor = 0d0
+         end if
+       end if
+
 
       end function extras_binary_check_model
 
@@ -1210,7 +1225,7 @@
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
             rl23,rl2_1,trap_rad, mdot_edd
-         logical :: is_ne_biggest
+         logical :: is_ne_biggest, superthermal_accretion, superthermal_accretion_disk
          real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
          extras_binary_finish_step = keep_going
@@ -1506,18 +1521,52 @@
             end if
          end if
 
-	 if (b% point_mass_i == 0) then
-             if (b% s_accretor% x_logical_ctrl(4)) then
-                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
-	            b% mass_transfer_beta = 1.0d0
-                    b% s_accretor% max_wind = 1d-12
-	        end if
-	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
-	            b% mass_transfer_beta = 0d0
-	            b% s_accretor% max_wind = 0d0
-	        end if
-             end if
-	 end if
+         if (b% point_mass_i == 0) then
+                  if (b% s_accretor% x_logical_ctrl(4)) then
+                     if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
+                     b% mass_transfer_beta = 1.0d0
+                        b% s_accretor% max_wind = 1d-12
+               end if
+               if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
+                     b% mass_transfer_beta = 0d0
+                     b% s_accretor% max_wind = 0d0
+               end if
+                  end if
+         end if
+
+         ! conditions to check for termination in the case of superthermal accretion w/ contact and
+         ! critical rotation + accretion disk
+         if (b% point_mass_i /= b% a_i) then
+           tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
+           tau_kh = b% s_accretor% kh_timescale
+           if (tau_macc / tau_kh < 0.1d0) then
+             superthermal_accretion = .true.
+           else
+             superthermal_accretion = .false.
+           end if
+
+           if (superthermal_accretion) then
+            ! condition to check for a contact binary (temporary termination code)
+            if (b% point_mass_i /= b% d_i) then
+              if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
+                extras_binary_finish_step = terminate
+                write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
+                return
+              end if
+            end if
+
+            ! check if accretor is accreting via an accretion disk and whether rate is superthermal
+            superthermal_accretion_disk = (b% accretion_mode == 2) .and. (superthermal_accretion)
+            if (superthermal_accretion_disk .and. &
+               (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
+
+              ! terminate as L2 overflow (placeholder)
+              extras_binary_finish_step = terminate
+              write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
+              return
+            end if
+
+         end if
 
       end function extras_binary_finish_step
 
