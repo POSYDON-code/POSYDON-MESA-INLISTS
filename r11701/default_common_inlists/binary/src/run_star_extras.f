@@ -1531,6 +1531,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     ! if stripped He star
     if (s% star_mass - s% he_core_mass <= 1d-12) then
       ! Consider using Blocker wind
+      s% Blocker_scaling_factor = 0.4d0
       scheme = s% cool_wind_AGB_scheme     
       call eval_wind_for_scheme(scheme, cool_wind)
       wind = max(cool_wind, wind)
