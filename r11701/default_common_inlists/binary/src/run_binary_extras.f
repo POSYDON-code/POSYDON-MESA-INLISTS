@@ -1226,7 +1226,7 @@
             center_h1, center_h1_old, center_he4, center_he4_old, &
             rl23,rl2_1,trap_rad, mdot_edd
          logical :: is_ne_biggest, superthermal_accretion, superthermal_accretion_disk
-         real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
+         real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho, tau_kh, tau_macc
 
          extras_binary_finish_step = keep_going
 
@@ -1546,25 +1546,33 @@
            end if
 
            if (superthermal_accretion) then
-            ! condition to check for a contact binary (temporary termination code)
-            if (b% point_mass_i /= b% d_i) then
-              if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
-                extras_binary_finish_step = terminate
-                write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
-                return
-              end if
-            end if
+             ! condition to check for a contact binary
+             if (b% point_mass_i /= b% d_i) then
+               if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
+                 extras_binary_finish_step = terminate
+                 write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and superthermal accretion"
+                 return
+               end if
+             end if
 
-            ! check if accretor is accreting via an accretion disk and whether rate is superthermal
-            superthermal_accretion_disk = (b% accretion_mode == 2) .and. (superthermal_accretion)
-            if (superthermal_accretion_disk .and. &
-               (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
+             ! check if accretor is accreting via an accretion disk and whether rate is superthermal
+             ! accretion_mode = 2 is the case of an accretion disk
+             superthermal_accretion_disk = (b% accretion_mode == 2) .and. (superthermal_accretion)
+             if (superthermal_accretion_disk .and. &
+                (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
 
-              ! terminate as L2 overflow (placeholder)
-              extras_binary_finish_step = terminate
-              write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
-              return
-            end if
+               ! terminate as L2 overflow
+               extras_binary_finish_step = terminate
+
+               if (b% d_i == 1) then
+                 write(*,'(g0)') 'termination code: overflow from L2, superthermal accretion with disk (and w > w_crit), donor is star 1'
+               else
+                 write(*,'(g0)') 'termination code: overflow from L2, superthermal accretion with disk (and w > w_crit), donor is star 2'
+               end if
+
+               return
+             end if
+           end if
 
          end if
 

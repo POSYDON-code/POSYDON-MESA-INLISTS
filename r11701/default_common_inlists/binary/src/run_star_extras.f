@@ -1024,23 +1024,6 @@ contains
     !   write(*,'(g0)') 'Reached TPAGB'
     !end if
 
-    ! Turn on v_flag for stripped He star pulsations and turn off convective_bdy_weight (b/c it seg faults)
-    if (s% star_mass - s% he_core_mass <= 1d-12) then
-      if (.not. s% v_flag) then
-        write(*,*) "Stripped He star, setting v_flag = .true."
-        call star_set_v_flag(id, .true., ierr)
-        s% convective_bdy_weight = 0d0
-      end if
-    end if
-
-    ! switch to using Pgas (instead of density) for energy equation calc
-    ! after He core forms b/c this appears to help numerical stability
-    if (s% he_core_mass - s% c_core_mass > 0d0) then
-      if (.not. s% lnPgas_flag) then
-       call star_set_lnPgas_flag(id, .true., ierr)
-      end if
-    end if
-
   end function extras_finish_step
 
 
@@ -1527,16 +1510,6 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
        wind = alfa*hot_wind + beta*cool_wind
     endif
    !endif
-
-    ! if stripped He star
-    if (s% star_mass - s% he_core_mass <= 1d-12) then
-      ! Consider using Blocker wind
-      s% Blocker_scaling_factor = 0.4d0
-      scheme = s% cool_wind_AGB_scheme     
-      call eval_wind_for_scheme(scheme, cool_wind)
-      wind = max(cool_wind, wind)
-      !write(*,*) 'Stripped He star, enabling: ', trim(scheme), current_wind_prscr(id)
-   endif
 
   contains
 
