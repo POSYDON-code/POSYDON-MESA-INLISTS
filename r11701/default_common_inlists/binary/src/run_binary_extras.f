@@ -1194,19 +1194,20 @@
           b% do_j_accretion = .true.
        end if
 
-       if (b% model_number >= 1) then
+       ! enable dedt form of energy equation with adiabatic energy exchange
+       if (b% model_number == 1) then
 
          if ((b% point_mass_i /= 1) .and. (.not. b% s1% use_eps_mdot)) then
            b% s1% use_dedt_form_of_energy_eqn = .true.
            b% s1% use_eps_mdot = .true.
            b% s1% eps_mdot_leak_frac_factor = 0d0
          end if
-
-         if ((b% point_mass_i /= 2) .and. (.not. b% s1% use_eps_mdot)) then
+         if ((b% point_mass_i /= 2) .and. (.not. b% s2% use_eps_mdot)) then
            b% s2% use_dedt_form_of_energy_eqn = .true.
            b% s2% use_eps_mdot = .true.
            b% s2% eps_mdot_leak_frac_factor = 0d0
          end if
+         
        end if
 
 
@@ -1550,24 +1551,23 @@
              if (b% point_mass_i /= b% d_i) then
                if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
                  extras_binary_finish_step = terminate
-                 write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and superthermal accretion"
+                 write(*,'(g0)') 'termination code: Both stars fill their Roche Lobe and t_kh > t_acc'
                  return
                end if
              end if
 
-             ! check if accretor is accreting via an accretion disk and whether rate is superthermal
-             ! accretion_mode = 2 is the case of an accretion disk
-             superthermal_accretion_disk = (b% accretion_mode == 2) .and. (superthermal_accretion)
-             if (superthermal_accretion_disk .and. &
+             ! check if accretor is accreting at a superthermal rate and critically rotating 
+             ! (decretion + expansion due to rapid accretion, here we are assuming this leads to L2 overflow)
+             if (superthermal_accretion .and. &
                 (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
 
                ! terminate as L2 overflow
                extras_binary_finish_step = terminate
 
                if (b% d_i == 1) then
-                 write(*,'(g0)') 'termination code: overflow from L2, superthermal accretion with disk (and w > w_crit), donor is star 1'
+                 write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit, donor is star 1'
                else
-                 write(*,'(g0)') 'termination code: overflow from L2, superthermal accretion with disk (and w > w_crit), donor is star 2'
+                 write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit, donor is star 2'
                end if
 
                return
