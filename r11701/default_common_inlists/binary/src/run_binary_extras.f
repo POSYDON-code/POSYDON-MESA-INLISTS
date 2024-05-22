@@ -86,8 +86,8 @@
 	 omega_crit = sqrt(gamma_factor*b% s_accretor% cgrav(1)*b% m(b% a_i)/pow3(b% r(b% a_i)))
          b% accretion_mode = 2
          b% s_accretor% accreted_material_j = &
-	     2.0d0/3.0d0*b% r(b% a_i)*b% r(b% a_i)*&
-             (omega_crit - b% s_accretor% omega(1))
+             (0.9d0-b% s_accretor% omega(1)/omega_crit)/0.9d0 *&
+	     sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
          b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
              sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
 	     
