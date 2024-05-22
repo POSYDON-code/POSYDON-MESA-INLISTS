@@ -1565,9 +1565,9 @@
                extras_binary_finish_step = terminate
 
                if (b% d_i == 1) then
-                 write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit, donor is star 1'
+                 write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 1'
                else
-                 write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit, donor is star 2'
+                 write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 2'
                end if
 
                return
