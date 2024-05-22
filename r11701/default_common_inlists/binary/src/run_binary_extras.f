@@ -1235,7 +1235,8 @@
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23,rl2_1,trap_rad, mdot_edd
+            rl23,rl2_1,trap_rad, mdot_edd,Lrad_div_Ledd,gamma_factor,&
+	    omega_crit
          logical :: is_ne_biggest
 
          extras_binary_finish_step = keep_going
@@ -1492,6 +1493,12 @@
 	        end if
              end if
 	 end if
+  
+         Lrad_div_Ledd = get_Lrad_div_Ledd(b% s_accretor,1)
+         gamma_factor = 1d0 - min(Lrad_div_Ledd, 0.9999d0)
+	 omega_crit = sqrt(gamma_factor*b% s_accretor% cgrav(1)*b% m(b% a_i)/pow3(b% r(b% a_i)))
+	 b% mass_transfer_beta = 1.0d0 - 1.0d0/(b% s_accretor% omega(1)/0.9d0/omega_crit*&
+                                 sqrt(b% r(b% a_i)/b% rl(b% a_i))+1)
 
       end function extras_binary_finish_step
 
