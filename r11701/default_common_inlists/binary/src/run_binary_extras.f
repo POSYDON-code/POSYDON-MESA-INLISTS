@@ -1195,14 +1195,18 @@
        end if
 
        if (b% model_number == 1) then
+         
+         if ((b% point_mass_i /= 1) .and. (.not. b% s1% use_eps_mdot)) then
+            b% s1% use_dedt_form_of_energy_eqn = .true.
+            b% s1% use_eps_mdot = .true.
+            b% s1% eps_mdot_leak_frac_factor = 0d0
+          end if
+          if ((b% point_mass_i /= 2) .and. (.not. b% s2% use_eps_mdot)) then
+            b% s2% use_dedt_form_of_energy_eqn = .true.
+            b% s2% use_eps_mdot = .true.
+            b% s2% eps_mdot_leak_frac_factor = 0d0
+          end if
 
-         b% s1% use_dedt_form_of_energy_eqn = .true.
-         b% s1% use_eps_mdot = .true.
-         b% s1% eps_mdot_leak_frac_factor = 0d0
-
-         b% s2% use_dedt_form_of_energy_eqn = .true.
-         b% s2% use_eps_mdot = .true.
-         b% s2% eps_mdot_leak_frac_factor = 0d0
        end if
 
 
