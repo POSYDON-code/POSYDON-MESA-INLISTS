@@ -1036,6 +1036,9 @@ contains
         s% gradT_excess_lambda1 = -1
 
         stripped_TAHeMS_check = .false.
+        write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
+        write(*,*) 'stripped He star near TAHeMS, model number ', s% model_number
+        write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
 
       end if
     end if
