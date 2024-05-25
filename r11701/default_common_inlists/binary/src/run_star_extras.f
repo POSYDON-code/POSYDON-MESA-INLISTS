@@ -1023,6 +1023,23 @@ contains
        !extras_finish_step = terminate
     !   write(*,'(g0)') 'Reached TPAGB'
     !end if
+
+    ! turn on Pgas flag and default (but forced) MLT++ for stripped He star pulsations and 
+    ! turn off convective_bdy_weight (b/c it seg faults)
+    if ((s% star_mass - s% he_core_mass <= 1d-12) .and. (s% center_he4 < 1d-1)) then
+
+      if (.not. s% lnPgas_flag) then
+
+        s% convective_bdy_weight = 0d0
+        s% gradT_excess_f2 = 1d-3
+        s% gradT_excess_lambda1 = -1
+
+        write(*,*) "Stripped He star, setting lnPgas_flag = .false."
+        call star_set_lnPgas_flag(id, .true., ierr)
+
+      end if
+    end if
+
   end function extras_finish_step
 
 
