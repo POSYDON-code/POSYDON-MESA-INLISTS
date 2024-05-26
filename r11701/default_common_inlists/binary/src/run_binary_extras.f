@@ -1539,7 +1539,7 @@
          if (b% point_mass_i /= b% a_i) then
             tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
             tau_kh = b% s_accretor% kh_timescale
-            if (tau_macc / tau_kh < 1d0) then
+            if (tau_macc / tau_kh < 0.1d0) then
                superthermal_accretion = .true.
             else
                superthermal_accretion = .false.
