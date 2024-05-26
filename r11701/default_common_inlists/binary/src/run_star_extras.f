@@ -37,7 +37,7 @@ module run_star_extras
   logical :: late_AGB_check = .false.
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
-  logical :: stripped_TAHeMS_check = .true.
+  logical :: stripped_He_check = .true.
   real(dp) :: current_wind_prscr(2) 
 
 contains
@@ -1027,17 +1027,17 @@ contains
 
     ! turn on Pgas flag and default (but forced) MLT++ for stripped He star pulsations and 
     ! turn off convective_bdy_weight (b/c it seg faults)
-    if ((s% star_mass - s% he_core_mass <= 1d-12) .and. (s% center_he4 < 1d-1)) then
+    if ((s% star_mass - s% he_core_mass == 0d0)) then
 
-      if (stripped_TAHeMS_check) then
+      if (stripped_He_check) then
 
         s% convective_bdy_weight = 0d0
         s% gradT_excess_f2 = 1d-3
         s% gradT_excess_lambda1 = -1
 
-        stripped_TAHeMS_check = .false.
+        stripped_He_check = .false.
         write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
-        write(*,*) 'stripped He star near TAHeMS, model number ', s% model_number
+        write(*,*) 'stripped He star, model number ', s% model_number
         write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
 
       end if
