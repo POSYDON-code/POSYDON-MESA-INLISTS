@@ -37,7 +37,7 @@ module run_star_extras
   logical :: late_AGB_check = .false.
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
-  logical :: stripped_He_check = .true.
+  logical :: stripped_He_check = .false.
   real(dp) :: current_wind_prscr(2) 
 
 contains
@@ -116,6 +116,11 @@ contains
     s% overshoot_f0_above_burn_h_core  = 8.0d-3
     s% overshoot_f0_above_burn_he_core = 8.0d-3
     s% overshoot_f0_above_burn_z_core  = 8.0d-3
+
+    ! only check for stripped He star after initial relaxtion
+    if ((.not. s% job% relax_initial_to_xaccrete) .and. (.not. s% job% relax_initial_Z)) then
+      stripped_He_check = .true.
+    end if    
 
   end function extras_startup
 
