@@ -1165,8 +1165,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-         real(dp) :: q, tau_kh, tau_macc
-         logical :: superthermal_accretion
+         real(dp) :: q
          integer :: ierr
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
@@ -1211,48 +1210,6 @@
 
          end if
 
-         ! conditions to check for termination in the case of superthermal accretion w/ contact and
-         ! critical rotation + accretion disk
-         if (b% point_mass_i /= b% a_i) then
-            tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
-            tau_kh = b% s_accretor% kh_timescale
-            if (tau_macc / tau_kh < 0.1d0) then
-               superthermal_accretion = .true.
-            else
-               superthermal_accretion = .false.
-            end if
-
-            if (superthermal_accretion) then
-               ! condition to check for a contact binary
-               if (b% point_mass_i /= b% d_i) then
-                  if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
-                     extras_binary_check_model = terminate
-                     write(*,'(g0)') 'termination code: Both stars fill their Roche Lobe and t_kh > t_acc'
-                     return
-                  end if
-               end if
-
-               ! check if accretor is accreting at a superthermal rate and critically rotating 
-               ! (decretion + expansion due to rapid accretion, here we are assuming this leads to L2 overflow)
-               if (superthermal_accretion .and. &
-                  (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
-
-                  ! terminate as L2 overflow
-                  extras_binary_check_model = terminate
-
-                  if (b% d_i == 1) then
-                     write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 1'
-                  else
-                     write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 2'
-                  end if
-
-                  return
-               end if
-            end if
-
-         end if
-
-
       end function extras_binary_check_model
 
 
@@ -1267,8 +1224,8 @@
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23,rl2_1,trap_rad, mdot_edd
-         logical :: is_ne_biggest
+            rl23,rl2_1,trap_rad, mdot_edd, tau_kh, tau_macc
+         logical :: is_ne_biggest, superthermal_accretion
          real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
          extras_binary_finish_step = keep_going
@@ -1575,6 +1532,48 @@
                   b% s_accretor% max_wind = 0d0
                end if
             end if
+         end if
+
+
+         ! conditions to check for termination in the case of superthermal accretion w/ contact and
+         ! critical rotation + accretion disk
+         if (b% point_mass_i /= b% a_i) then
+            tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
+            tau_kh = b% s_accretor% kh_timescale
+            if (tau_macc / tau_kh < 0.1d0) then
+               superthermal_accretion = .true.
+            else
+               superthermal_accretion = .false.
+            end if
+
+            if (superthermal_accretion) then
+               ! condition to check for a contact binary
+               if (b% point_mass_i /= b% d_i) then
+                  if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
+                     extras_binary_check_model = terminate
+                     write(*,'(g0)') 'termination code: Both stars fill their Roche Lobe and t_kh > t_acc'
+                     return
+                  end if
+               end if
+
+               ! check if accretor is accreting at a superthermal rate and critically rotating 
+               ! (decretion + expansion due to rapid accretion, here we are assuming this leads to L2 overflow)
+               if (superthermal_accretion .and. &
+                  (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
+
+                  ! terminate as L2 overflow
+                  extras_binary_check_model = terminate
+
+                  if (b% d_i == 1) then
+                     write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 1'
+                  else
+                     write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 2'
+                  end if
+
+                  return
+               end if
+            end if
+
          end if
 
       end function extras_binary_finish_step

@@ -1031,8 +1031,9 @@ contains
     !end if
 
     ! turn on Pgas flag and default (but forced) MLT++ for stripped He star pulsations and 
-    ! turn off convective_bdy_weight (b/c it seg faults)
-    if ((s% star_mass - s% he_core_mass == 0d0)) then
+    ! turn off convective_bdy_weight (b/c it seg faults). Stripped HeMS is set here to begin
+    ! when H envelope is less than 5% of the total mass of the star
+    if ((s% star_mass - s% he_core_mass)/s% star_mass < 0.05d0) then
 
       if (stripped_He_check) then
 
