@@ -1550,7 +1550,7 @@
                ! condition to check for a contact binary
                if (b% point_mass_i /= b% d_i) then
                   if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
-                     extras_binary_check_model = terminate
+                     extras_binary_finish_step = terminate
                      write(*,'(g0)') 'termination code: Both stars fill their Roche Lobe and t_kh > t_acc'
                      return
                   end if
@@ -1562,7 +1562,7 @@
                   (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
 
                   ! terminate as L2 overflow
-                  extras_binary_check_model = terminate
+                  extras_binary_finish_step = terminate
 
                   if (b% d_i == 1) then
                      write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 1'
