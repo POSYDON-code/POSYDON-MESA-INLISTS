@@ -1175,100 +1175,101 @@
          extras_binary_check_model = keep_going
 
 
-       if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
-         .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
-         if (b% point_mass_i/=1) then
-           i_don = 1
-           b% s_donor => b% s1
-         else
-           i_don = 2
-           b% s_donor => b% s2
-         end if
-          ! Turning back on binary orbital evolution
-          if (.not. b% s_donor% x_logical_ctrl(6)) then
-              b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
-          end if
-          b% do_jdot_gr = .true.
-          b% do_jdot_ml = .true.
-          b% do_jdot_ls = .true.
-          b% do_jdot_missing_wind = .true.
-          b% do_j_accretion = .true.
-       end if
+         if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
+             .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
 
-       if (b% model_number == 1) then
+            if (b% point_mass_i/=1) then
+               i_don = 1
+               b% s_donor => b% s1
+            else
+               i_don = 2
+               b% s_donor => b% s2
+            end if
+            ! Turning back on binary orbital evolution
+            if (.not. b% s_donor% x_logical_ctrl(6)) then
+               b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
+            end if
+            b% do_jdot_gr = .true.
+            b% do_jdot_ml = .true.
+            b% do_jdot_ls = .true.
+            b% do_jdot_missing_wind = .true.
+            b% do_j_accretion = .true.
+         end if
+
+         if (b% model_number == 1) then
          
-         if ((b% point_mass_i /= 1) .and. (.not. b% s1% use_eps_mdot)) then
-            b% s1% use_dedt_form_of_energy_eqn = .true.
-            b% s1% use_eps_mdot = .true.
-            b% s1% eps_mdot_leak_frac_factor = 0d0
-          end if
-          if ((b% point_mass_i /= 2) .and. (.not. b% s2% use_eps_mdot)) then
-            b% s2% use_dedt_form_of_energy_eqn = .true.
-            b% s2% use_eps_mdot = .true.
-            b% s2% eps_mdot_leak_frac_factor = 0d0
-          end if
+            if ((b% point_mass_i /= 1) .and. (.not. b% s1% use_eps_mdot)) then
+               b% s1% use_dedt_form_of_energy_eqn = .true.
+               b% s1% use_eps_mdot = .true.
+               b% s1% eps_mdot_leak_frac_factor = 0d0
+            end if
+            if ((b% point_mass_i /= 2) .and. (.not. b% s2% use_eps_mdot)) then
+               b% s2% use_dedt_form_of_energy_eqn = .true.
+               b% s2% use_eps_mdot = .true.
+               b% s2% eps_mdot_leak_frac_factor = 0d0
+            end if
 
-       end if
-
-       ! conditions to check for termination in the case of superthermal accretion w/ contact and
-       ! critical rotation + accretion disk
-       if (b% point_mass_i /= b% a_i) then
-         tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
-         tau_kh = b% s_accretor% kh_timescale
-         if (tau_macc / tau_kh < 0.1d0) then
-            superthermal_accretion = .true.
-         else
-            superthermal_accretion = .false.
          end if
 
-         if (superthermal_accretion) then
-            ! condition to check for a contact binary
-            if (b% point_mass_i /= b% d_i) then
-               if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
+         ! conditions to check for termination in the case of superthermal accretion w/ contact and
+         ! critical rotation + accretion disk
+         if (b% point_mass_i /= b% a_i) then
+            tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
+            tau_kh = b% s_accretor% kh_timescale
+            if (tau_macc / tau_kh < 0.1d0) then
+               superthermal_accretion = .true.
+            else
+               superthermal_accretion = .false.
+            end if
+
+            if (superthermal_accretion) then
+               ! condition to check for a contact binary
+               if (b% point_mass_i /= b% d_i) then
+                  if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
+                     extras_binary_check_model = terminate
+                     write(*,'(g0)') 'termination code: Both stars fill their Roche Lobe and t_kh > t_acc'
+                     return
+                  end if
+               end if
+
+               ! check if accretor is accreting at a superthermal rate and critically rotating 
+               ! (decretion + expansion due to rapid accretion, here we are assuming this leads to L2 overflow)
+               if (superthermal_accretion .and. &
+                  (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
+
+                  ! terminate as L2 overflow
                   extras_binary_check_model = terminate
-                  write(*,'(g0)') 'termination code: Both stars fill their Roche Lobe and t_kh > t_acc'
+
+                  if (b% d_i == 1) then
+                     write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 1'
+                  else
+                     write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 2'
+                  end if
+
                   return
                end if
             end if
 
-            ! check if accretor is accreting at a superthermal rate and critically rotating 
-            ! (decretion + expansion due to rapid accretion, here we are assuming this leads to L2 overflow)
-            if (superthermal_accretion .and. &
-               (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
-
-               ! terminate as L2 overflow
-               extras_binary_check_model = terminate
-
-               if (b% d_i == 1) then
-                  write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 1'
-               else
-                  write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 2'
-               end if
-
-               return
-            end if
          end if
-
-      end if
 
 
       end function extras_binary_check_model
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! returns either keep_going or terminate.
       ! note: cannot request retry or backup; extras_check_model can do that.
       integer function extras_binary_finish_step(binary_id)
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	 real(dp) :: r_l2, d_l2
+	      real(dp) :: r_l2, d_l2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
             rl23,rl2_1,trap_rad, mdot_edd
-         logical :: is_ne_biggest, superthermal_accretion
-         real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho, tau_kh, tau_macc
+         logical :: is_ne_biggest
+         real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
          extras_binary_finish_step = keep_going
 
