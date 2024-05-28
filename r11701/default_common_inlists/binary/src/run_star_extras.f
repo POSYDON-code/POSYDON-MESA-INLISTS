@@ -1041,6 +1041,7 @@ contains
         s% gradT_excess_f2 = 1d-3
         s% gradT_excess_lambda1 = -1
 
+        call star_set_lnPgas_flag(id, .true., ierr)
         call star_set_v_flag(id, .true., ierr)
 
         stripped_He_check = .false.

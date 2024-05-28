@@ -48,10 +48,6 @@
       log_Gamma_all_PC = 1.3010299956d0
       PC_min_Z = 0.999d0
 
-      ! use lnPgas instead of density to solve energy (can help He stars evolve)
-      change_initial_lnPgas_flag = .true.
-      new_lnPgas_flag = .true.
-
 / ! end of star_job namelist
 
 &controls
