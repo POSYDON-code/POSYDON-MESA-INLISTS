@@ -32,6 +32,7 @@
 
       new_rotation_flag = .true.
       change_rotation_flag = .true.
+      change_initial_rotation_flag = .true.    ! no rotation
       set_initial_surface_rotation_v = .true.
       new_surface_rotation_v = 0.0d0
       num_steps_to_relax_rotation = 50
@@ -156,10 +157,11 @@
       cool_wind_RGB_scheme ='Dutch'  ! cool of high mass stars (Minit>10Msun),
            !it gets replaced in run_star_extras by 'Reimers' for cool low mass stars
       cool_wind_AGB_scheme = 'Blocker' ! cool for low mass stars in AGB
-      Dutch_scaling_factor = 1.0d0
-      Blocker_scaling_factor = 0.2d0
-      Reimers_scaling_factor = 0.1d0
+      Dutch_scaling_factor = 0.0d0   ! turn off winds
+      Blocker_scaling_factor = 0.0d0  ! turn off winds 
+      Reimers_scaling_factor = 0.0d0   ! turn off winds
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr
+      no_wind_if_no_rotation = .true.   ! turn off winds
 
       !DIFFUSION
       do_element_diffusion = .false. ! different from MIST2
