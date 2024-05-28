@@ -65,7 +65,7 @@
           b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
-	  b% other_rlo_mdot => my_rlo_mdot
+	       b% other_rlo_mdot => my_rlo_mdot
       end subroutine extras_binary_controls
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
@@ -1540,7 +1540,7 @@
          if (b% point_mass_i /= b% a_i) then
             tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
             tau_kh = b% s_accretor% kh_timescale
-            if (tau_macc / tau_kh < 0.1d0) then
+            if (tau_macc / tau_kh < 0.01d0) then
                superthermal_accretion = .true.
             else
                superthermal_accretion = .false.
