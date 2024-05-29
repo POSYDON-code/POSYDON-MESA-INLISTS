@@ -73,7 +73,7 @@
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-	 real(dp) :: Lrad_div_Ledd,gamma_factor,omega_crit
+	 !real(dp) :: Lrad_div_Ledd,gamma_factor,omega_crit
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -81,12 +81,12 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-	 Lrad_div_Ledd = get_Lrad_div_Ledd(b% s_accretor,1)
-         gamma_factor = 1d0 - min(Lrad_div_Ledd, 0.9999d0)
-	 omega_crit = sqrt(gamma_factor*b% s_accretor% cgrav(1)*b% m(b% a_i)/pow3(b% r(b% a_i)))
+	 !Lrad_div_Ledd = get_Lrad_div_Ledd(b% s_accretor,1)
+         !gamma_factor = 1d0 - min(Lrad_div_Ledd, 0.9999d0)
+	 !omega_crit = sqrt(gamma_factor*b% s_accretor% cgrav(1)*b% m(b% a_i)/pow3(b% r(b% a_i)))
          b% accretion_mode = 2
          b% s_accretor% accreted_material_j = &
-             (0.9d0-b% s_accretor% omega(1)/omega_crit)/0.9d0 *&
+             (0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.9d0 *&
 	     sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
          b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
              sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
@@ -1494,11 +1494,11 @@
              end if
 	 end if
   
-         Lrad_div_Ledd = get_Lrad_div_Ledd(b% s_accretor,1)
-         gamma_factor = 1d0 - min(Lrad_div_Ledd, 0.9999d0)
-	 omega_crit = sqrt(gamma_factor*b% s_accretor% cgrav(1)*b% m(b% a_i)/pow3(b% r(b% a_i)))
-	 b% mass_transfer_beta = 1.0d0 - 1.0d0/(b% s_accretor% omega(1)/0.9d0/omega_crit*&
-                                 sqrt(b% r(b% a_i)/b% rl(b% a_i))+1)
+         !Lrad_div_Ledd = get_Lrad_div_Ledd(b% s_accretor,1)
+         !gamma_factor = 1d0 - min(Lrad_div_Ledd, 0.9999d0)
+	 !omega_crit = sqrt(gamma_factor*b% s_accretor% cgrav(1)*b% m(b% a_i)/pow3(b% r(b% a_i)))
+	 b% mass_transfer_beta = 1.0d0 - 1.0d0/(b% s_accretor% omega_avg_surf/0.9d0/&
+                           b% s_accretor% omega_crit_avg_surf*sqrt(b% r(b% a_i)/b% rl(b% a_i))+1)
 
       end function extras_binary_finish_step
 
