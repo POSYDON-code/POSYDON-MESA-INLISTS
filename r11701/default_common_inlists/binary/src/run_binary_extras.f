@@ -65,6 +65,8 @@
          b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
          b% other_tsync => my_tsync
          b% other_mdot_edd => my_mdot_edd
+         ! my_rlo_mdot assumes edited version of MESA: 
+         ! /projects/b1119/mesa_sdk/mesa-r11701_witheoschange_andwithreverseMTchange_fiximplicitmdot
          b% other_rlo_mdot => my_rlo_mdot
          b% other_jdot_ml => my_jdot_ml
          b% other_extra_edot => my_edot
