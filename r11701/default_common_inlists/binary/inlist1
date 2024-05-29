@@ -157,9 +157,9 @@
       cool_wind_RGB_scheme ='Dutch'  ! cool of high mass stars (Minit>10Msun),
            !it gets replaced in run_star_extras by 'Reimers' for cool low mass stars
       cool_wind_AGB_scheme = 'Blocker' ! cool for low mass stars in AGB
-      Dutch_scaling_factor = 0.0d0   ! turn off winds
-      Blocker_scaling_factor = 0.0d0  ! turn off winds 
-      Reimers_scaling_factor = 0.0d0   ! turn off winds
+      Dutch_scaling_factor = 1.0d0   ! turn off winds
+      Blocker_scaling_factor = 0.2d0  ! turn off winds 
+      Reimers_scaling_factor = 0.10d0   ! turn off winds
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr
       no_wind_if_no_rotation = .true.   ! turn off winds
 
