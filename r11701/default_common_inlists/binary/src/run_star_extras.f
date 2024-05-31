@@ -1030,6 +1030,23 @@ contains
     !   write(*,'(g0)') 'Reached TPAGB'
     !end if
 
+    ! enable several options to help with numerical stability during rapid mass transfer
+    if ((s% model_number == 1) .and. (.not. s% use_eps_mdot)) then
+
+      ! enable dedt form of the energy equation for rapid mass transfer
+      s% use_dedt_form_of_energy_eqn = .true.
+
+      ! enable cellwise energy exchange between in/outgoing material
+      s% use_eps_mdot = .true.
+      ! energy exchange is adiabatic (this helps w/ numerical stability)
+      s% eps_mdot_leak_frac_factor = 0d0
+
+      ! use lnPgas rather than density to solve energy, also helping numerical stability
+      ! this may not be required in genergal, but helps with reruns
+      call star_set_lnPgas_flag(id, .true., ierr)
+
+    end if
+
     ! Turn on default (but forced) MLT++ and v_flag for stripped He star pulsations. 
     ! A stripped He star state is set here to occur when surface mass fraction of H is less than 0.01
     if (s% surface_h1 < 0.01d0) then
