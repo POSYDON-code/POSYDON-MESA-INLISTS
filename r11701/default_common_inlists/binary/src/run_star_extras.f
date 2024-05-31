@@ -1030,18 +1030,14 @@ contains
     !   write(*,'(g0)') 'Reached TPAGB'
     !end if
 
-    ! turn on Pgas flag and default (but forced) MLT++ for stripped He star pulsations and 
-    ! turn off convective_bdy_weight (b/c it seg faults). Stripped HeMS is set here to begin
-    ! when H envelope is less than 5% of the total mass of the star
-    if ((s% star_mass - s% he_core_mass)/s% star_mass < 0.05d0) then
-
+    ! Turn on default (but forced) MLT++ and v_flag for stripped He star pulsations. 
+    ! A stripped He star state is set here to occur when surface mass fraction of H is less than 0.01
+    if (s% surface_h1 < 0.01d0) then
       if (stripped_He_check) then
 
-        s% convective_bdy_weight = 0d0
         s% gradT_excess_f2 = 1d-3
         s% gradT_excess_lambda1 = -1
 
-        call star_set_lnPgas_flag(id, .true., ierr)
         call star_set_v_flag(id, .true., ierr)
 
         stripped_He_check = .false.
@@ -1050,6 +1046,11 @@ contains
         write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
 
       end if
+    end if
+
+    ! When a degenerate core is growing, turn off convective_bdy weight b/c it can seg fault
+    if (s% center_gamma >= 3d0 .and. s% convective_bdy_weight > 0d0) then
+        s% convective_bdy_weight = 0d0
     end if
 
   end function extras_finish_step
