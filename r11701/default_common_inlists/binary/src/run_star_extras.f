@@ -1048,8 +1048,8 @@ contains
     end if
 
     ! Turn on default (but forced) MLT++ and v_flag for stripped He star pulsations. 
-    ! A stripped He star state is set here to occur when surface mass fraction of H is less than 0.01
-    if (s% surface_h1 < 0.01d0) then
+    ! A stripped He star state is set here to occur when H envelope mass is less than 5% total mass
+    if ((s% star_mass - s% he_core_mass)/s% star_mass < 0.05d0) then
       if (stripped_He_check) then
 
         s% gradT_excess_f2 = 1d-3
@@ -1066,7 +1066,7 @@ contains
     end if
 
     ! When a degenerate core is growing, turn off convective_bdy weight b/c it can seg fault
-    if (s% center_gamma >= 3d0 .and. s% convective_bdy_weight > 0d0) then
+    if (s% center_gamma >= 2d0 .and. s% convective_bdy_weight > 0d0) then
         s% convective_bdy_weight = 0d0
     end if
 
