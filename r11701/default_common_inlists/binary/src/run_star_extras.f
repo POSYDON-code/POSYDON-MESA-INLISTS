@@ -38,7 +38,7 @@ module run_star_extras
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
   logical :: stripped_He_check = .false.
-  real(dp) :: current_wind_prscr(2) 
+  real(dp) :: current_wind_prscr(2) = -1d0
 
 contains
 
