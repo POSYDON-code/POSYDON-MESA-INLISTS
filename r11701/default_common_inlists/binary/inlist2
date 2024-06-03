@@ -263,4 +263,6 @@ delta_HR_ds_L = 0.125d0
       x_logical_ctrl(4) = .false.
       ! skip calculating implicit mdot
       x_logical_ctrl(5) = .true.
+      ! turn on He star evolution options (forcing MLT++ throughout the star to help with superadiabatic envelopes and calculating cell velocity)
+      x_logical_ctrl(7) = .true.
  / ! end of controls namelist

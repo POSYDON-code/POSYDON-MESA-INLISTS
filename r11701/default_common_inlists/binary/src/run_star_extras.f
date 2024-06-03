@@ -117,8 +117,8 @@ contains
     s% overshoot_f0_above_burn_he_core = 8.0d-3
     s% overshoot_f0_above_burn_z_core  = 8.0d-3
 
-    ! only check for stripped He star after initial relaxtion
-    if ((.not. s% job% relax_initial_to_xaccrete) .and. (.not. s% job% relax_initial_Z)) then
+    ! Should only check for stripped He star after initial relaxtion (otherwise crashes)
+    if (s% x_logical_ctrl(7)) then
       stripped_He_check = .true.
     end if    
 
