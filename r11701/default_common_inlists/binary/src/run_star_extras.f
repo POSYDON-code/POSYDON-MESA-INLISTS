@@ -1066,7 +1066,7 @@ contains
     end if
 
     ! When a degenerate core is growing, turn off convective_bdy weight b/c it can seg fault
-    if (s% center_gamma >= 2d0 .and. s% convective_bdy_weight > 0d0) then
+    if (s% center_gamma > 1d0 .and. s% convective_bdy_weight > 0d0) then
         s% convective_bdy_weight = 0d0
     end if
 
