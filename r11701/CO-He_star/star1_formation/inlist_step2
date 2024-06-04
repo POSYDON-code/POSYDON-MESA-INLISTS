@@ -41,5 +41,8 @@
       mass_change = 0d0
 
       x_logical_ctrl(2) = .true. ! this is only for inlist_step2 of He star formation. Does not get past He-ZAMS
+      
+      ! do not check for stripped He star during initialization of He star model
+      x_logical_ctrl(7) = .false.
 
 / ! end of controls namelist
