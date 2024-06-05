@@ -1525,7 +1525,9 @@
          if (b% point_mass_i /= b% a_i) then
             tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
             tau_kh = b% s_accretor% kh_timescale
-            if (tau_macc / tau_kh < 0.1d0) then
+            ! (via experimentation, we can follow evolution up to about when this ratio is 1/50)
+            ! Pols & Marinus 1994, A&A, 288, 475 cite effects kicking in as early as a ratio of 1/10
+            if (tau_macc / tau_kh < 0.02d0) then
                superthermal_accretion = .true.
             else
                superthermal_accretion = .false.
