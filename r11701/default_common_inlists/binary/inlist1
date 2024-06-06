@@ -270,6 +270,7 @@ delta_HR_ds_L = 0.125d0
       ! if true, avoid implementing magnetic braking for this star at RLO (do_jdot_mb stays .false.). in run_binary_extras
       ! We have the option this not implement it for He_Stars in the CO-He_star grid
       x_logical_ctrl(6) = .false.
-
+      ! turn on He star evolution options (forcing MLT++ throughout the star to help with superadiabatic envelopes and calculating cell velocity)
+      x_logical_ctrl(7) = .false.
 
 / ! end of controls namelist

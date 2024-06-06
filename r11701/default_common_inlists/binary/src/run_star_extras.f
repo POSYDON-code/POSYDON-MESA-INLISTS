@@ -37,7 +37,8 @@ module run_star_extras
   logical :: late_AGB_check = .false.
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
-  real(dp) :: current_wind_prscr(2) 
+  logical :: stripped_He_check = .false.
+  real(dp) :: current_wind_prscr(2) = -1d0
 
 contains
 
@@ -115,6 +116,11 @@ contains
     s% overshoot_f0_above_burn_h_core  = 8.0d-3
     s% overshoot_f0_above_burn_he_core = 8.0d-3
     s% overshoot_f0_above_burn_z_core  = 8.0d-3
+
+    ! Should only check for stripped He star after initial relaxtion (otherwise crashes)
+    if (s% x_logical_ctrl(7)) then
+      stripped_He_check = .true.
+    end if    
 
   end function extras_startup
 
@@ -862,15 +868,17 @@ contains
     use kap_def, only: kap_lowT_option, lowT_AESOPUS
     integer, intent(in) :: id, id_extra
     integer :: ierr, i
-    real(dp) :: envelope_mass_fraction, L_He, L_tot, min_center_h1_for_diff, &
+    real(dp) :: envelope_mass_fraction, L_tot, min_center_h1_for_diff, &
          critmass, feh, rot_full_off, rot_full_on, frac2
     real(dp), parameter :: huge_dt_limit = 3.15d16 ! ~1 Gyr
     real(dp), parameter :: new_varcontrol_target = 1d-3
     real(dp), parameter :: Zsol = 0.0142_dp
     type (star_info), pointer :: s
-    logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest
+    logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest, &
+               H_env_stripped
     character (len=strlen) :: photoname, stuff
-    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
+    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho, rl_radius, &
+                power_photo, LH, LHe, Lnuc
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -1023,6 +1031,59 @@ contains
        !extras_finish_step = terminate
     !   write(*,'(g0)') 'Reached TPAGB'
     !end if
+
+    ! enable several options to help with numerical stability during rapid mass transfer
+    if ((s% model_number == 1) .and. (.not. s% use_eps_mdot)) then
+
+      ! enable dedt form of the energy equation for rapid mass transfer
+      s% use_dedt_form_of_energy_eqn = .true.
+
+      ! enable cellwise energy exchange between in/outgoing material
+      s% use_eps_mdot = .true.
+      ! energy exchange is adiabatic (this helps w/ numerical stability)
+      s% eps_mdot_leak_frac_factor = 0d0
+
+      ! use lnPgas rather than density to solve energy, also helping numerical stability
+      ! this may not be required in genergal, but helps with reruns
+      call star_set_lnPgas_flag(id, .true., ierr)
+
+    end if
+
+    rl_radius = s% x_ctrl(2)
+    power_photo = dot_product(s% dm(1:s% nz), s% eps_nuc_categories(iphoto,1:s% nz))/Lsun
+    Lnuc = s% power_nuc_burn - power_photo
+    LHe = s% power_he_burn
+    LH = s% power_h_burn
+
+    ! if the H envelope is 5% of the total stellar mass
+    H_env_stripped = (s% star_mass - s% he_core_mass)/s% star_mass < 0.05d0
+
+    ! Turn on default (but forced) MLT++ and v_flag for stripped He star pulsations. 
+    ! A stripped He star state is set here to occur when H envelope mass is less than 5% total mass
+    ! and He burning becomes dominant (so that it's ~settled onto the HeZAMS)
+    if ( H_env_stripped .and. (LHe/Lnuc > 10d0 * (LH/Lnuc)) ) then
+      if (stripped_He_check) then
+
+        ! should not make these changes while the star is undergoing RLOF as
+        ! the structure is out of equilibrium and the sudden change can cause anomalous behavior
+        if (s% r(1) < rl_radius) then
+           s% gradT_excess_f2 = 1d-3
+           s% gradT_excess_lambda1 = -1
+           call star_set_v_flag(id, .true., ierr)
+        end if
+
+        stripped_He_check = .false.
+        write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
+        write(*,*) 'stripped He star, model number ', s% model_number
+        write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
+
+      end if
+    end if
+
+    ! When a degenerate core is growing, turn off convective_bdy weight b/c it can seg fault
+    if (s% center_gamma > 1d0 .and. s% convective_bdy_weight > 0d0) then
+        s% convective_bdy_weight = 0d0
+    end if
 
   end function extras_finish_step
 
