@@ -1195,6 +1195,16 @@
             b% do_j_accretion = .true.
          end if
 
+         ! store the binary component's roche radii if possible.
+         ! these may be used by run_stars_extras for various checks
+         if (b% point_mass_i /= b% d_i) then
+            b% s_donor% x_ctrl(2) = b% rl(b% d_i)
+         end if
+
+         if (b% point_mass_i /= b% a_i) then
+            b% s_accretor% x_ctrl(2) = b% rl(b% a_i)
+         end if
+
       end function extras_binary_check_model
 
 

@@ -1047,15 +1047,19 @@ contains
 
     end if
 
+    rl_radius = s% x_ctrl(2)
     ! Turn on default (but forced) MLT++ and v_flag for stripped He star pulsations. 
     ! A stripped He star state is set here to occur when H envelope mass is less than 5% total mass
     if ((s% star_mass - s% he_core_mass)/s% star_mass < 0.05d0) then
       if (stripped_He_check) then
 
-        s% gradT_excess_f2 = 1d-3
-        s% gradT_excess_lambda1 = -1
-
-        call star_set_v_flag(id, .true., ierr)
+        ! should not make these changes while the star is undergoing RLOF as
+        ! the structure is out of equilibrium and the sudden change can cause anomalous behavior
+        if (s% r(1) < rl_radius) then
+           s% gradT_excess_f2 = 1d-3
+           s% gradT_excess_lambda1 = -1
+           call star_set_v_flag(id, .true., ierr)
+        end if
 
         stripped_He_check = .false.
         write(*,*) '++++++++++++++++++++++++++++++++++++++++++++++'
