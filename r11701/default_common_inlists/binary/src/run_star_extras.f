@@ -868,15 +868,17 @@ contains
     use kap_def, only: kap_lowT_option, lowT_AESOPUS
     integer, intent(in) :: id, id_extra
     integer :: ierr, i
-    real(dp) :: envelope_mass_fraction, L_He, L_tot, min_center_h1_for_diff, &
+    real(dp) :: envelope_mass_fraction, L_tot, min_center_h1_for_diff, &
          critmass, feh, rot_full_off, rot_full_on, frac2
     real(dp), parameter :: huge_dt_limit = 3.15d16 ! ~1 Gyr
     real(dp), parameter :: new_varcontrol_target = 1d-3
     real(dp), parameter :: Zsol = 0.0142_dp
     type (star_info), pointer :: s
-    logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest
+    logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest, &
+               H_env_stripped
     character (len=strlen) :: photoname, stuff
-    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho, rl_radius
+    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho, rl_radius, &
+                power_photo, LH, LHe, Lnuc
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -1048,9 +1050,18 @@ contains
     end if
 
     rl_radius = s% x_ctrl(2)
+    power_photo = dot_product(s% dm(1:nz), s% eps_nuc_categories(iphoto,1:nz))/Lsun
+    Lnuc = s% power_nuc_burn - power_photo
+    LHe = s% power_he_burn
+    LH = s% power_h_burn
+
+    ! if the H envelope is 5% of the total stellar mass
+    H_env_stripped = (s% star_mass - s% he_core_mass)/s% star_mass < 0.05d0
+
     ! Turn on default (but forced) MLT++ and v_flag for stripped He star pulsations. 
     ! A stripped He star state is set here to occur when H envelope mass is less than 5% total mass
-    if ((s% star_mass - s% he_core_mass)/s% star_mass < 0.05d0) then
+    ! and He burning becomes dominant (so that it's ~settled onto the HeZAMS)
+    if ( H_env_stripped .and. (LHe/Lnuc > 10d0 * (LH/Lnuc)) ) then
       if (stripped_He_check) then
 
         ! should not make these changes while the star is undergoing RLOF as
