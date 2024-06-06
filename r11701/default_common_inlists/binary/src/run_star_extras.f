@@ -1050,7 +1050,7 @@ contains
     end if
 
     rl_radius = s% x_ctrl(2)
-    power_photo = dot_product(s% dm(1:nz), s% eps_nuc_categories(iphoto,1:nz))/Lsun
+    power_photo = dot_product(s% dm(1:s% nz), s% eps_nuc_categories(iphoto,1:s% nz))/Lsun
     Lnuc = s% power_nuc_burn - power_photo
     LHe = s% power_he_burn
     LH = s% power_h_burn
