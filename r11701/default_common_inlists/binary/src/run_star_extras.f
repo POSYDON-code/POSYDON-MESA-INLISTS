@@ -877,8 +877,7 @@ contains
     logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest, &
                H_env_stripped
     character (len=strlen) :: photoname, stuff
-    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho, rl_radius, &
-                power_photo, LH, LHe, Lnuc
+    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho, rl_radius
 
     ierr = 0
     call star_ptr(id, s, ierr)
@@ -1050,10 +1049,6 @@ contains
     end if
 
     rl_radius = s% x_ctrl(2)
-    power_photo = dot_product(s% dm(1:s% nz), s% eps_nuc_categories(iphoto,1:s% nz))/Lsun
-    Lnuc = s% power_nuc_burn - power_photo
-    LHe = s% power_he_burn
-    LH = s% power_h_burn
 
     ! if the H envelope is 5% of the total stellar mass
     H_env_stripped = (s% star_mass - s% he_core_mass)/s% star_mass < 0.05d0
@@ -1061,7 +1056,7 @@ contains
     ! Turn on default (but forced) MLT++ and v_flag for stripped He star pulsations. 
     ! A stripped He star state is set here to occur when H envelope mass is less than 5% total mass
     ! and He burning becomes dominant (so that it's ~settled onto the HeZAMS)
-    if ( H_env_stripped .and. (LHe/Lnuc > 10d0 * (LH/Lnuc)) ) then
+    if ( H_env_stripped .and. (s% power_he_burn > 10d0 * s% power_h_burn) ) then
       if (stripped_He_check) then
 
         ! should not make these changes while the star is undergoing RLOF as
