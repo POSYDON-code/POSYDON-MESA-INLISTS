@@ -876,7 +876,7 @@ contains
     type (star_info), pointer :: s
     logical :: diff_test1, diff_test2, diff_test3, is_ne_biggest
     character (len=strlen) :: photoname, stuff
-    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
+    real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho, rl_radius
 
     ierr = 0
     call star_ptr(id, s, ierr)
