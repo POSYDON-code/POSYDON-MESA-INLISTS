@@ -1520,6 +1520,9 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp) :: reimers_wind
       include 'formats'
 
+      write(*,*) 'x_logical_ctrl(3)=', s% x_logical_ctrl(3), ' s% center_h1=', s% center_h1, ' s% L(1)/Lsun=', s% L(1)/Lsun, ' s% r(1)/Rsun=', s% r(1)/Rsun
+      write(*,*) 'ifs are:', s% x_logical_ctrl(3), s% center_h1 < 1.0d-4, s% L(1)/Lsun > 6.0d5, 1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0
+
       current_wind_prscr = 0d0
       wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
       if (dbg) write(*,1) 'wind', wind
@@ -1604,7 +1607,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
               (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
               current_wind_prscr = 6d0
               wind  = 1.0d-4
-              if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
+              write(*,1) 'LBV Belczynski+2010 wind', wind
             endif
         endif
      endif
