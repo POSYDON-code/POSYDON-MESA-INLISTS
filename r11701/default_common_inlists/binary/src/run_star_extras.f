@@ -128,14 +128,21 @@ contains
     real(dp), intent(in) :: m
     real(dp) :: f_ov, frac
     real(dp), parameter :: f1 = 1.6d-2, f2=4.15d-2
-    if(m < 4.0d0) then
-       frac = 0.0d0
-    elseif(m > 8.0d0) then
-       frac = 1.0d0
+    !if(m < 4.0d0) then
+    !   frac = 0.0d0
+    !elseif(m > 8.0d0) then
+    !   frac = 1.0d0
+    !else
+    !   frac = 0.5d0 * (1.0d0 - cospi_cr(0.25d0*(m-4.0d0)))
+    !endif
+    !f_ov = f1 + (f2-f1)*frac
+
+    if (m < 8.0d0) then
+        f_ov = f1
     else
-       frac = 0.5d0 * (1.0d0 - cospi_cr(0.25d0*(m-4.0d0)))
+        f_ov = f2
     endif
-    f_ov = f1 + (f2-f1)*frac
+
   end function f_ov_fcn_of_mass
 
   integer function extras_check_model(id, id_extra)
