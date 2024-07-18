@@ -37,7 +37,7 @@ module run_star_extras
   logical :: late_AGB_check = .false.
   logical :: post_AGB_check = .false.
   logical :: pre_WD_check = .false.
-  real(dp) :: current_wind_prscr = -1d0
+  real(dp) :: current_wind_prscr(2) = -1d0
 
 contains
 
@@ -614,7 +614,7 @@ contains
    deallocate(adjusted_energy)
 
    names(27) = 'current_wind_prescription'
-   vals(27) = current_wind_prscr
+   vals(27) = current_wind_prscr(id)
 
 
   end subroutine data_for_extra_history_columns
@@ -1520,7 +1520,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       real(dp) :: reimers_wind
       include 'formats'
 
-      current_wind_prscr = 0d0
+      current_wind_prscr(id) = 0d0
       wind = 4d-13*(L1*R1/M1)/(Lsun*Rsun/Msun) ! in Msun/year
       if (dbg) write(*,1) 'wind', wind
       if (wind <= 0.0d0 .or. is_bad_num(wind)) then
@@ -1554,10 +1554,10 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if(dbg) write(*,1) 'Dutch_wind', wind
       else if (scheme == 'Reimers') then
          wind = wind * s% Reimers_scaling_factor
-         current_wind_prscr = 4d0
+         current_wind_prscr(id) = 4d0
          if(dbg) write(*,1) 'Reimers_wind', wind
       else if (scheme == 'Vink') then
-         current_wind_prscr = 1d0
+         current_wind_prscr(id) = 1d0
          call eval_Vink_wind(wind)
          wind = wind * s% Vink_scaling_factor
          if (dbg) write(*,1) 'Vink_wind', wind
@@ -1572,15 +1572,15 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          call eval_blocker_wind(wind)
          wind = max(reimers_wind, wind)
          if (wind > reimers_wind) then
-             current_wind_prscr = 5d0
+             current_wind_prscr(id) = 5d0
              if (dbg) write(*,1) 'Blocker_wind', wind
          else
-             current_wind_prscr = 4d0
+             current_wind_prscr(id) = 4d0
              if (dbg) write(*,1) 'Reimers_wind', wind
          end if
       else if (scheme == 'de Jager') then
          call eval_de_Jager_wind(wind)
-         current_wind_prscr = 3d0
+         current_wind_prscr(id) = 3d0
          wind = s% de_Jager_scaling_factor * wind
          if (dbg) write(*,1) 'de_Jager_wind', wind
       else if (scheme == 'van Loon') then
@@ -1602,7 +1602,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
         if ((s% center_h1 < 1.0d-4) ) then  ! postMS
             if ((s% L(1)/Lsun > 6.0d5) .and. &
               (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
-              current_wind_prscr = 6d0
+              current_wind_prscr(id) = 6d0
               wind  = 1.0d-4
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
             endif
@@ -1709,10 +1709,10 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
          w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
-        current_wind_prscr = 2d0
+        current_wind_prscr(id) = 2d0
       else
          call eval_Vink_wind(w)
-         current_wind_prscr = 1d0
+         current_wind_prscr(id) = 1d0
       end if
 
     end subroutine eval_highT_Dutch
@@ -1723,7 +1723,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       include 'formats'
       if (s% Dutch_wind_lowT_scheme == 'de Jager') then
          call eval_de_Jager_wind(w)
-         current_wind_prscr = 3d0
+         current_wind_prscr(id) = 3d0
          if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
       else if (s% Dutch_wind_lowT_scheme == 'van Loon') then
          call eval_van_Loon_wind(w)
