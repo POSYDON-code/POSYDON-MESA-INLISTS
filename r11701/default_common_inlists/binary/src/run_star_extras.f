@@ -1599,12 +1599,16 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       end if
 
       if(s% x_logical_ctrl(3)) then ! Belczynski+2010 LBV2 winds (eq. 8) with factor 1
-         if ((L1/Lsun > 6.0d5) .and. &
-           (1.0d-5 * R1/Rsun * pow_cr((L1/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
-           current_wind_prscr(id) = 6d0
-           wind  = max(1.0d-4, wind)
-           if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
-         endif
+        if ((L1/Lsun > 6.0d5) .and. &
+          (1.0d-5 * R1/Rsun * pow_cr((L1/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
+          if ((T1 > s% hot_wind_full_on_T) .or. &
+              (s% he_core_mass - s% c_core_mass >= 1d-1) .or. &
+              (s% center_he4 >= 1d-6)) then ! exclude stars at TPAGB, cf. check for it in subroutine other_set_mdot
+            current_wind_prscr(id) = 6d0
+            wind  = max(1.0d-4, wind)
+            if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
+          endif
+        endif
      endif
 
     end subroutine eval_wind_for_scheme
