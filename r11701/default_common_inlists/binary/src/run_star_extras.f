@@ -998,6 +998,20 @@ contains
        !extras_finish_step = terminate
        write(*,'(g0)') 'Reached TPAGB'
     end if
+
+    ! enable several options to help with numerical stability during rapid mass transfer
+    if ((s% model_number == 1) .and. (.not. s% use_eps_mdot)) then
+      ! enable dedt form of the energy equation for rapid mass transfer
+      s% use_dedt_form_of_energy_eqn = .true.
+      ! enable cellwise energy exchange between in/outgoing material
+      s% use_eps_mdot = .true.
+      ! energy exchange is adiabatic (this helps w/ numerical stability)
+      s% eps_mdot_leak_frac_factor = 0d0
+      ! use lnPgas rather than density to solve energy, also helping numerical stability
+      ! this may not be required in genergal, but helps with reruns
+      call star_set_lnPgas_flag(id, .true., ierr)
+    end if
+
   end function extras_finish_step
 
 
@@ -1562,17 +1576,22 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          return
       end if
 
+      ! LBV wind fix taken from branch: matthias_LBV_wind
       if(s% x_logical_ctrl(3)) then ! Belczynski+2010 LBV2 winds (eq. 8) with factor 1
-        if ((s% center_h1 < 1.0d-4) ) then  ! postMS
-            if ((s% L(1)/Lsun > 6.0d5) .and. &
-              (1.0d-5 * s% r(1)/Rsun * pow_cr((s% L(1)/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
-              current_wind_prscr = 6d0
-              wind  = 1.0d-4
+        if ((L1/Lsun > 6.0d5) .and. &
+          (1.0d-5 * R1/Rsun * pow_cr((L1/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
+          if ((T1 > s% hot_wind_full_on_T) .or. &
+              (s% he_core_mass - s% c_core_mass >= 1d-1) .or. &
+              (s% center_he4 >= 1d-6)) then ! exclude stars at TPAGB, cf. check for it in subroutine other_set_mdot
+            if (surface_h1 >= 0.1d0) then ! exclude stripped He stars
+              current_wind_prscr(id) = 6d0
+              wind  = max(1.0d-4, wind)
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
             endif
+          endif
         endif
      endif
-
+     
     end subroutine eval_wind_for_scheme
 
 
