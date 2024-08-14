@@ -1023,6 +1023,28 @@ contains
        !extras_finish_step = terminate
     !   write(*,'(g0)') 'Reached TPAGB'
     !end if
+
+    ! enable several options to help with numerical stability (esp. during rapid mass transfer)
+    if ((s% model_number == 1) .and. (.not. s% use_eps_mdot)) then
+      ! enable dedt form of the energy equation for rapid mass transfer
+      s% use_dedt_form_of_energy_eqn = .true.
+
+      ! enable cellwise energy exchange between in/outgoing material
+      s% use_eps_mdot = .true.
+      ! energy exchange is adiabatic (this helps w/ numerical stability)
+      s% eps_mdot_leak_frac_factor = 0d0
+
+      ! use lnPgas rather than density to solve energy, also helping numerical stability
+      ! this may not be required in genergal, but helps with reruns
+      call star_set_lnPgas_flag(id, .true., ierr)
+    end if
+
+    ! When a degenerate core is growing, turn off convective_bdy weight b/c 
+    ! it can seg fault beyond this point
+    if (s% center_gamma > 1d0 .and. s% convective_bdy_weight > 0d0) then
+        s% convective_bdy_weight = 0d0
+    end if
+    
   end function extras_finish_step
 
 
