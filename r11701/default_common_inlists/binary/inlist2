@@ -197,7 +197,6 @@
       max_logT_for_k_const_mass = 1.0d2 ! DEF: 6
       max_q_for_k_const_mass = 0.99d0 ! DEF: 1.0d0
       min_q_for_k_const_mass = 0.99d0 ! DEF: 0.995d0
-      fix_eps_grav_transition_to_grid = .true. ! DEF: .false.
 
       newton_iterations_limit = 20
 
