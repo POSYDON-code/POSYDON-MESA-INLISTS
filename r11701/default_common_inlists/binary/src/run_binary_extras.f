@@ -1226,6 +1226,7 @@
                 if (b% rl_relative_gap(1) > 0.0_dp .and. b% rl_relative_gap(2) > 0.0_dp) then
                   extras_binary_finish_step = terminate
                   write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and at least one of them is off MS"
+		  return
                 end if
             end if
          end if
@@ -1243,6 +1244,7 @@
           if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
             extras_binary_finish_step = terminate
             write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
+	    return
          end if
 
          ! check trapping radius only for runs with a compact object
@@ -1257,6 +1259,7 @@
             !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
               extras_binary_finish_step = terminate
               write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
+	      return
             end if
           end if
 
@@ -1321,6 +1324,7 @@
                if (b% rl_relative_gap(star_id) > 0.29858997d0*atan_cr(1.83530121d0*pow_cr(q,0.39661426d0))) then
                  write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A"
                  extras_binary_finish_step = terminate
+		 return
                end if
             end if
          end if
