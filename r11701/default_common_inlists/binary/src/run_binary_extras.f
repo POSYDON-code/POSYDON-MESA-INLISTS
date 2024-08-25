@@ -66,7 +66,10 @@
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
 	  b% other_rlo_mdot => my_rlo_mdot
+          b% other_jdot_ml => my_jdot_ml
+          b% other_extra_edot => my_edot
       end subroutine extras_binary_controls
+      
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
