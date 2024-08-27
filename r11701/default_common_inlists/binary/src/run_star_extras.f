@@ -1558,7 +1558,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          current_wind_prscr(id) = 4d0
          if(dbg) write(*,1) 'Reimers_wind', wind
          if (s% x_ctrl(2)==current_wind_prscr(id)) then
-            wind = wind*s% x_ctrl(3)
+            wind = wind * s% x_ctrl(3)
          end if
       else if (scheme == 'Vink') then
          current_wind_prscr(id) = 1d0
@@ -1566,7 +1566,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          wind = wind * s% Vink_scaling_factor
          if (dbg) write(*,1) 'Vink_wind', wind
          if (s% x_ctrl(2)==current_wind_prscr(id)) then
-            wind = wind*s% x_ctrl(3)
+            wind = wind * s% x_ctrl(3)
          end if
       else if (scheme == 'Grafener') then
          call eval_Grafener_wind(wind)
@@ -1582,13 +1582,13 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
              current_wind_prscr(id) = 5d0
              if (dbg) write(*,1) 'Blocker_wind', wind
              if (s% x_ctrl(2)==current_wind_prscr(id)) then
-                wind = wind*s% x_ctrl(3)
+                wind = wind * s% x_ctrl(3)
              end if
          else
              current_wind_prscr(id) = 4d0
              if (dbg) write(*,1) 'Reimers_wind', wind
              if (s% x_ctrl(2)==current_wind_prscr(id)) then
-                wind = wind*s% x_ctrl(3)
+                wind = wind * s% x_ctrl(3)
              end if
          end if
       else if (scheme == 'de Jager') then
@@ -1597,7 +1597,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          wind = s% de_Jager_scaling_factor * wind
          if (dbg) write(*,1) 'de_Jager_wind', wind
          if (s% x_ctrl(2)==current_wind_prscr(id)) then
-            wind = wind*s% x_ctrl(3)
+            wind = wind * s% x_ctrl(3)
          end if
       else if (scheme == 'van Loon') then
          call eval_van_Loon_wind(wind)
@@ -1622,10 +1622,10 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
               (s% center_he4 >= 1d-6)) then ! exclude stars at TPAGB, cf. check for it in subroutine other_set_mdot
             if (surface_h1 >= 0.1d0) then ! exclude stripped He stars
               current_wind_prscr(id) = 6d0
-              wind  = max(1.0d-4, wind)
+              wind = max(1.0d-4, wind)
               if (dbg) write(*,1) 'LBV Belczynski+2010 wind', wind
               if (s% x_ctrl(2)==current_wind_prscr(id)) then
-                wind = wind*s% x_ctrl(3)
+                wind = wind * s% x_ctrl(3)
               end if
             endif
           endif
@@ -1734,13 +1734,13 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
          current_wind_prscr(id) = 2d0
          if (s% x_ctrl(2)==current_wind_prscr(id)) then
-            wind = wind*s% x_ctrl(3)
+            w = w * s% x_ctrl(3)
          end if
       else
          call eval_Vink_wind(w)
          current_wind_prscr(id) = 1d0
          if (s% x_ctrl(2)==current_wind_prscr(id)) then
-            wind = wind*s% x_ctrl(3)
+            w = w * s% x_ctrl(3)
          end if
       end if
 
@@ -1755,7 +1755,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          current_wind_prscr(id) = 3d0
          if (dbg) write(*,1) 'Dutch_wind = de Jager', safe_log10_cr(wind), T1, T_low, T_high
          if (s% x_ctrl(2)==current_wind_prscr(id)) then
-            wind = wind*s% x_ctrl(3)
+            w = w * s% x_ctrl(3)
          end if
       else if (s% Dutch_wind_lowT_scheme == 'van Loon') then
          call eval_van_Loon_wind(w)
