@@ -73,7 +73,7 @@
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-	 !real(dp) :: Lrad_div_Ledd,gamma_factor,omega_crit
+	 real(dp) :: qratio, min_r
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -81,12 +81,23 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-         b% accretion_mode = 2
-         b% s_accretor% accreted_material_j = &
-             (0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.9d0 *&
-	     sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+	 qratio = b% m(b% a_i) / b% m(b% d_i)
+         qratio = min(max(qratio,0.0667d0),15d0)
+	 min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
+         if (b% r(b% a_i) < min_r) then
+            b% accretion_mode = 2
+            b% s_accretor% accreted_material_j = &
+                (0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.9d0 *&
+	        sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+	 else
+            b% accretion_mode = 1
+	    b% s_accretor% accreted_material_j = &
+                (0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.9d0 *&
+	        sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
+	 end if
          b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
              sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+	 
       end subroutine my_accreted_material_j
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
