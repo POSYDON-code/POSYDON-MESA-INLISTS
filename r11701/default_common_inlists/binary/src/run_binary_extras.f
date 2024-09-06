@@ -1242,7 +1242,7 @@
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
             rl23,rl2_1,trap_rad, mdot_edd,Lrad_div_Ledd,gamma_factor,&
-	    omega_crit
+	    omega_crit, qratio, min_r
          logical :: is_ne_biggest
          real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
@@ -1551,9 +1551,19 @@
 	        end if
              end if
 	 end if
-
-	 b% mass_transfer_beta = 1.0d0 - 1.0d0/(b% s_accretor% omega_avg_surf/0.9d0/&
-                           b% s_accretor% omega_crit_avg_surf*sqrt(b% r(b% a_i)/b% rl(b% a_i))+1)
+  
+         qratio = b% m(b% a_i) / b% m(b% d_i)
+         qratio = min(max(qratio,0.0667d0),15d0)
+	 min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
+         if (b% r(b% a_i) < min_r) then
+	     b% mass_transfer_beta = b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf/&
+                               (sqrt(b% rl(b% a_i)/b% r(b% a_i))-&
+			       (1-b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf))
+	 else   
+             b% mass_transfer_beta = b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf/&
+                               (sqrt(b% rl(b% a_i)/ (1.7d0*min_r))-&
+			       (1-b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf))
+	 end if
 
       end function extras_binary_finish_step
 
