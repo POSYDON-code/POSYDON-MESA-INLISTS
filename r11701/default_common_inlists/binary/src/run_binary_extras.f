@@ -89,11 +89,15 @@
             b% s_accretor% accreted_material_j = &
                 (0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.9d0 *&
 	        sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+	 write(*,*) 'j1', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+                     b% s_accretor% accreted_material_j
 	 else
             b% accretion_mode = 1
 	    b% s_accretor% accreted_material_j = &
                 (0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.9d0 *&
 	        sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
+	 write(*,*) 'j2', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+                     b% s_accretor% accreted_material_j
 	 end if
          b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
              sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
@@ -1559,10 +1563,14 @@
 	     b% mass_transfer_beta = b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf/&
                                (sqrt(b% rl(b% a_i)/b% r(b% a_i))-&
 			       (1-b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf))
+	     write(*,*) 'm1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+                     b% mass_transfer_beta
 	 else   
              b% mass_transfer_beta = b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf/&
                                (sqrt(b% rl(b% a_i)/ (1.7d0*min_r))-&
 			       (1-b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf))
+	     write(*,*) 'm2', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+                     b% mass_transfer_beta
 	 end if
 
       end function extras_binary_finish_step
