@@ -1561,7 +1561,7 @@
 	 min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
          if (b% r(b% a_i) < min_r) then
 	     b% mass_transfer_beta = b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf/&
-                               (sqrt(b% rl(b% a_i)/b% r(b% a_i))-&
+                               (sqrt(min_r/b% r(b% a_i))-&
 			       (1-b% s_accretor% omega_avg_surf/0.9d0/b% s_accretor% omega_crit_avg_surf))
 	     write(*,*) 'm1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
                      b% mass_transfer_beta
