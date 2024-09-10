@@ -28,7 +28,7 @@ module run_star_extras
   use chem_def
   use ionization_def
   use num_lib, only: find0
-  use binary_def
+  
 
   implicit none
 
@@ -74,6 +74,7 @@ contains
   
   subroutine my_other_j_for_adjust_J_lost(id, starting_j_rot_surf, j_for_mass_loss, ierr)
     use star_def
+    use binary_def
     integer, intent(in) :: id
     real(dp), intent(in) :: starting_j_rot_surf
     real(dp), intent(out) :: j_for_mass_loss
@@ -101,8 +102,9 @@ contains
 	else
 	    j_for_mass_loss = sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% rl(b% a_i))
 	end if
-     else
-         j_for_mass_loss = starting_j_rot_surf
+    else
+        j_for_mass_loss = starting_j_rot_surf
+    end if
   end subroutine my_other_j_for_adjust_J_lost
   
   integer function extras_startup(id, restart, ierr)
