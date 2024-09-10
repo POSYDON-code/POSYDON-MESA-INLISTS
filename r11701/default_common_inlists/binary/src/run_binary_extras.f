@@ -92,7 +92,7 @@
                 b% s_accretor% accreted_material_j = &
                     (0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.1d0 *&
 	            sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
-	     end if
+	    end if
 	 write(*,*) 'j1', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
                      b% s_accretor% accreted_material_j,sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
 	 else
@@ -103,6 +103,7 @@
 	        b% s_accretor% accreted_material_j = &
                     (0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.1d0 *&
 	            sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
+	    end if
 	 write(*,*) 'j2', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
                      b% s_accretor% accreted_material_j,sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
 	 end if
