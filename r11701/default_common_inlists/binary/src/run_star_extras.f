@@ -91,16 +91,17 @@ contains
       write(*,*) 'failed in binary_ptr'
       return
     end if
-	  qratio = b% m(b% a_i) / b% m(b% d_i)
+    qratio = b% m(b% a_i) / b% m(b% d_i)
     qratio = min(max(qratio,0.0667d0),15d0)
-	  min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
-       if (b% r(b% a_i) < min_r) then
-           b% accretion_mode = 2
-           j_for_mass_loss = sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7 * min_r)
-       else
-           b% accretion_mode = 1
-           j_for_mass_loss = sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% rl(b% a_i))
-       end if
+    min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
+    if (s% omega_avg_surf/s% omega_crit_avg_surf > 0.9) then
+	if (b% r(b% a_i) < min_r) then
+	    j_for_mass_loss = sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7 * min_r)
+	else
+	    j_for_mass_loss = sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% rl(b% a_i))
+	end if
+     else
+         j_for_mass_loss = starting_j_rot_surf
   end subroutine my_other_j_for_adjust_J_lost
   
   integer function extras_startup(id, restart, ierr)
