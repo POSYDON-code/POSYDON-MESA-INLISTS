@@ -112,6 +112,7 @@
       cubic_interpolation_in_Z = .true.
 
       !ROTATION
+      use_other_j_for_adjust_J_lost = .true.
       fitted_fp_ft_i_rot = .true.
       w_div_wcrit_max = 0.9d0
 
