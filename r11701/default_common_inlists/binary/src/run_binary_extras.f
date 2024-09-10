@@ -66,8 +66,31 @@
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
 	  b% other_rlo_mdot => my_rlo_mdot
+          b% other_j_for_adjust_J_lost => my_other_j_for_adjust_J_lost
       end subroutine extras_binary_controls
 
+      subroutine my_other_j_for_adjust_J_lost(id, starting_j_rot_surf, j_for_mass_loss, ierr)
+         use star_def
+         integer, intent(in) :: id
+         real(dp), intent(in) :: starting_j_rot_surf
+         real(dp), intent(out) :: j_for_mass_loss
+	 real(dp) :: qratio, min_r
+         integer, intent(out) :: ierr
+         write(*,*) 'no implementation for other_j_for_adjust_J_lost'
+         ierr = -1
+	 qratio = b% m(b% a_i) / b% m(b% d_i)
+         qratio = min(max(qratio,0.0667d0),15d0)
+	 min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
+         if (b% r(b% a_i) < min_r) then
+	     b% accretion_mode = 2
+             j_for_mass_loss = sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7 * min_r)
+         else
+	     b% accretion_mode = 1
+             j_for_mass_loss = sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% rl(b% a_i))
+	 end if
+      end subroutine my_other_j_for_adjust_J_lost
+
+      
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
          character (len=strlen), intent(in) :: sync_type !synchronization timescale
