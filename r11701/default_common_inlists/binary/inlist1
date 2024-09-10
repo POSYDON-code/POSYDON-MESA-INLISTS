@@ -115,7 +115,7 @@
       fitted_fp_ft_i_rot = .true.
       w_div_wcrit_max = 0.9d0
 
-      max_mdot_redo_cnt = 200 !DEF: 0 (explicit).
+      max_mdot_redo_cnt = 0 !DEF: 0 (explicit).
       surf_avg_tau_min = 0.0 !DEF: 1
       surf_avg_tau = 10.0 !DEF: 100
       min_years_dt_for_redo_mdot = 0.0 !DEF:0
