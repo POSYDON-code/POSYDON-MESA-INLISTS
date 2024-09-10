@@ -28,6 +28,7 @@ module run_star_extras
   use chem_def
   use ionization_def
   use num_lib, only: find0
+  use binary_def
 
   implicit none
 
