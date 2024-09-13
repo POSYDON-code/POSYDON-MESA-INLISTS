@@ -160,10 +160,20 @@
       cool_wind_RGB_scheme ='Dutch'  ! cool of high mass stars (Minit>10Msun),
            !it gets replaced in run_star_extras by 'Reimers' for cool low mass stars
       cool_wind_AGB_scheme = 'Blocker' ! cool for low mass stars in AGB
-      Dutch_scaling_factor = 1.0d0
+      
+      ! remove Dutch winds. 
+      Dutch_scaling_factor = 0.0d0
+      
+      ! leave Blocker winds, since they're pulsation-driven (although not entirely correct)
       Blocker_scaling_factor = 0.2d0
-      Reimers_scaling_factor = 0.1d0
+
+      ! remove reimers wind. Just leave Blocker since no clumping in Z=0 env?
+      Reimers_scaling_factor = 0.0d0
+      
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr
+
+      ! Leave the LBV winds, since they're not driven by lines 
+      ! See below x_logical_ctrl(3)
 
       !DIFFUSION
       do_element_diffusion = .false. ! different from MIST2
@@ -237,21 +247,21 @@
       delta_lg_XO_cntr_min   = -3.0d0
       delta_lg_XO_cntr_hard_limit = 0.02d0
 
-! limit changes in the timestep
-     timestep_factor_for_retries = 0.75d0
+      ! limit changes in the timestep
+      timestep_factor_for_retries = 0.75d0
 
-! HRD, Radius resolution
-delta_HR_ds_L = 0.125d0
- delta_HR_ds_Teff = 2.0d0
-    !### delta_HR_limit
-    !### delta_HR_hard_limit
-    ! limit for dHR (negative means no limit)
-    !     dHR = sqrt((delta_HR_ds_L*dlgL)**2 + (delta_HR_ds_Teff*dlgTeff)**2)
- delta_HR_limit = 0.1d0
- delta_HR_hard_limit = 0.2d0
+      ! HRD, Radius resolution
+      delta_HR_ds_L = 0.125d0
+      delta_HR_ds_Teff = 2.0d0
+      !### delta_HR_limit
+      !### delta_HR_hard_limit
+      ! limit for dHR (negative means no limit)
+      !     dHR = sqrt((delta_HR_ds_L*dlgL)**2 + (delta_HR_ds_Teff*dlgTeff)**2)
+      delta_HR_limit = 0.1d0
+      delta_HR_hard_limit = 0.2d0
 
       ! for single stars stars, the control below needs to be true, so that the carbon exhaustion check happens in run_star_extras.f
-      x_logical_ctrl(1) = .false.
+      x_logical_ctrl(1) = .true.
       ! for formation of He single stars, before they later evolve in a CO-HeMS binary or in a He Star
       x_logical_ctrl(2) = .false.
       ! Turn on eq.8 Belczynski+2010 LBV2 winds  with factor 1 (10-4 Msun/yr) to replace other winds for postMS stars in Humphreys-Davidson limit
@@ -263,6 +273,5 @@ delta_HR_ds_L = 0.125d0
       ! if true, avoid implementing magnetic braking for this star at RLO (do_jdot_mb stays .false.). in run_binary_extras
       ! We have the option this not implement it for He_Stars in the CO-He_star grid
       x_logical_ctrl(6) = .false.
-
 
 / ! end of controls namelist

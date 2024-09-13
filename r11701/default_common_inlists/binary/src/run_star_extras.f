@@ -1599,6 +1599,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          return
       end if
 
+      ! LBV winds
       if(s% x_logical_ctrl(3)) then ! Belczynski+2010 LBV2 winds (eq. 8) with factor 1
         if ((L1/Lsun > 6.0d5) .and. &
           (1.0d-5 * R1/Rsun * pow_cr((L1/Lsun),0.5d0) > 1.0d0)) then ! Humphreys-Davidson limit
