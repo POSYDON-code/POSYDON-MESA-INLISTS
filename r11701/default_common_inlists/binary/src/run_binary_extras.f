@@ -86,16 +86,30 @@
 	 min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
          if (b% r(b% a_i) < min_r) then
             b% accretion_mode = 2
-	    b% s_accretor% accreted_material_j = &
-		(0.81d0-pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf))/0.81d0 *&
-		sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+	    if (b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf < 0.9) then
+                b% s_accretor% accreted_material_j = &
+                    (0.81d0-pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf))/0.81d0 *&
+	            sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+	    else
+                b% s_accretor% accreted_material_j = &
+                    1d-4*(0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/&
+		    pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-1)*&
+	            sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+	    end if
 	    write(*,*) 'j1', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
                      b% s_accretor% accreted_material_j,sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
 	 else
             b% accretion_mode = 1
-            b% s_accretor% accreted_material_j = &
-                (0.81d0-pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf))/0.81d0 *&
-		sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
+	    if (b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf < 0.9) then
+                b% s_accretor% accreted_material_j = &
+                    (0.81d0-pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf))/0.81d0 *&
+		    sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
+	    else
+	        b% s_accretor% accreted_material_j = &
+                    1d-4*(0.9d0-b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/&
+		    pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-1)*&
+	            sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
+	    end if
 	    write(*,*) 'j2', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
                      b% s_accretor% accreted_material_j,sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
 	 end if
@@ -1573,7 +1587,6 @@
                      b% mass_transfer_beta
 	 end if
          b% mass_transfer_beta = max(0d0,b% mass_transfer_beta)
-
       end function extras_binary_finish_step
 
       real(dp) function eval_rlobe(m1, m2, a) result(rlobe)
