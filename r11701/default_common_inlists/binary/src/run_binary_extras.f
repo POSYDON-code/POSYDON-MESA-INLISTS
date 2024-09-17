@@ -1324,7 +1324,7 @@
                if (b% rl_relative_gap(star_id) > 0.29858997d0*atan_cr(1.83530121d0*pow_cr(q,0.39661426d0))) then
                  write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A"
                  extras_binary_finish_step = terminate
-		 return
+		           return
                end if
             end if
          end if
@@ -1563,6 +1563,37 @@
 		  
                end if
             end if
+         end if
+
+         ! adjust timestep controls during mass transfer
+         if ((b% point_mass_i /= b% d_i) .and. ( (b% rl_relative_gap(b% d_i) .ge. 0.d0) &
+                                                .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10) )) then
+
+            ! timestep controls based on variation of Teff or cell-wise T (temperature)
+            b% s_donor% delta_lgT_limit = 0.5d0
+            b% s_donor% delta_lgTeff_limit = 1d0
+
+            if (b% point_mass_i /= b% a_i) then 
+              b% s_accretor% delta_lgT_limit = 0.5d0
+              b% s_accretor% delta_lgTeff_limit = 1d0
+            end if
+
+            ! timestep controls based on variation of envelope mass of the donor
+            b% fm = 1d-1
+
+         ! when not in mass transfer, enforce default values for these controls
+         else
+            
+            b% s_donor% delta_lgT_limit = 0.025d0
+            b% s_donor% delta_lgTeff_limit = 0.01d0
+
+            if (b% point_mass_i /= b% a_i) then 
+               b% s_accretor% delta_lgT_limit = 0.025d0
+               b% s_accretor% delta_lgTeff_limit = 0.01d0
+            end if
+
+            b% fm = 5d-3
+
          end if
 
       end function extras_binary_finish_step
