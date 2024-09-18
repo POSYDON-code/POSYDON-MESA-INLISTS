@@ -1575,11 +1575,11 @@
 
             ! store default inlist values
             if (mass_transfer_check) then
-	        binary_component_vars(b% d_i, 0) = b% s_donor% delta_lgT_limit
-	        binary_component_vars(b% d_i, 1) = b% s_donor% delta_lgTeff_limit
-	        binary_component_vars(b% a_i, 0) = b% s_accretor% delta_lgT_limit
-	        binary_component_vars(b% a_i, 1) = b% s_accretor% delta_lgTeff_limit
-	        binary_vars(0) = b% fm
+	        binary_component_vars(b% d_i, 1) = b% s_donor% delta_lgT_limit
+	        binary_component_vars(b% d_i, 2) = b% s_donor% delta_lgTeff_limit
+	        binary_component_vars(b% a_i, 1) = b% s_accretor% delta_lgT_limit
+	        binary_component_vars(b% a_i, 2) = b% s_accretor% delta_lgTeff_limit
+	        binary_vars(1) = b% fm
 	        mass_transfer_check = .false.
 	    end if
 
@@ -1598,15 +1598,15 @@
          ! when not in mass transfer, enforce default values for these controls
          else
             
-            b% s_donor% delta_lgT_limit = binary_component_vars(b% d_i, 0)
-            b% s_donor% delta_lgTeff_limit = binary_component_vars(b% d_i, 1)
+            b% s_donor% delta_lgT_limit = binary_component_vars(b% d_i, 1)
+            b% s_donor% delta_lgTeff_limit = binary_component_vars(b% d_i, 2)
 
             if (b% point_mass_i /= b% a_i) then 
-               b% s_accretor% delta_lgT_limit = binary_component_vars(b% a_i, 0)
-               b% s_accretor% delta_lgTeff_limit = binary_component_vars(b% a_i, 1)
+               b% s_accretor% delta_lgT_limit = binary_component_vars(b% a_i, 1)
+               b% s_accretor% delta_lgTeff_limit = binary_component_vars(b% a_i, 2)
             end if
 
-            b% fm = binary_vars(0)
+            b% fm = binary_vars(1)
 
             mass_transfer_check = .true.
 
