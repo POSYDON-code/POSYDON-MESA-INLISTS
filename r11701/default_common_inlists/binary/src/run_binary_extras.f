@@ -33,6 +33,10 @@
 
       implicit none
 
+      real(dp) :: binary_component_vars(2,30) = 0d0
+      real(dp) :: binary_vars(30) = 0d0
+      logical :: mass_transfer_check = .true.
+
       contains
 
       subroutine extras_binary_controls(binary_id, ierr)
@@ -1569,6 +1573,16 @@
          if ((b% point_mass_i /= b% d_i) .and. ( (b% rl_relative_gap(b% d_i) .ge. 0.d0) &
                                                 .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10) )) then
 
+            ! store default inlist values
+            if (mass_transfer_check) then
+	        binary_component_vars(b% d_i, 0) = b% s_donor% delta_lgT_limit
+	        binary_component_vars(b% d_i, 1) = b% s_donor% delta_lgTeff_limit
+	        binary_component_vars(b% a_i, 0) = b% s_accretor% delta_lgT_limit
+	        binary_component_vars(b% a_i, 1) = b% s_accretor% delta_lgTeff_limit
+	        binary_vars(0) = b% fm
+	        mass_transfer_check = .false.
+	    end if
+
             ! timestep controls based on variation of Teff or cell-wise T (temperature)
             b% s_donor% delta_lgT_limit = 0.5d0
             b% s_donor% delta_lgTeff_limit = 1d0
@@ -1584,15 +1598,17 @@
          ! when not in mass transfer, enforce default values for these controls
          else
             
-            b% s_donor% delta_lgT_limit = 0.025d0
-            b% s_donor% delta_lgTeff_limit = 0.01d0
+            b% s_donor% delta_lgT_limit = binary_component_vars(b% d_i, 0)
+            b% s_donor% delta_lgTeff_limit = binary_component_vars(b% d_i, 1)
 
             if (b% point_mass_i /= b% a_i) then 
-               b% s_accretor% delta_lgT_limit = 0.025d0
-               b% s_accretor% delta_lgTeff_limit = 0.01d0
+               b% s_accretor% delta_lgT_limit = binary_component_vars(b% a_i, 0)
+               b% s_accretor% delta_lgTeff_limit = binary_component_vars(b% a_i, 1)
             end if
 
-            b% fm = 5d-3
+            b% fm = binary_vars(0)
+
+            mass_transfer_check = .true.
 
          end if
 
