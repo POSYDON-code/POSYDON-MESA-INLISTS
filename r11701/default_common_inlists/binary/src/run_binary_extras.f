@@ -1578,6 +1578,8 @@
          end if
 
          ! adjust timestep controls during mass transfer
+	 s1_rlof = .false.
+         s2_rlof = .false.
          if (b% point_mass_i /= 1) then
              s1_rlof = b% rl_relative_gap(1) .ge. 0.0d0
          end if
@@ -1609,7 +1611,7 @@
             b% fm = 1d-1
 
          ! when not in mass transfer, enforce default values for these controls
-         else
+         else if (mass_transfer_check = .false.) then
             
             b% s_donor% delta_lgT_limit = binary_component_vars(b% d_i, 1)
             b% s_donor% delta_lgTeff_limit = binary_component_vars(b% d_i, 2)
