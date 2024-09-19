@@ -35,7 +35,7 @@
 
       real(dp) :: binary_component_vars(2,30) = 0d0
       real(dp) :: binary_vars(30) = 0d0
-      logical :: mass_transfer_check = .true.
+      logical :: mass_transfer_check = .false.
 
       contains
 
@@ -1160,7 +1160,15 @@
                   extras_binary_startup = terminate
                   write(*,'(g0)') "termination code: Terminate because of overflowing initial model"
                end if
-            end if
+         end if
+
+         ! initial store of default inlist values
+         binary_component_vars(1, 1) = b% s1% delta_lgT_limit
+         binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
+         binary_component_vars(2, 1) = b% s2% delta_lgT_limit
+         binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+         binary_vars(1) = b% fm
+         mass_transfer_check = .true.
 
       end function  extras_binary_startup
 
@@ -1570,26 +1578,31 @@
          end if
 
          ! adjust timestep controls during mass transfer
-         if ((b% point_mass_i /= b% d_i) .and. ( (b% rl_relative_gap(b% d_i) .ge. 0.d0) &
-                                                .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10) )) then
+         if (b% point_mass_i /= 1) then
+             s1_rlof = b% rl_relative_gap(1) .ge. 0.0d0
+         end if
+         if (b% point_mass_i /= 2) then
+             s2_rlof = b% rl_relative_gap(2) .ge. 0.0d0
+         end if
 
-            ! store default inlist values
-            if (mass_transfer_check) then
-	        binary_component_vars(b% d_i, 1) = b% s_donor% delta_lgT_limit
-	        binary_component_vars(b% d_i, 2) = b% s_donor% delta_lgTeff_limit
-	        binary_component_vars(b% a_i, 1) = b% s_accretor% delta_lgT_limit
-	        binary_component_vars(b% a_i, 2) = b% s_accretor% delta_lgTeff_limit
-	        binary_vars(1) = b% fm
-	        mass_transfer_check = .false.
-	    end if
+         if ( (s1_rlof .or. s2_rlof) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10) ) then
+
+            ! store default inlist values for current donor/accretor
+            if (mass_transfer_check) then                                                                                                                                                                                                                   binary_component_vars(1, 1) = b% s1% delta_lgT_limit
+                binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
+                binary_component_vars(2, 1) = b% s2% delta_lgT_limit
+                binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+                binary_vars(1) = b% fm
+                mass_transfer_check = .false.
+            end if
 
             ! timestep controls based on variation of Teff or cell-wise T (temperature)
-            b% s_donor% delta_lgT_limit = 0.5d0
-            b% s_donor% delta_lgTeff_limit = 1d0
+            b% s1% delta_lgT_limit = 0.5d0
+            b% s1% delta_lgTeff_limit = 1d0
 
-            if (b% point_mass_i /= b% a_i) then 
-              b% s_accretor% delta_lgT_limit = 0.5d0
-              b% s_accretor% delta_lgTeff_limit = 1d0
+            if (b% point_mass_i /= 2) then
+              b% s2% delta_lgT_limit = 0.5d0
+              b% s2% delta_lgTeff_limit = 1d0
             end if
 
             ! timestep controls based on variation of envelope mass of the donor
