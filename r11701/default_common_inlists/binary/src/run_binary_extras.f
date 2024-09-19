@@ -1222,7 +1222,7 @@
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
             rl23,rl2_1,trap_rad, mdot_edd, tau_kh, tau_macc
-         logical :: is_ne_biggest, superthermal_accretion
+         logical :: is_ne_biggest, superthermal_accretion, s1_rlof, s2_rlof
          real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
          extras_binary_finish_step = keep_going
