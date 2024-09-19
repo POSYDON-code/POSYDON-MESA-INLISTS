@@ -1590,7 +1590,8 @@
          if ( (s1_rlof .or. s2_rlof) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10) ) then
 
             ! store default inlist values for current donor/accretor
-            if (mass_transfer_check) then                                                                                                                                                                                                                   binary_component_vars(1, 1) = b% s1% delta_lgT_limit
+            if (mass_transfer_check) then 
+	      binary_component_vars(1, 1) = b% s1% delta_lgT_limit
               binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
               binary_component_vars(2, 1) = b% s2% delta_lgT_limit
               binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
