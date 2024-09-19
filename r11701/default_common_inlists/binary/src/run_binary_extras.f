@@ -1599,8 +1599,10 @@
             end if
 
             ! timestep controls based on variation of Teff or cell-wise T (temperature)
-            b% s1% delta_lgT_limit = 0.5d0
-            b% s1% delta_lgTeff_limit = 1d0
+	    if (b% point_mass_i /= 1) then
+              b% s1% delta_lgT_limit = 0.5d0
+              b% s1% delta_lgTeff_limit = 1d0
+            end if
 
             if (b% point_mass_i /= 2) then
               b% s2% delta_lgT_limit = 0.5d0
@@ -1612,10 +1614,12 @@
 
          end if
          ! when not in mass transfer, enforce default values for these controls
-         if (mass_transfer_check = .false.) then
-            
-            b% s_donor% delta_lgT_limit = binary_component_vars(1, 1)
-            b% s_donor% delta_lgTeff_limit = binary_component_vars(1, 2)
+         if (mass_transfer_check == .false.) then
+
+	    if (b% point_mass_i /= 1) then
+              b% s_donor% delta_lgT_limit = binary_component_vars(1, 1)
+              b% s_donor% delta_lgTeff_limit = binary_component_vars(1, 2)
+            end if
 
             if (b% point_mass_i /= 2) then 
                b% s_accretor% delta_lgT_limit = binary_component_vars(2, 1)
