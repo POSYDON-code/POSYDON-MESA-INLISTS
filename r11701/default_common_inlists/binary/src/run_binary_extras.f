@@ -1614,7 +1614,7 @@
 
          end if
          ! when not in mass transfer, enforce default values for these controls
-         if (mass_transfer_check == .false.) then
+         else if (.not. mass_transfer_check) then
 
 	    if (b% point_mass_i /= 1) then
               b% s_donor% delta_lgT_limit = binary_component_vars(1, 1)
