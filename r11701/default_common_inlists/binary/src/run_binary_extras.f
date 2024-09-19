@@ -1591,11 +1591,11 @@
 
             ! store default inlist values for current donor/accretor
             if (mass_transfer_check) then                                                                                                                                                                                                                   binary_component_vars(1, 1) = b% s1% delta_lgT_limit
-                binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
-                binary_component_vars(2, 1) = b% s2% delta_lgT_limit
-                binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
-                binary_vars(1) = b% fm
-                mass_transfer_check = .false.
+              binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
+              binary_component_vars(2, 1) = b% s2% delta_lgT_limit
+              binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+              binary_vars(1) = b% fm
+              mass_transfer_check = .false.
             end if
 
             ! timestep controls based on variation of Teff or cell-wise T (temperature)
@@ -1610,15 +1610,16 @@
             ! timestep controls based on variation of envelope mass of the donor
             b% fm = 1d-1
 
+         end if
          ! when not in mass transfer, enforce default values for these controls
-         else if (mass_transfer_check = .false.) then
+         if (mass_transfer_check = .false.) then
             
-            b% s_donor% delta_lgT_limit = binary_component_vars(b% d_i, 1)
-            b% s_donor% delta_lgTeff_limit = binary_component_vars(b% d_i, 2)
+            b% s_donor% delta_lgT_limit = binary_component_vars(1, 1)
+            b% s_donor% delta_lgTeff_limit = binary_component_vars(1, 2)
 
-            if (b% point_mass_i /= b% a_i) then 
-               b% s_accretor% delta_lgT_limit = binary_component_vars(b% a_i, 1)
-               b% s_accretor% delta_lgTeff_limit = binary_component_vars(b% a_i, 2)
+            if (b% point_mass_i /= 2) then 
+               b% s_accretor% delta_lgT_limit = binary_component_vars(2, 1)
+               b% s_accretor% delta_lgTeff_limit = binary_component_vars(2, 2)
             end if
 
             b% fm = binary_vars(1)
