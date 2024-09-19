@@ -1613,7 +1613,6 @@
             ! timestep controls based on variation of envelope mass of the donor
             b% fm = 1d-1
 
-         end if
          ! when not in mass transfer, enforce default values for these controls
          else if (.not. mass_transfer_check) then
 
