@@ -1163,10 +1163,14 @@
          end if
 
          ! initial store of default inlist values
-         binary_component_vars(1, 1) = b% s1% delta_lgT_limit
-         binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
-         binary_component_vars(2, 1) = b% s2% delta_lgT_limit
-         binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+	 if (b% point_mass_i /= 1) then
+           binary_component_vars(1, 1) = b% s1% delta_lgT_limit
+           binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
+	 end if
+	 if (b% point_mass_i /= 2) then
+           binary_component_vars(2, 1) = b% s2% delta_lgT_limit
+           binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+	 end if
          binary_vars(1) = b% fm
          mass_transfer_check = .true.
 
@@ -1591,10 +1595,14 @@
 
             ! store default inlist values for current donor/accretor
             if (mass_transfer_check) then 
-	      binary_component_vars(1, 1) = b% s1% delta_lgT_limit
-              binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
-              binary_component_vars(2, 1) = b% s2% delta_lgT_limit
-              binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+	      if (b% point_mass_i /= 1) then
+	        binary_component_vars(1, 1) = b% s1% delta_lgT_limit
+                binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
+	      end if
+              if (b% point_mass_i /= 2) then
+                binary_component_vars(2, 1) = b% s2% delta_lgT_limit
+                binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+	      end if
               binary_vars(1) = b% fm
               mass_transfer_check = .false.
             end if
@@ -1617,13 +1625,13 @@
          else if (.not. mass_transfer_check) then
 
 	    if (b% point_mass_i /= 1) then
-              b% s_donor% delta_lgT_limit = binary_component_vars(1, 1)
-              b% s_donor% delta_lgTeff_limit = binary_component_vars(1, 2)
+              b% s1% delta_lgT_limit = binary_component_vars(1, 1)
+              b% s1% delta_lgTeff_limit = binary_component_vars(1, 2)
             end if
 
             if (b% point_mass_i /= 2) then 
-               b% s_accretor% delta_lgT_limit = binary_component_vars(2, 1)
-               b% s_accretor% delta_lgTeff_limit = binary_component_vars(2, 2)
+               b% s2% delta_lgT_limit = binary_component_vars(2, 1)
+               b% s2% delta_lgTeff_limit = binary_component_vars(2, 2)
             end if
 
             b% fm = binary_vars(1)
