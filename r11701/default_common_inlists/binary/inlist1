@@ -165,10 +165,10 @@
       Dutch_scaling_factor = 0.0d0
       
       ! leave Blocker winds, since they're pulsation-driven (although not entirely correct)
-      Blocker_scaling_factor = 0.2d0
+      Blocker_scaling_factor = 0.0d0
 
-      ! remove reimers wind. Just leave Blocker since no clumping in Z=0 env?
-      Reimers_scaling_factor = 0.1d0
+      !
+      Reimers_scaling_factor = 0.0d0
       
       !max_wind = 1.0d-3 ! different from MIST2, to allow mass transfer and mass loss > 10^-3 Msun/yr
 
