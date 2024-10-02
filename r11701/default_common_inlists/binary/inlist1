@@ -265,7 +265,7 @@
       ! for formation of He single stars, before they later evolve in a CO-HeMS binary or in a He Star
       x_logical_ctrl(2) = .false.
       ! Turn on eq.8 Belczynski+2010 LBV2 winds  with factor 1 (10-4 Msun/yr) to replace other winds for postMS stars in Humphreys-Davidson limit
-      x_logical_ctrl(3) = .true.
+      x_logical_ctrl(3) = .false.
       ! for the simplified accretion model, which will stop accretion and wind loss for the rapid rotating accretor
       x_logical_ctrl(4) = .false.
       ! skip calculating implicit mdot
