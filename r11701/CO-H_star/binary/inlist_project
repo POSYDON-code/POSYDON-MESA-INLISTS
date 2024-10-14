@@ -19,6 +19,13 @@
    do_jdot_ml = .false.
    do_jdot_ls = .false.
 
+   ! Eccentricity controls
+   ! Manually turned on when RLOF onto the compact object begins
+   do_tidal_circ = .false.
+   circ_type_1 = "Hut_rad"
+   ! extra de/dt due to non-conservative eccentric MT Sepinsky+2009 Eq. 19
+   use_other_extra_edot = .false.
+
    mdot_scheme = "roche_lobe" ! This switches to Kolb after TAMS
    limit_retention_by_mdot_edd= .true.
    use_other_mdot_edd = .true.

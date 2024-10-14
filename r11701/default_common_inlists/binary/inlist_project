@@ -67,14 +67,5 @@
    sync_type_1 = "structure_dependent"
    sync_type_2 = "structure_dependent"
 
-   ! Tidal circularization (edot)
-   do_tidal_circ = .true. 
-   circ_type_1 = "Hut_rad"
-   ! Secular orbital evolution equations for eccentric MT from Sepinsky+2009.
-   ! calculate edot Eq. 19
-   use_other_extra_edot = .true.
-   ! calculate jodt combined Eq. 18 and Eq. 19
-   use_other_jdot_ml = .true.
-
 
 / ! end of binary_controls namelist
