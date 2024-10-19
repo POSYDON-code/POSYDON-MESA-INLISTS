@@ -18,7 +18,9 @@
    do_jdot_gr = .false.
    do_jdot_ml = .false.
    do_jdot_ls = .false.
-
+   ! Eccentric MT jdot is manually turned on once RLO begins
+   use_other_jdot_ml = .false.
+   
    ! Eccentricity controls
    ! Manually turned on when RLOF onto the compact object begins
    do_tidal_circ = .false.
