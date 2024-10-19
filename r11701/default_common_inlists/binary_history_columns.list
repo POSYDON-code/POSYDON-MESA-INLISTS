@@ -44,7 +44,7 @@
       !period_minutes ! orbital period in minutes
       !lg_separation ! log10 of orbital separation in rsun
       binary_separation ! orbital separation in rsun
-      !eccentricity ! orbital eccentricity
+      eccentricity ! orbital eccentricity
       v_orb_1 ! orbital velocity of first star (in km/s)
       v_orb_2 ! orbital velocity of first star (in km/s)
 
@@ -60,9 +60,10 @@
 
       ! Information related to eccentricity change
 
-      !edot ! total eccentricity change
-      !edot_tidal ! eccentricity change due to tidal interactions
+      edot ! total eccentricity change
+      edot_tidal ! eccentricity change due to tidal interactions
       !edot_enhance ! eccentricity change due to eccentricity pumping
+      extra_edot ! Eccentric MT
 
       ! Information related to masses and mass transfer
 
