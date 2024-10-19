@@ -1343,8 +1343,9 @@
 
             ! Turning back on eccentric orbital evolution
             b% do_tidal_circ = .true.
-            ! Eccentric MT
+            ! Eccentric RLO MT
             b% use_other_extra_edot = .true.
+     	    b% use_other_jdot_ml = .true.
          end if
 
 
