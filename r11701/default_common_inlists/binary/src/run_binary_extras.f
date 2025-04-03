@@ -159,6 +159,10 @@
          b% s1% xtra8 = adot_rlo
       end subroutine my_jdot_ml
 
+      subroutine jdot_ml_Hamers(binary_id, ierr)
+         adot = - a * 2 * Mdot/Mdonor * (1 - q) * ( 1 - 3*eccentricity**2 * x * cos_epsilon_tau/(x-1) )
+      end subroutine jdot_ml_Hamers
+
       subroutine my_edot(binary_id, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
