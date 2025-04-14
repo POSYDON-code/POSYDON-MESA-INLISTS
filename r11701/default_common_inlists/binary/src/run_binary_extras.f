@@ -66,13 +66,13 @@
          b% other_tsync => my_tsync
          b% other_mdot_edd => my_mdot_edd
          b% other_rlo_mdot => my_rlo_mdot
-         b% other_jdot_ml => my_jdot_ml
-         b% other_extra_edot => my_edot
+         b% other_jdot_ml => jdot_ml_Sepinsky
+         b% other_extra_edot => edot_Sepinsky
          b% other_jdot_mb => mb_torque_selector
          b% other_jdot_ls => jdot_ls_with_mb
       end subroutine extras_binary_controls
 
-      subroutine my_jdot_ml(binary_id, ierr)
+      subroutine jdot_ml_Sepinsky(binary_id, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
@@ -157,13 +157,93 @@
          b% s1% xtra6 = jdot_RLOF_accretor
          b% s1% xtra7 = jdot_ecc_RLOF_accretor
          b% s1% xtra8 = adot_rlo
-      end subroutine my_jdot_ml
+      end subroutine jdot_ml_Sepinsky
 
-      subroutine jdot_ml_Hamers(binary_id, ierr)
-         adot = - a * 2 * Mdot/Mdonor * (1 - q) * ( 1 - 3*eccentricity**2 * x * cos_epsilon_tau/(x-1) )
-      end subroutine jdot_ml_Hamers
+      subroutine jdot_ml_Hamers_Dosopoulou(binary_id, ierr)
+         use const_def, only: dp
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         real(dp) :: osep, q, M, rA1, m1dot_rlo, m2dot_rlo, gamma_fast, gamma_iso, ang_mom_j
+         real(dp) :: jdot, xfer_frac_rlo
+         real(dp) :: m1dot_wind, m2dot_wind, xfer_frac_wind
 
-      subroutine my_edot(binary_id, ierr)
+         real(dp) :: jdot_wind_donor, jdot_wind_accretor, jdot_RLOF_donor, jdot_RLOF_accretor
+         real(dp) :: adot_rlo, jdot_ecc_RLOF_accretor, edot_RLOF, jdot_rlo
+	 real(dp) :: cos_epsilon_tau
+
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /=0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+	 
+	 ! From default_jdot_ml, but separating standard Jdot RLOF contribution
+  	 ! mass lost from vicinity of donor
+	 jdot_wind_donor = b% mdot_system_wind(b% d_i)*&
+	     (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+	     sqrt(1 - b% eccentricity**2)
+	 jdot_RLOF_donor = b% mdot_system_transfer(b% d_i) *&
+	    (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+	    sqrt(1 - b% eccentricity**2)
+	 
+	 ! mass lost from vicinity of accretor
+	 jdot_wind_accretor = b% mdot_system_wind(b% a_i)*&
+	     (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+	     sqrt(1 - b% eccentricity**2)
+	 jdot_RLOF_accretor = b% mdot_system_transfer(b% d_i) *&
+	    (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+	    sqrt(1 - b% eccentricity**2)
+	 
+	 ! mass lost from circumbinary coplanar toroid
+	 b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
+	     sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
+         
+	 
+         ! Get relevant quantities - cgs
+         osep = b% separation
+         q = b% m(b% d_i) / b% m(b% a_i)
+         M = b% m(b% d_i) + b% m(b% a_i)
+         rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep*(1d0-b% eccentricity))
+         gamma_iso = q  ! isotropic re-emission, lost from accretor
+         ang_mom_j = b% angular_momentum_j
+         m1dot_rlo = b% mtransfer_rate
+         m2dot_rlo = - b% xfer_fraction * m1dot_rlo
+         xfer_frac_rlo = b% xfer_fraction
+         
+ 	 cos_epsilon_tau = 0.0d ! related to the time delay between ejection and accretion
+         x = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep) / b% r(b% d_i)
+	 
+         ! Eccenctric mass transfer contribution - Eqn 39a Hamers & Dosopoulou (2018)
+         adot_rlo = - 2 * osep * m1dot_rlo / b% m(b% d_i) * (1d0 - q) *& 
+	            ( 1d0 - 3d0 * pow_cr(b% eccentricity, 2) * x * cos_epsilon_tau/( x - 1d0 ) )
+         
+         ! Translate to binary ang. mom.
+         edot_RLOF = b% extra_edot ! calculated in my_edot
+         jdot_rlo = .5d0 * (adot_rlo / osep + 2 * m1dot_rlo / b% m(b% d_i) + 2 * m2dot_rlo / b% m(b% a_i) - &
+               (m1dot_rlo + m2dot_rlo) / M &
+               - 2 * b% eccentricity * edot_RLOF / (1 - powi_cr(b% eccentricity, 2))) * ang_mom_j
+
+         jdot_ecc_RLOF_accretor = jdot_rlo
+         
+         ! Do eccentric MT
+         b% jdot_ml = jdot_wind_donor + jdot_RLOF_donor &
+                        + jdot_wind_accretor + jdot_ecc_RLOF_accretor
+         ! default jdot_ml
+         !   b% jdot_ml = jdot_wind_donor + jdot_RLOF_donor &
+         !                + jdot_wind_accretor + jdot_RLOF_accretor
+
+         ! store variables
+         b% s1% xtra3 = jdot_wind_donor
+         b% s1% xtra4 = jdot_wind_accretor
+         b% s1% xtra5 = jdot_RLOF_donor
+         b% s1% xtra6 = jdot_RLOF_accretor
+         b% s1% xtra7 = jdot_ecc_RLOF_accretor
+         b% s1% xtra8 = adot_rlo
+      end subroutine jdot_ml_Hamers_Dosoupolou
+
+      subroutine edot_Sepinsky(binary_id, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
@@ -205,8 +285,44 @@
          edot_wind = 0d0
 
          b% extra_edot = edot_rlo + edot_wind
-      end subroutine my_edot
+      end subroutine edot_Sepinsky
+
+      subroutine edot_Hamers_Dosopoulou(binary_id, ierr)
+         use const_def, only: dp
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         real(dp) :: osep, q, rA1, m2dot_rlo, m2dot_wind, gamma_fast, gamma_iso, M, ang_mom_j
+         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /=0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
          
+         ! Get relevant quantities
+         osep = b% separation
+         q = b% m(b% d_i) / b% m(b% a_i)
+         M = b% m(b% d_i) + b% m(b% a_i)
+         rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep*(1d0 - b% eccentricity))
+         gamma_iso = q  ! isotropic re-emission, lost from accretor
+
+         xfer_frac_rlo = b% xfer_fraction
+         m1dot_rlo = b% mtransfer_rate
+         m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
+         m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
+
+ 	 cos_epsilon_tau = 0.0d ! related to the time delay between ejection and accretion
+         x = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep) / b% r(b% d_i)
+
+         ! Calculate edot contribution - Eqn 39b, Hamers & Dosopoulou (2019)	 
+         edot_rlo = - 2 * osep * m1dot_rlo / b% m(b% d_i) * (1d0 - q) *& 
+	            (  (3d0/2d0) * b% eccentricity * cos_epsilon_tau * x/( 1d0 - x ) )
+	     
+         b% extra_edot = edot_rlo
+      end subroutine edot_Hamers_Dosopoulou
+
       subroutine jdot_ls_with_mb(binary_id, ierr)
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
