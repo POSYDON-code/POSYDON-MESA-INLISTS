@@ -74,12 +74,12 @@
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-         real(dp) :: osep, q, M, rA1, m1dot_rlo, m2dot_rlo, gamma_fast, gamma_iso, ang_mom_j
+         real(dp) :: osep, q, M, rA1, rA2, m1dot_rlo, m2dot_rlo, gamma_fast, gamma_iso, ang_mom_j
          real(dp) :: jdot, xfer_frac_rlo
          real(dp) :: m1dot_wind, m2dot_wind, xfer_frac_wind
 
          real(dp) :: jdot_wind_donor, jdot_wind_accretor, jdot_RLOF_donor, jdot_RLOF_accretor
-         real(dp) :: adot_rlo, jdot_ecc_RLOF_accretor, edot_RLOF, jdot_rlo, XL1, f_rot
+         real(dp) :: adot_rlo, jdot_ecc_RLOF_accretor, edot_RLOF, jdot_rlo, XL1, f_rot, prefactor, cos_theta_P
 
          type (binary_info), pointer :: b
          ierr = 0
@@ -125,7 +125,9 @@
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1d0 - b% eccentricity) )
 	 rA1 = XL1 * osep * (1d0 - b% eccentricity)
-  
+  	 rA2 = b% r(b% a_i)
+         cos_theta_P = 1
+    
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
@@ -133,13 +135,11 @@
          xfer_frac_rlo = b% xfer_fraction
          
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-         ! where a compact object accretor with rA2 term is set to zero.
-         adot_rlo = 2 * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1 - powi_cr(b% eccentricity, 2)) *&
-                  (b% eccentricity * rA1 / osep)
-         adot_rlo = adot_rlo + (2 * osep * m1dot_rlo / b% m(b% d_i) &
-                  * sqrt(1 - powi_cr(b% eccentricity, 2))&
-                  * ((xfer_frac_rlo * q - 1d0) + (1d0 - xfer_frac_rlo) * (gamma_iso + .5d0) * q/(1d0+q)))
-         
+	 prefactor = 2 * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1d0 - powi_cr(b% eccentricity, 2))
+         adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
+         adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1d0) &
+	                          + (1d0 - xfer_frac_rlo) * (gamma_iso + 0.5d0) * q/(1d0+q) )
+	 
          ! Translate to binary ang. mom.
          edot_RLOF = b% extra_edot ! calculated in my_edot
          jdot_rlo = .5d0 * (adot_rlo / osep + 2 * m1dot_rlo / b% m(b% d_i) + 2 * m2dot_rlo / b% m(b% a_i) - &
@@ -169,7 +169,7 @@
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          real(dp) :: osep, q, rA1, m2dot_rlo, m2dot_wind, gamma_fast, gamma_iso, M, ang_mom_j
-         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, edot_wind, XL1, f_rot
+         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, edot_wind, XL1, f_rot, prefactor, rA2, cos_theta_P
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -191,7 +191,9 @@
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1d0 - b% eccentricity) )
 	 rA1 = XL1 * osep * (1d0 - b% eccentricity)
-  
+    	 rA2 = b% r(b% a_i)
+         cos_theta_P = 1
+
          gamma_iso = q  ! isotropic re-emission, lost from accretor
 
          xfer_frac_rlo = b% xfer_fraction
@@ -200,11 +202,10 @@
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
-         ! where a compact object accretor with rA2 term is set to zero.
-         edot_rlo = m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2)) &
-                     * rA1 / osep
-         edot_rlo = edot_rlo + (2 * m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2)) * (1d0 - b% eccentricity) &
-                     * ((xfer_frac_rlo * q - 1d0) + (1d0 - xfer_frac_rlo) * (gamma_iso + .5d0) * q / (1d0 + q)))
+	 prefactor = m1dot_rlo / b% m(b% d_i) * sqrt(1 - powi_cr(b% eccentricity, 2))
+         edot_rlo = (rA1 / osep) + (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P
+         edot_rlo = prefactor * ( edot_rlo + 2d0*(xfer_frac_rlo * q - 1d0)*(1d0 - b% eccentricity) &
+                                  + 2d0*(1d0 - xfer_frac_rlo)*(gamma_iso + 0.5d0)*(1d0 - b% eccentricity)* q/(1d0 + q) )
 
          ! Wind contribution
          !edot_wind = ((1/sqrt(1 - powi_cr(b% eccentricity,2)) - 1) *&
