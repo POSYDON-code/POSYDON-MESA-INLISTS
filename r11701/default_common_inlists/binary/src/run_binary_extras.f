@@ -120,13 +120,13 @@
          M = b% m(b% d_i) + b% m(b% a_i)
 	 
 	 ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
-         f_rot = 1d0 
+         f_rot = 1d0
          XL1 = 0.529 + 0.231 * log10_cr(q) - powi_cr(f_rot, 2) * (0.031 + 0.025 * b% eccentricity)*(1 + 0.4*log10_cr(q))
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1d0 - b% eccentricity) )
 	 rA1 = XL1 * osep * (1d0 - b% eccentricity)
   	 rA2 = b% r(b% a_i)
-         cos_theta_P = 1
+         cos_theta_P = 0.5d0
     
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
@@ -135,7 +135,7 @@
          xfer_frac_rlo = b% xfer_fraction
          
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-	 prefactor = 2 * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1d0 - powi_cr(b% eccentricity, 2))
+	 prefactor = 2d0 * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1d0 - powi_cr(b% eccentricity, 2))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
          adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1d0) &
 	                          + (1d0 - xfer_frac_rlo) * (gamma_iso + 0.5d0) * q/(1d0+q) )
@@ -162,6 +162,7 @@
          b% s1% xtra6 = jdot_RLOF_accretor
          b% s1% xtra7 = jdot_ecc_RLOF_accretor
          b% s1% xtra8 = adot_rlo
+	 b% s1% xtra9 = XL1
       end subroutine my_jdot_ml
 
       subroutine my_edot(binary_id, ierr)
@@ -169,7 +170,7 @@
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          real(dp) :: osep, q, rA1, m2dot_rlo, m2dot_wind, gamma_fast, gamma_iso, M, ang_mom_j
-         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, edot_wind, XL1, f_rot, prefactor, rA2, cos_theta_P
+         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, XL1, f_rot, prefactor, rA2, cos_theta_P
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -192,7 +193,7 @@
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1d0 - b% eccentricity) )
 	 rA1 = XL1 * osep * (1d0 - b% eccentricity)
     	 rA2 = b% r(b% a_i)
-         cos_theta_P = 1
+         cos_theta_P = 0.5
 
          gamma_iso = q  ! isotropic re-emission, lost from accretor
 
@@ -207,13 +208,7 @@
          edot_rlo = prefactor * ( edot_rlo + 2d0*(xfer_frac_rlo * q - 1d0)*(1d0 - b% eccentricity) &
                                   + 2d0*(1d0 - xfer_frac_rlo)*(gamma_iso + 0.5d0)*(1d0 - b% eccentricity)* q/(1d0 + q) )
 
-         ! Wind contribution
-         !edot_wind = ((1/sqrt(1 - powi_cr(b% eccentricity,2)) - 1) *&
-         !         pow_cr(1-powi_cr(b% eccentricity, 2), 1.5d0) / b% eccentricity) * &
-         !         m2dot_wind / b% m(b% a_i) 
-         edot_wind = 0d0
-
-         b% extra_edot = edot_rlo + edot_wind
+         b% extra_edot = edot_rlo
       end subroutine my_edot
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
@@ -1212,7 +1207,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 12
+         how_many_extra_binary_history_columns = 13
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -1274,12 +1269,14 @@
          names(10) = 'jdot_RLOF_accretor'
          names(11) = 'jdot_ecc_RLOF_accretor'
          names(12) = 'adot_rlo'
+	 names(13) = 'X_L1'
          vals(7) = b% s1% xtra3
          vals(8) = b% s1% xtra4
          vals(9) = b% s1% xtra5
          vals(10) = b% s1% xtra6
          vals(11) = b% s1% xtra7
          vals(12) = b% s1% xtra8
+         vals(13) = b% s1% xtra9
       end subroutine data_for_extra_binary_history_columns
 
 
