@@ -79,7 +79,7 @@
          real(dp) :: m1dot_wind, m2dot_wind, xfer_frac_wind
 
          real(dp) :: jdot_wind_donor, jdot_wind_accretor, jdot_RLOF_donor, jdot_RLOF_accretor
-         real(dp) :: adot_rlo, jdot_ecc_RLOF_accretor, edot_RLOF, jdot_rlo
+         real(dp) :: adot_rlo, jdot_ecc_RLOF_accretor, edot_RLOF, jdot_rlo, XL1, f_rot
 
          type (binary_info), pointer :: b
          ierr = 0
@@ -113,12 +113,19 @@
          !========================!
          !write(*,*) "calling my jdot"
          !========================!
-
+	 
          ! Get relevant quantities - cgs
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
-         rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1d0 - b% eccentricity) )
+	 
+	 ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
+         f_rot = 1d0 
+         XL1 = 0.529 + 0.231 * log10_cr(q) - powi_cr(f_rot, 2) * (0.031 + 0.025 * b% eccentricity)*(1 + 0.4*log10_cr(q))
+
+         ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1d0 - b% eccentricity) )
+	 rA1 = XL1 * osep * (1d0 - b% eccentricity)
+  
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
@@ -162,7 +169,7 @@
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          real(dp) :: osep, q, rA1, m2dot_rlo, m2dot_wind, gamma_fast, gamma_iso, M, ang_mom_j
-         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, edot_wind
+         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, edot_wind, XL1, f_rot
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -177,7 +184,14 @@
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
-         rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1d0 - b% eccentricity))
+	 
+	 ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
+         f_rot = 1d0 
+         XL1 = 0.529 + 0.231 * log10_cr(q) - powi_cr(f_rot, 2) * (0.031 + 0.025 * b% eccentricity)*(1 + 0.4*log10_cr(q))
+
+         ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1d0 - b% eccentricity) )
+	 rA1 = XL1 * osep * (1d0 - b% eccentricity)
+  
          gamma_iso = q  ! isotropic re-emission, lost from accretor
 
          xfer_frac_rlo = b% xfer_fraction
