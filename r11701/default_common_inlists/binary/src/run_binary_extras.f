@@ -119,14 +119,14 @@
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
 	 
-	      ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
+         ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
          f_rot = 1.0_dp
          XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
                 * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
-	      rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
-  	      rA2 = b% r(b% a_i)
+	 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
+  	 rA2 = b% r(b% a_i)
          cos_theta_P = 0.5_dp
     
          gamma_iso = q  ! isotropic re-emission, lost from accretor
@@ -136,7 +136,7 @@
          xfer_frac_rlo = b% xfer_fraction
          
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-	      prefactor = 2.0_dp * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
+	 prefactor = 2.0_dp * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
          adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0_dp) &
 	                          + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * q/(1.0_dp+q) )
@@ -187,14 +187,14 @@
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
 	 
-	      ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
+	 ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
          f_rot = 1.0_dp
          XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
                 * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
-	      rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
-    	   rA2 = b% r(b% a_i)
+	 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
+    	 rA2 = b% r(b% a_i)
          cos_theta_P = 0.5_dp
 
          gamma_iso = q  ! isotropic re-emission, lost from accretor
@@ -205,7 +205,7 @@
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
-	      prefactor = m1dot_rlo / b% m(b% d_i) * sqrt(1.0_dp - pow2(b% eccentricity))
+	 prefactor = m1dot_rlo / b% m(b% d_i) * sqrt(1.0_dp - pow2(b% eccentricity))
          edot_rlo = (rA1 / osep) + (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P
          edot_rlo = prefactor * ( edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
                                   + 2.0_dp*(1d0 - xfer_frac_rlo)*(gamma_iso + 0.5_dp)*(1.0_dp - b% eccentricity)* q/(1.0_dp + q) )
