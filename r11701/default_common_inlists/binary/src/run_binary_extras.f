@@ -208,8 +208,9 @@
 	 ! Note: M_dot_0 = 2 pi M_dot
 	 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * m1dot_rlo / b% m(b% d_i) 
          edot_rlo =  (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P + (rA1 / osep) 
-         edot_rlo = prefactor * ( edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
-                                  + 2.0_dp*(1.0_dp - xfer_frac_rlo)*(gamma_iso + 0.5_dp)*(1.0_dp - b% eccentricity)* q/(1.0_dp + q) )
+         edot_rlo = prefactor * (edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
+                                          + 2.0_dp*(1.0_dp - xfer_frac_rlo)*(gamma_iso + 0.5_dp) &
+				                  *(1.0_dp - b% eccentricity)* q/(1.0_dp + q)  )
 
          b% extra_edot = edot_rlo
       end subroutine my_edot
