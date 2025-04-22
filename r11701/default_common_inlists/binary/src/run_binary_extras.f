@@ -66,8 +66,8 @@
          b% other_tsync => my_tsync
          b% other_mdot_edd => my_mdot_edd
          b% other_rlo_mdot => my_rlo_mdot
-         b% other_jdot_ml => jdot_ml_Sepinsky
-         b% other_extra_edot => edot_Sepinsky
+         b% other_jdot_ml => jdot_ml_Hamers_Dosopoulou
+         b% other_extra_edot => edot_Hamers_Dosopoulou
          b% other_jdot_mb => mb_torque_selector
          b% other_jdot_ls => jdot_ls_with_mb
       end subroutine extras_binary_controls
