@@ -138,8 +138,8 @@
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
 	 prefactor = 2.0_dp * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
-         adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0_dp) &
-	                          + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * q/(1.0_dp+q) )
+         adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0_dp) * (1.0_dp - pow2(b% eccentricity)) &
+	            + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * (1.0_dp - pow2(b% eccentricity)) * q/(1.0_dp+q) )
 	 
          ! Translate to binary ang. mom.
          edot_RLOF = b% extra_edot ! calculated in my_edot
@@ -205,10 +205,11 @@
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
-	 prefactor = m1dot_rlo / b% m(b% d_i) * sqrt(1.0_dp - pow2(b% eccentricity))
-         edot_rlo = (rA1 / osep) + (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P
+	 ! Note: M_dot_0 = 2 pi M_dot
+	 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * m1dot_rlo / b% m(b% d_i) 
+         edot_rlo =  (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P + (rA1 / osep) 
          edot_rlo = prefactor * ( edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
-                                  + 2.0_dp*(1d0 - xfer_frac_rlo)*(gamma_iso + 0.5_dp)*(1.0_dp - b% eccentricity)* q/(1.0_dp + q) )
+                                  + 2.0_dp*(1.0_dp - xfer_frac_rlo)*(gamma_iso + 0.5_dp)*(1.0_dp - b% eccentricity)* q/(1.0_dp + q) )
 
          b% extra_edot = edot_rlo
       end subroutine my_edot
