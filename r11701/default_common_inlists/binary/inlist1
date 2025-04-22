@@ -129,7 +129,7 @@
       max_mdot_jump_for_rotation = 10.0d0  ! for smooth transition from mass accretion to mass loss
       
       ! Turn off rotationally boosted wind
-      mdot_omega_power = 0.0d0  ! DEF: 0.43d0
+      mdot_omega_power = 0.43d0  ! DEF: 0.43d0
 
       mesh_Pgas_div_P_exponent = 0 !DEF = 0 ! mesh_delta_coeff*(Pgas/Ptotal)^mesh_Pgas_div_P_exponent
                         !we want a value > 0 so that mesh_delta_coeff becomes much lower (i.e. higher spatial resolution)
