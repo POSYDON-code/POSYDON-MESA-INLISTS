@@ -212,7 +212,7 @@
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
          xfer_frac_rlo = b% xfer_fraction
          
- 	 cos_epsilon_tau = 0.0d ! related to the time delay between ejection and accretion
+ 	 cos_epsilon_tau = 0.0d0 ! related to the time delay between ejection and accretion
          x = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep) / b% r(b% d_i)
 	 
          ! Eccenctric mass transfer contribution - Eqn 39a Hamers & Dosopoulou (2018)
@@ -241,7 +241,7 @@
          b% s1% xtra6 = jdot_RLOF_accretor
          b% s1% xtra7 = jdot_ecc_RLOF_accretor
          b% s1% xtra8 = adot_rlo
-      end subroutine jdot_ml_Hamers_Dosoupolou
+      end subroutine jdot_ml_Hamers_Dosopoulou
 
       subroutine edot_Sepinsky(binary_id, ierr)
          use const_def, only: dp
