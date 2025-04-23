@@ -164,7 +164,7 @@
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          real(dp) :: osep, q, M, rA1, m1dot_rlo, m2dot_rlo, gamma_fast, gamma_iso, ang_mom_j
-         real(dp) :: jdot, xfer_frac_rlo
+         real(dp) :: jdot, xfer_frac_rlo, x
          real(dp) :: m1dot_wind, m2dot_wind, xfer_frac_wind
 
          real(dp) :: jdot_wind_donor, jdot_wind_accretor, jdot_RLOF_donor, jdot_RLOF_accretor
@@ -313,7 +313,7 @@
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
 
- 	 cos_epsilon_tau = 0.0d ! related to the time delay between ejection and accretion
+ 	 cos_epsilon_tau = 0.0d0 ! related to the time delay between ejection and accretion
          x = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep) / b% r(b% d_i)
 
          ! Calculate edot contribution - Eqn 39b, Hamers & Dosopoulou (2019)	 
