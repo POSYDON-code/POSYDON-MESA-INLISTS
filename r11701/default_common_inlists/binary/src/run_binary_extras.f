@@ -217,7 +217,7 @@
 	 
          ! Eccenctric mass transfer contribution - Eqn 39a Hamers & Dosopoulou (2018)
          adot_rlo = - 2d0 * osep * m1dot_rlo / b% m(b% d_i) * (1d0 - q) *& 
-	            ( 1d0 - 3d0 * pow_cr(b% eccentricity, 2) * x * cos_epsilon_tau/( x - 1d0 ) )
+	            ( 1d0 - 3d0 * pow_cr(b% eccentricity, 2d0) * x * cos_epsilon_tau/( x - 1d0 ) )
          
          ! Translate to binary ang. mom.
          edot_RLOF = b% extra_edot ! calculated in my_edot
