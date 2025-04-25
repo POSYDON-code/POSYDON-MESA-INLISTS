@@ -68,7 +68,85 @@
          b% other_rlo_mdot => my_rlo_mdot
          b% other_jdot_ml => my_jdot_ml
          b% other_extra_edot => my_edot
+	 b% other_edot_tidal => my_edot_tidal
       end subroutine extras_binary_controls
+
+    ! ==========================================
+    ! edot TIDAL
+    ! ==========================================
+    subroutine my_edot_tidal(binary_id, ierr)
+       integer, intent(in) :: binary_id
+       integer, intent(out) :: ierr
+       type (binary_info), pointer :: b
+
+       ierr = 0
+       call binary_ptr(binary_id, b, ierr)
+       if (ierr /= 0) then
+          write(*,*) 'failed in binary_ptr'
+          return
+       end if
+       
+       b% edot_tidal = 0d0
+
+       if (b% point_mass_i /= 1) then
+          if (b% circ_type_1 == "Hut_conv") then
+             b% edot_tidal = edot_tidal_Hut_posydon(b, b% s1, .true.)
+          else if (b% circ_type_1 == "Hut_rad") then
+             b% edot_tidal = edot_tidal_Hut_posydon(b, b% s1, .false.)
+          else
+             write(*,*) "Unrecognized circ_type_1", b% circ_type_1
+          end if
+       end if
+       if (b% point_mass_i /= 2) then
+          if (b% circ_type_2 == "Hut_conv") then
+             b% edot_tidal = b% edot_tidal + edot_tidal_Hut_posydon(b, b% s2, .true.)
+          else if (b% circ_type_2 == "Hut_rad") then
+             b% edot_tidal = b% edot_tidal + edot_tidal_Hut_posydon(b, b% s2, .false.)
+          else
+             write(*,*) "Unrecognized circ_type_2", b% circ_type_2
+          end if
+       end if
+
+       if (b% model_twins_flag) then
+          b% edot_tidal = b% edot_tidal + b% edot_tidal
+       end if
+    end subroutine my_edot_tidal
+
+    real(dp) function edot_tidal_Hut_posydon(b, s , has_convective_envelope) result(edot_tidal)
+       type (binary_info), pointer :: b
+       type (star_info), pointer :: s
+       logical, intent(in) :: has_convective_envelope
+       real(dp) :: m, porb, r_phot, osep, qratio, omega_s, omega_sync
+
+       edot_tidal = 0d0
+
+       porb = b% period
+       ! Adding Sepinsky+2007a Eq. 16 (omega at periastron)
+       omega_sync = 2.0_dp*pi/b% period &
+                    * pow_cr(1.0_dp + b% eccentricity, 0.5_dp)/pow_cr(1.0_dp - b% eccentricity, 1.5_dp)
+       omega_s = s% omega_avg_surf
+       osep = b% separation
+
+       qratio = b% m(b% a_i) / b% m(b% d_i)
+       if (is_donor(b, s)) then
+          m = b% m(b% d_i)
+          r_phot = b% r(b% d_i)
+       else
+          qratio = 1.0/qratio
+          m = b% m(b% a_i)
+          r_phot = b% r(b% a_i)
+       end if
+
+       ! eq. (10) of Hut, P. 1981, A&A, 99, 126
+       edot_tidal = -27.0d0*qratio*(1+qratio)*pow8(r_phot/osep) &
+           * b% eccentricity*pow_cr(1-b% eccentricity**2,-6.5d0)*b% Ftid_1
+       ! add multiplication by (k/T), eq. (29) of Hurley et al. 2002
+       edot_tidal = edot_tidal*k_div_T(b, s, has_convective_envelope)
+       ! add terms dependant on omega
+       edot_tidal = edot_tidal*(f3(b% eccentricity) - &
+           11d0/18d0 * omega_s / omega_sync * f4(b% eccentricity) * &
+           pow_cr(1-b% eccentricity**2,1.5d0))
+    end function edot_tidal_Hut_posydon
 
       subroutine my_jdot_ml(binary_id, ierr)
          use const_def, only: dp
