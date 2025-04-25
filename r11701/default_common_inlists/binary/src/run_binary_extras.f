@@ -212,7 +212,7 @@
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
 
-         ! Calculate mass transfer efficiency (mesa uses 1 outside of MT)
+         ! Calculate mass transfer efficiency
          !xfer_frac_rlo = b% xfer_fraction
 	 xfer_frac_rlo = b% m_old(b% a_i) - b% m(b% a_i) / abs(b% mtransfer_rate * b% dt)
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
@@ -282,10 +282,14 @@
 
          gamma_iso = q  ! isotropic re-emission, lost from accretor
 
-         xfer_frac_rlo = b% xfer_fraction
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
+         
+	 ! Calculate mass transfer efficiency
+         !xfer_frac_rlo = b% xfer_fraction
+	 xfer_frac_rlo = b% m_old(b% a_i) - b% m(b% a_i) / abs(b% mtransfer_rate * b% dt)
+         xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
 	 ! Note: M_dot_0 = 2 pi M_dot
