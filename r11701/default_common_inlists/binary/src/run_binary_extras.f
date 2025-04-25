@@ -211,7 +211,11 @@
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
-         xfer_frac_rlo = b% xfer_fraction
+
+         ! Calculate mass transfer efficiency (mesa uses 1 outside of MT)
+         !xfer_frac_rlo = b% xfer_fraction
+	 xfer_frac_rlo = b% m_old(b% a_i) - b% m(b% a_i) / abs(b% mtransfer_rate * b% dt)
+         xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
          
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
 	 prefactor = 2.0_dp * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
@@ -241,7 +245,8 @@
          b% s1% xtra6 = jdot_RLOF_accretor
          b% s1% xtra7 = jdot_ecc_RLOF_accretor
          b% s1% xtra8 = adot_rlo
-	      b% s1% xtra9 = XL1
+	 b% s1% xtra9 = XL1
+         b% s1% xtra10 = xfer_frac_rlo
       end subroutine my_jdot_ml
 
       subroutine my_edot(binary_id, ierr)
@@ -1289,7 +1294,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 13
+         how_many_extra_binary_history_columns = 14
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -1359,6 +1364,7 @@
          vals(11) = b% s1% xtra7
          vals(12) = b% s1% xtra8
          vals(13) = b% s1% xtra9
+         vals(14) = b% s1% xtra10
       end subroutine data_for_extra_binary_history_columns
 
 
