@@ -141,7 +141,7 @@
        edot_tidal = -27.0d0*qratio*(1+qratio)*pow8(r_phot/osep) &
            * b% eccentricity*pow_cr(1-b% eccentricity**2,-6.5d0)*b% Ftid_1
        ! add multiplication by (k/T), eq. (29) of Hurley et al. 2002
-       edot_tidal = edot_tidal*k_div_T(b, s, has_convective_envelope)
+       edot_tidal = edot_tidal*k_div_T_posydon(b, s, has_convective_envelope)
        ! add terms dependant on omega
        edot_tidal = edot_tidal*(f3(b% eccentricity) - &
            11d0/18d0 * omega_s / omega_sync * f4(b% eccentricity) * &
