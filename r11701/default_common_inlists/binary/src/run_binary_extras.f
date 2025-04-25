@@ -66,8 +66,8 @@
          b% other_tsync => my_tsync
          b% other_mdot_edd => my_mdot_edd
          b% other_rlo_mdot => my_rlo_mdot
-         b% other_jdot_ml => my_jdot_ml
-         b% other_extra_edot => my_edot
+         b% other_jdot_ml => jdot_ml_Sepinsky
+         b% other_extra_edot => edot_Sepinsky
 	 b% other_edot_tidal => my_edot_tidal
       end subroutine extras_binary_controls
 
@@ -148,7 +148,7 @@
            pow_cr(1-b% eccentricity**2,1.5d0))
     end function edot_tidal_Hut_posydon
 
-      subroutine my_jdot_ml(binary_id, ierr)
+      subroutine jdot_ml_Sepinsky(binary_id, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
@@ -247,9 +247,9 @@
          b% s1% xtra8 = adot_rlo
 	 b% s1% xtra9 = XL1
          b% s1% xtra10 = xfer_frac_rlo
-      end subroutine my_jdot_ml
+      end subroutine jdot_ml_Sepinsky
 
-      subroutine my_edot(binary_id, ierr)
+      subroutine edot_Sepinsky(binary_id, ierr)
          use const_def, only: dp
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
@@ -300,7 +300,7 @@
 				                  *(1.0_dp - b% eccentricity)* q/(1.0_dp + q)  )
 
          b% extra_edot = edot_rlo
-      end subroutine my_edot
+      end subroutine edot_Sepinsky
 
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
