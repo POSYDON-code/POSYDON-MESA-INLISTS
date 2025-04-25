@@ -121,9 +121,7 @@
        edot_tidal = 0d0
 
        porb = b% period
-       ! Adding Sepinsky+2007a Eq. 16 (omega at periastron)
-       omega_sync = 2.0_dp*pi/b% period &
-                    * pow_cr(1.0_dp + b% eccentricity, 0.5_dp)/pow_cr(1.0_dp - b% eccentricity, 1.5_dp)
+       omega_sync = 2.0_dp*pi/b% period
        omega_s = s% omega_avg_surf
        osep = b% separation
 
