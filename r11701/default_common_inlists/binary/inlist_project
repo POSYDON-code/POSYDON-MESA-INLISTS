@@ -17,6 +17,7 @@
    use_other_jdot_ml = .true.
    use_other_extra_edot = .true.
    do_tidal_circ = .true. ! tides are on
+   use_other_edot_tidal = .true. ! include fix for omega_orb in eccentric orbits
 
    mdot_scheme = "contact" ! This switches to 'Kolb' after one of the two stars reaches TAMS
 
