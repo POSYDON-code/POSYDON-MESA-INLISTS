@@ -212,7 +212,7 @@
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
          xfer_frac_rlo = b% xfer_fraction
          
- 	 cos_epsilon_tau = 0.0d0 ! related to the time delay between ejection and accretion
+ 	 cos_epsilon_tau = 1d0 ! related to the time delay between ejection and accretion
          x = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep) / b% r(b% d_i)
 	 
          ! Eccenctric mass transfer contribution - Eqn 39a Hamers & Dosopoulou (2018)
@@ -314,7 +314,7 @@
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
 
- 	 cos_epsilon_tau = 0.0d0 ! related to the time delay between ejection and accretion
+ 	 cos_epsilon_tau = 1d0 ! related to the time delay between ejection and accretion
          x = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep) / b% r(b% d_i)
 
          ! Calculate edot contribution - Eqn 39b, Hamers & Dosopoulou (2019)	 
