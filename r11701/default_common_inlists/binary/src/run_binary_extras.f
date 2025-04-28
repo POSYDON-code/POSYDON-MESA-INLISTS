@@ -215,7 +215,7 @@
 	 xfer_frac_rlo = 1.0_dp
          if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
 	     xfer_frac_rlo = b% m_old(b% a_i) - b% m(b% a_i) / abs(b% mtransfer_rate * b% time_step * secyer)
-             write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i), 
+             write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
          end if
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 	 
