@@ -212,9 +212,13 @@
 
          ! Calculate mass transfer efficiency
          !xfer_frac_rlo = b% xfer_fraction
-	 xfer_frac_rlo = b% m_old(b% a_i) - b% m(b% a_i) / abs(b% mtransfer_rate * b% dt)
+	 xfer_frac_rlo = 1.0_dp
+         if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
+	     xfer_frac_rlo = b% m_old(b% a_i) - b% m(b% a_i) / abs(b% mtransfer_rate * b% dt)
+             write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% dt, b% m_old(b% a_i) - b% m(b% a_i), 
+         end if
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
-         
+	 
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
 	 prefactor = 2.0_dp * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
@@ -1359,6 +1363,7 @@
          names(11) = 'jdot_ecc_RLOF_accretor'
          names(12) = 'adot_rlo'
 	 names(13) = 'X_L1'
+         names(14) = 'MT_gamma'
          vals(7) = b% s1% xtra3
          vals(8) = b% s1% xtra4
          vals(9) = b% s1% xtra5
