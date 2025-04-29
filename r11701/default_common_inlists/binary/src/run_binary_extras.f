@@ -216,7 +216,7 @@
          x = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep) / b% r(b% d_i)
 	 
          ! Eccentric mass transfer contribution - Eqn 39a Hamers & Dosopoulou (2018), *-1.0 unit convention for m1dot=-m1dot_rlo
-         adot_rlo =  2d0 * osep * m1dot_rlo / b% m(b% d_i) * (1d0 - q) *& 
+         adot_rlo =  - 2d0 * osep * m1dot_rlo / b% m(b% d_i) * (1d0 - q) *& 
 	            ( 1d0 - 3d0 * pow_cr(b% eccentricity, 2d0) * x * cos_epsilon_tau/( x - 1d0 ) )
          
          ! Translate to binary ang. mom.
@@ -318,7 +318,7 @@
          x = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep) / b% r(b% d_i)
 
          ! Calculate edot contribution - Eqn 39b, Hamers & Dosopoulou (2019), *-1.0 unit convention for m1dot=-m1dot_rlo	 
-         edot_rlo =  2d0 * osep * m1dot_rlo / b% m(b% d_i) * (1d0 - q) *& 
+         edot_rlo = - 2d0 * m1dot_rlo / b% m(b% d_i) * (1d0 - q) *& 
 	            (  (3d0/2d0) * b% eccentricity * cos_epsilon_tau * x/( 1d0 - x ) )
 	     
          b% extra_edot = edot_rlo
