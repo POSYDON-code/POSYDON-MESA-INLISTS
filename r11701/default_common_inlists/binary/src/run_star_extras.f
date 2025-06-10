@@ -113,8 +113,8 @@ contains
     s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
     s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
 
-    s% step_overshoot_f0_above_nonburn_core = 1d-2
-    s% step_overshoot_f0_above_burn_h_core  = 1d-2
+    s% overshoot_f0_above_nonburn_core = 1d-2
+    s% overshoot_f0_above_burn_h_core  = 1d-2
 
     ! Later evolutionary stages
     s% overshoot_f0_above_burn_he_core = 8.0d-3
