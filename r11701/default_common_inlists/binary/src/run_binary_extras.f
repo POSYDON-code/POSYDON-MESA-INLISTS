@@ -1291,8 +1291,8 @@
  
              MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
              Om = s% omega_avg_surf !s% total_angular_momentum / MOI
-             ! surface rotation period
-             Prot = 2d0 * pi / Om
+             ! surface rotation period (assuming tidal locking if do_jdot_mb = .true.)
+             Prot = b% period
  
              ! rossby number
              Ro = Prot / tau_convective
@@ -1617,7 +1617,8 @@
              ! spin down according to Garraffo et al. 2018
              MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
              Om = s% omega_avg_surf
-             Prot = 2.0_dp * pi / Om
+             ! surface rotation period (assuming tidal locking if do_jdot_mb = .true.)
+             Prot = b% period
  
              ! Rossby number
              Ro = Prot / tau_convective
