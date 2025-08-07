@@ -520,6 +520,9 @@
              end if
           end if
 
+          ! protect against NaN
+          if (isnan(k_div_T)) k_div_T = 1d-99
+
       end function k_div_T
 
       subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy, top_bdy, &
@@ -632,7 +635,7 @@
          !logical, intent(in) :: has_convective_envelope
          logical, intent(in) :: conv_layer_calculation
 
-         integer :: k,i, h1, top_bound_zone, bot_bound_zone
+         integer :: k, i, l, h1, top_bound_zone, bot_bound_zone
          real(dp) :: osep, qratio, m, r_phot,porb, m_env, Dr_env, Renv_middle, tau_conv, P_tid, f_conv,E2, Xs, m_conv_core
          real(dp) :: k_div_T_posydon_new, conv_mx_top, conv_mx_bot, conv_mx_top_r, conv_mx_bot_r ,omega_conv_region,r_top, r_bottom
          integer :: n_conv_regions_posydon
@@ -640,6 +643,7 @@
          real(dp), dimension (max_num_mixing_regions) :: cz_bot_mass_posydon
          real(dp) :: cz_bot_radius_posydon(max_num_mixing_regions)
          real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
+	 real(dp) :: dm, dmsum, omega_k, omega_l, omega_sum
 
          ! k/T computed as in Hurley, J., Tout, C., Pols, O. 2002, MNRAS, 329, 897
          ! Kudos to Francesca Valsecchi for help implementing and testing this
@@ -671,13 +675,26 @@
             n_conv_regions_posydon = 0
 
             call loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy, top_bdy, &
-      cz_bot_mass_posydon, cz_bot_radius_posydon, cz_top_mass_posydon, cz_top_radius_posydon)
+                 cz_bot_mass_posydon, cz_bot_radius_posydon, cz_top_mass_posydon, cz_top_radius_posydon)
 
             if (n_conv_regions_posydon > 0) then
               do k=1, n_conv_regions_posydon ! from inside out
                 m_env = 0.0d0
                 Dr_env = 0.0d0
                 Renv_middle = 0.0d0
+
+		! calculate mass averaged omega for convective region
+                ! this is a more stable quantity than simply omega within a zone
+                omega_sum = 0
+                dmsum = 0
+                do l = top_bdy(k), bot_bdy(k) - 1
+                  dm = s% dm(l)
+                  dmsum = dmsum + dm
+                  omega_l = 0.5d0*(s% omega(l) + s% omega(l+1))
+                  omega_sum = omega_sum + dm*omega_l
+                end do
+                omega_k = omega_sum / dmsum
+  
                 if ((cz_bot_mass_posydon(k) / Msun) >=  m_conv_core) then ! if the conv. region is not inside the conv. core
                     m_env = (cz_top_mass_posydon(k) - cz_bot_mass_posydon(k)) / Msun
                     Dr_env = cz_top_radius_posydon(k) - cz_bot_radius_posydon(k)  ! depth of the convective layer, length of the eddie
@@ -689,7 +706,7 @@
                     ! where it represented the base of the convective layer (different notation)
                     tau_conv = 0.431_dp*pow_cr(m_env*Dr_env* &
                        Renv_middle/3d0/s% L_phot,1.0d0/3.0d0) * secyer
-                    P_tid = 1d0/abs(1d0/porb-s% omega(top_bdy(k))/(2d0*pi))
+                    P_tid = 1d0/abs(1d0/porb-omega_k/(2d0*pi))
                     f_conv = min(1.0d0, pow_cr(P_tid/(2d0*tau_conv), b% tidal_reduction))
                     !write(*,'(g0)') 'porb, p_from_omega, f_conv = ', porb, &
    !1                / (s% omega(top_bdy(k))/(2d0*pi)), &
@@ -734,6 +751,9 @@
                 k_div_T_posydon = k_div_T_posydon * E2
              end if
           end if
+
+          ! protect against NaN
+          if (isnan(k_div_T_posydon)) k_div_T_posydon = 1d-99
 
       end function k_div_T_posydon
 
