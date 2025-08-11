@@ -497,7 +497,7 @@
 
              k_div_T = 2d0/21d0*f_conv/tau_conv*m_env/(m/Msun)
           else ! radiative envelope
-           ! New fitting E2 (Qin et al. 2018)
+             ! New fitting E2 (Qin et al. 2018)
              do i = s% nz, 1, -1
                 if (s% brunt_N2(i) >= 0) exit
              end do
@@ -520,7 +520,7 @@
              end if
           end if
 
-          ! protect against NaN
+          ! protect against NaN, this can happen near sync
           if (isnan(k_div_T)) k_div_T = 1d-99
 
       end function k_div_T
@@ -643,7 +643,7 @@
          real(dp), dimension (max_num_mixing_regions) :: cz_bot_mass_posydon
          real(dp) :: cz_bot_radius_posydon(max_num_mixing_regions)
          real(dp), dimension (max_num_mixing_regions) :: cz_top_mass_posydon, cz_top_radius_posydon
-	 real(dp) :: dm, dmsum, omega_k, omega_l, omega_sum
+	     real(dp) :: dm, dmsum, omega_k, omega_l, omega_sum
 
          ! k/T computed as in Hurley, J., Tout, C., Pols, O. 2002, MNRAS, 329, 897
          ! Kudos to Francesca Valsecchi for help implementing and testing this
@@ -683,7 +683,7 @@
                 Dr_env = 0.0d0
                 Renv_middle = 0.0d0
 
-		! calculate mass averaged omega for convective region
+		        ! calculate mass averaged omega for convective region
                 ! this is a more stable quantity than simply omega within a zone
                 omega_sum = 0
                 dmsum = 0
@@ -724,35 +724,37 @@
               end do
             end if
           else ! assuming a radiative star
-           ! New fitting E2 (Qin et al. 2018)
-             do i = s% nz, 1, -1
+             ! New fitting E2 (Qin et al. 2018)
+             do i = s% nz, 2, -1
                 if (s% brunt_N2(i) >= 0d0) exit
              end do
              !write(*,*) i
-	     if (i == 0) then ! expected in a fully convective star
-	     	E2 = 1d-99
-	     else
-	     	h1 = s% net_iso(ih1)
-		    Xs = s% xa(h1,1)
-	     	! E2 is different for H-rich and He stars (Qin et al. 2018)
-	     	if (Xs < 0.4d0) then ! HeStar
-		    E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot, 6.7_dp)! HeStars
-	     	else
-		    E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot, 7.5_dp)! H-rich stars
-	     	!write(*,*) E2, s% r(i)
-	     	end if
-	     end if
+			 ! if fully convective or no convective core
+	         if ((s% r(i) / r_phot < 0.01 * r_phot) .or. (s% r(i) >= 0.99 * r_phot)) then
+	     	    E2 = 1d-99
+		     ! has convective core and not fully convective
+	         else
+	     	    h1 = s% net_iso(ih1)
+		        Xs = s% xa(h1,1)
+	     	    ! E2 is different for H-rich and He stars (Qin et al. 2018)
+	     	    if (Xs < 0.4d0) then ! HeStar
+		            E2 = exp10_cr(-0.93_dp)*pow_cr(s% r(i)/r_phot, 6.7_dp)! HeStars
+	     	    else
+		            E2 = exp10_cr(-0.42_dp)*pow_cr(s% r(i)/r_phot, 7.5_dp)! H-rich stars
+	     	        !write(*,*) E2, s% r(i)
+	     	    end if
+	         end if
 
              if (isnan(E2)) then  !maybe this won't be used.
-                 k_div_T_posydon = 1d-99
+                k_div_T_posydon = 1d-99
              else
                 k_div_T_posydon = sqrt(standard_cgrav*m*r_phot*r_phot/pow5(osep)/(Msun/pow3(Rsun)))
                 k_div_T_posydon = k_div_T_posydon*pow_cr(1d0+qratio,5d0/6d0)
                 k_div_T_posydon = k_div_T_posydon * E2
              end if
           end if
-
-          ! protect against NaN
+		  
+          ! protect against NaN, this can happen near sync
           if (isnan(k_div_T_posydon)) k_div_T_posydon = 1d-99
 
       end function k_div_T_posydon
