@@ -1351,7 +1351,7 @@ contains
          Ro = Prot / tau_convective
 
          ! calculate n (magnetic complexity parameter)
-         n = (a_const / Ro) + (b_const * Ro) + 1d0
+         n = (a_constant / Ro) + (b_constant * Ro) + 1d0
          if (n < 1d0) then
             n = 1d0
          ! was 1d99
@@ -1363,7 +1363,7 @@ contains
          Qn = 4.05d0 * exp_cr(-1.4d0 * n)
 
          ! angular momentum change per second [cgs]
-         dJdt = c_const * powi_cr(s% omega_avg_surf, 3) * tau_convective * Qn
+         dJdt = c_constant * powi_cr(s% omega_avg_surf, 3) * tau_convective * Qn
          dJdt = max(0d0, dJdt)
 
          ! In extras_finish_step check that dt < t_spindown. If not, decrease timestep
