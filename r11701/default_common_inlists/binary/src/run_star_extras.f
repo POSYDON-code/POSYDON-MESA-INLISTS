@@ -1311,7 +1311,7 @@ contains
    integer :: j, k, nz, i
    real(dp) :: tau_convective, Prot, Ro, n, Qn, dJdt, &
                MOI, scale_height_at_bcz, omega_crit, &
-               c_const, a_const, b_const
+               c_constant, a_constant, b_constant
 
    ierr = 0
    call star_ptr(id, s, ierr)
@@ -1330,9 +1330,9 @@ contains
    MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
 
    ! calibration constants
-   a_const = 0.03d0  ! Solar calibrated as in Gossage et al. 2021, ApJ 912, 65
-   b_const = 0.5d0  ! Solar calibrated '                                     '
-   c_const = 3d41 ! Solar calibrated 
+   a_constant = 0.03d0  ! Solar calibrated as in Gossage et al. 2021, ApJ 912, 65
+   b_constant = 0.5d0  ! Solar calibrated '                                     '
+   c_constant = 3d41 ! Solar calibrated 
 
    s% extra_omegadot(:) = 0d0
 
