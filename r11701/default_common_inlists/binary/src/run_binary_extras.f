@@ -1821,6 +1821,7 @@
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
          use const_def, only: dp
          type (binary_info), pointer :: b
+		 type (star_info), pointer :: s
          integer, intent(in) :: binary_id
          integer, intent(in) :: n
          character (len=maxlen_binary_history_column_name) :: names(n)
