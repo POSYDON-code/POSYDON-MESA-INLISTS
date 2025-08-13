@@ -1865,8 +1865,9 @@ real(dp) function k_div_T_posydon(b, s, conv_layer_calculation)
  
              ! spin down according to Garraffo et al. 2018
              MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
-             Om = s% omega_avg_surf
-             Prot = 2.0_dp * pi / Om
+             !Om = s% omega_avg_surf
+             Prot = b% period !2.0_dp * pi / Om
+             Om = 2d0 * pi / Prot
  
              ! Rossby number
              Ro = Prot / tau_convective
