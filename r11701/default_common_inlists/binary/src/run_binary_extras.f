@@ -1815,7 +1815,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 6
+         how_many_extra_binary_history_columns = 14
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -1827,7 +1827,8 @@
          real(dp) :: vals(n)
          integer, intent(out) :: ierr
          integer:: i_don, i_acc
-         real(dp) :: beta, trap_rad, mdot_edd, accretor_radius
+         real(dp) :: beta, trap_rad, mdot_edd, accretor_radius, MOI, prot
+         real(dp) :: tau_convective, Ro, n_complexity, a_constant, b_constant
 
           ierr = 0
 
@@ -1869,7 +1870,95 @@
           vals(5) = -1.0d0
           vals(6) = -1.0d0
         end if
-         !write(*,*) "synchr timescales: ", b% s1% xtra1, b% s1% xtra2, b% s2% xtra1, b% s2% xtra2
+
+        names(7) = 'star_mb_jdot_1'
+        if (b% point_mass_i /= 1) then
+            MOI = dot_product(b% s1% dm_bar(1:b% s1% nz), b% s1% i_rot(1:b% s1% nz))
+            vals(7) = b% s1% extra_omegadot(1) * MOI
+        else
+            vals(7) = 0d0
+        end if
+		
+		names(8) = 'star_mb_jdot_2'
+        if (b% point_mass_i /= 2) then
+            MOI = dot_product(b% s2% dm_bar(1:b% s2% nz), b% s2% i_rot(1:b% s2% nz))
+            vals(8) = b% s2% extra_omegadot(1) * MOI
+        else
+            vals(8) = 0d0
+        end if
+
+         ! calc rossby, garraffo magnetic complexity param, conv turnover time:
+         a_constant = 0.002d0  ! Solar calibrated as in Gossage et al. 2021, ApJ 912, 65
+         b_constant = 0.5d0  ! Solar calibrated '                                     '
+
+         tau_convective = 0d0
+         Ro = 0d0
+         n_complexity = 0d0
+
+         if (b% point_mass_i /= 1) then
+
+             call star_ptr(1, s, ierr)
+             if (ierr /= 0) then
+               write(*,*) 'failed in star_ptr'
+               return
+            end if
+
+             call calc_tau_convective(binary_id, s, tau_convective, ierr)
+             prot = 2d0 * pi / b% s1% omega_avg_surf
+             Ro = prot / tau_convective
+
+             n_complexity = (a_constant/pow_cr(Ro,1d0)) + (b_constant*Ro) + 1d0
+             if (n_complexity < 1d0) then
+               n_complexity = 1d0
+             else if (n_complexity > 1d99) then
+               n_complexity = 1d99
+             end if
+         end if
+
+         names(9) = "conv_tau_sec_1"
+         vals(9) = tau_convective ! [s]
+
+         names(10) = "rossby_number_1"
+         vals(10) = Ro
+
+         names(11) = "n_complexity_1"
+         vals(11) = n_complexity
+
+         ! calc values for star 2
+         tau_convective = 0d0
+         Ro = 0d0
+         n_complexity = 0d0
+
+         if (b% point_mass_i /= 2) then
+
+             call star_ptr(1, s, ierr)
+             if (ierr /= 0) then
+               write(*,*) 'failed in star_ptr'
+               return
+            end if
+
+             call calc_tau_convective(binary_id, s, tau_convective, ierr)
+             prot = 2d0 * pi / b% s2% omega_avg_surf
+             Ro = prot / tau_convective
+
+             n_complexity = (a_constant/pow_cr(Ro,1d0)) + (b_constant*Ro) + 1d0
+             if (n_complexity < 1d0) then
+               n_complexity = 1d0
+             else if (n_complexity > 1d99) then
+               n_complexity = 1d99
+             end if
+         end if
+
+         names(12) = "conv_tau_sec_2"
+         vals(12) = tau_convective ! [s]
+
+         names(13) = "rossby_number_2"
+         vals(13) = Ro
+
+         names(14) = "n_complexity_2"
+         vals(14) = n_complexity
+		
+        !write(*,*) "synchr timescales: ", b% s1% xtra1, b% s1% xtra2, b% s2% xtra1, b% s2% xtra2
       end subroutine data_for_extra_binary_history_columns
 
 
