@@ -189,6 +189,15 @@
       max_allowed_nz = 20000
       max_dq = 1d-3
 
+      ! Fixing the position of the Lagrangian region of the mesh helps
+      ! convergence near the Eddington limit (borrowed from MIST)
+      max_logT_for_k_below_const_q = 1.0d2 ! DEF: 5
+      max_q_for_k_below_const_q = 0.995d0 ! DEF: 1.0d0
+      min_q_for_k_below_const_q = 0.995d0 ! DEF: 0.999d0
+      max_logT_for_k_const_mass = 1.0d2 ! DEF: 6
+      max_q_for_k_const_mass = 0.99d0 ! DEF: 1.0d0
+      min_q_for_k_const_mass = 0.99d0 ! DEF: 0.995d0
+
       newton_iterations_limit = 20
 
       delta_XH_cntr_limit = 0.005d0
