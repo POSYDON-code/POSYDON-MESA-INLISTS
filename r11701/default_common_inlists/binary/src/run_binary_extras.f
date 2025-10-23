@@ -1323,7 +1323,7 @@
             end if
           end if
 
-         ! check for termination due to helium stripping
+         ! check for termination due to envelope stripping
          if (b% point_mass_i /= 1) then
             if (b% s1% surface_h1 < 1.0d-2) then
                   write(*,'(g0)') "termination code: Primary has been stripped"
@@ -1347,7 +1347,7 @@
             end if
          end if
 
-         ! check for termination due to carbon depletion
+         ! check for termination due to envelope stripping
          if (b% point_mass_i /= 2) then
             if (b% s2% surface_h1 < 1.0d-2) then
                   write(*,'(g0)') "termination code: Secondary has been stripped"
