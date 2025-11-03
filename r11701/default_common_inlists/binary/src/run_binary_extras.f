@@ -1386,6 +1386,12 @@
             end if
          end if
 
+		 ! check for reverse mass transfer
+		 if (b% s1% center_h1 < 1.0d-6 .and. b% rl_relative_gap(2) > 0.0_dp) then
+		     extras_binary_finish_step = terminate
+		     write(*,'(g0)') "termination code: reverse mass transfer"
+	     end if
+
          ! check for L2 overflow after ZAMS, but before TAMS as in Marchant et al. 2016
          if(.not. b% ignore_rlof_flag .and. extras_binary_finish_step /= terminate .and. (b% point_mass_i == 0)) then ! only when we evolve both stars in MS
             if (b% s1% center_h1 > 1d-6 .and. b% s2% center_h1 > 1d-6) then
@@ -1403,7 +1409,7 @@
                end if
             end if
          end if
-
+        
 
 
          if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
