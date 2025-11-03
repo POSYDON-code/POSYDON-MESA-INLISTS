@@ -33,6 +33,10 @@
 
       implicit none
 
+	  real(dp) :: binary_component_vars(2,30) = 0d0
+      real(dp) :: binary_vars(30) = 0d0
+      logical :: mass_transfer_check = .false.
+
       contains
 
       subroutine extras_binary_controls(binary_id, ierr)
@@ -1219,7 +1223,18 @@
                   write(*,'(g0)') "termination code: Terminate because of overflowing initial model"
                end if
             end if
-
+			
+            ! initial store of default inlist values
+	    if (b% point_mass_i /= 1) then
+              binary_component_vars(1, 1) = b% s1% delta_lgT_limit
+              binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
+	    end if
+	    if (b% point_mass_i /= 2) then
+              binary_component_vars(2, 1) = b% s2% delta_lgT_limit
+              binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+	    end if
+            binary_vars(1) = b% fm
+            mass_transfer_check = .true.
       end function  extras_binary_startup
 
       !Return either rety,backup,keep_going or terminate
@@ -1273,7 +1288,7 @@
             center_h1, center_h1_old, center_he4, center_he4_old, &
             rl23,rl2_1,trap_rad, mdot_edd,Lrad_div_Ledd,gamma_factor,&
 			omega_crit, qratio, min_r
-         logical :: is_ne_biggest
+         logical :: is_ne_biggest, s1_rlof, s2_rlof
          real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
          extras_binary_finish_step = keep_going
@@ -1384,6 +1399,7 @@
                if (b% rl_relative_gap(star_id) > 0.29858997d0*atan_cr(1.83530121d0*pow_cr(q,0.39661426d0))) then
                  write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A"
                  extras_binary_finish_step = terminate
+				    return
                end if
             end if
          end if
@@ -1619,6 +1635,53 @@
      end if
 
     b% mass_transfer_beta = max(0d0,b% mass_transfer_beta)
+	! adjust timestep controls during mass transfer
+	     s1_rlof = .false.
+         s2_rlof = .false.
+         if (b% point_mass_i /= 1) then
+             s1_rlof = b% rl_relative_gap(1) .ge. 0.0d0
+         end if
+         if (b% point_mass_i /= 2) then
+             s2_rlof = b% rl_relative_gap(2) .ge. 0.0d0
+         end if
+         if ( (s1_rlof .or. s2_rlof) .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10) ) then
+            ! store default inlist values for current donor/accretor
+            if (mass_transfer_check) then 
+	      if (b% point_mass_i /= 1) then
+	        binary_component_vars(1, 1) = b% s1% delta_lgT_limit
+                binary_component_vars(1, 2) = b% s1% delta_lgTeff_limit
+	      end if
+              if (b% point_mass_i /= 2) then
+                binary_component_vars(2, 1) = b% s2% delta_lgT_limit
+                binary_component_vars(2, 2) = b% s2% delta_lgTeff_limit
+	      end if
+              binary_vars(1) = b% fm
+              mass_transfer_check = .false.
+            end if
+            ! timestep controls based on variation of Teff or cell-wise T (temperature)
+	    if (b% point_mass_i /= 1) then
+              b% s1% delta_lgT_limit = 0.5d0
+              b% s1% delta_lgTeff_limit = 1d0
+            end if
+            if (b% point_mass_i /= 2) then
+              b% s2% delta_lgT_limit = 0.5d0
+              b% s2% delta_lgTeff_limit = 1d0
+            end if
+            ! timestep controls based on variation of envelope mass of the donor
+            b% fm = 1d-1
+         ! when not in mass transfer, enforce default values for these controls
+         else if (.not. mass_transfer_check) then
+	    if (b% point_mass_i /= 1) then
+              b% s1% delta_lgT_limit = binary_component_vars(1, 1)
+              b% s1% delta_lgTeff_limit = binary_component_vars(1, 2)
+            end if
+            if (b% point_mass_i /= 2) then 
+               b% s2% delta_lgT_limit = binary_component_vars(2, 1)
+               b% s2% delta_lgTeff_limit = binary_component_vars(2, 2)
+            end if
+            b% fm = binary_vars(1)
+            mass_transfer_check = .true.
+         end if
 
 
       end function extras_binary_finish_step
