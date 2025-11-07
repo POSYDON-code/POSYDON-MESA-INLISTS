@@ -67,7 +67,39 @@
           b% other_mdot_edd => my_mdot_edd
 	  b% other_rlo_mdot => my_rlo_mdot
 	      b% other_accreted_material_j => my_accreted_material_j
+		  b% other_jdot_ml => my_jdot_ml
       end subroutine extras_binary_controls
+
+	  subroutine my_jdot_ml(binary_id, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
+             (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+
+         b% jdot_ml = b% jdot_ml +  b% mdot_system_wind(b% a_i)*&
+             (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+		 if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
+             b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
+                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2+(0.8d0*b% rl(b% a_i))**2)*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2)
+		 else 
+		     b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
+                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2+(b% rl(b% a_i))**2)*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2)
+		 end if
+
+         b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
+             sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
+      end subroutine my_jdot_ml
 
       subroutine my_accreted_material_j(binary_id, ierr)
          use const_def, only: dp
@@ -84,45 +116,24 @@
          qratio = b% m(b% a_i) / b% m(b% d_i)
          qratio = min(max(qratio,0.0667d0),15d0)
          min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
-         if (b% s_accretor% w_div_w_crit_avg_surf<1) then
-             if (b% r(b% a_i) < min_r) then
-                b% accretion_mode = 2
-                b% s_accretor% accreted_material_j = &
-                    (1.5d0/(1d0+pow_cr(2.7183d0, &
-                    10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.83d0)))-0.5d0) *&
-                    sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
-             write(*,*) 'j1', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
-                     b% s_accretor% accreted_material_j
-             else
-                b% accretion_mode = 1
-                b% s_accretor% accreted_material_j = &
-                    (1.5d0/(1d0+pow_cr(2.7183d0, &
-                    10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.83d0)))-0.5d0)*&
-                    sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
-             write(*,*) 'j2', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
-                     b% s_accretor% accreted_material_j
-             end if
-         else
-             if (b% r(b% a_i) < min_r) then
-                 b% accretion_mode = 2
-                 b% s_accretor% max_mdot_redo_cnt = 0
-                 b% s_donor% max_mdot_redo_cnt = 0
-                 b% s_accretor% accreted_material_j = &
-                     (0.81d0-pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf))/0.81d0 *&
-                     sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
-                 write(*,*) 'w>1j1', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf
-
-             else
-                 b% accretion_mode = 1
-                 b% s_accretor% max_mdot_redo_cnt = 0
-                 b% s_donor% max_mdot_redo_cnt = 0
-                 b% s_accretor% accreted_material_j = &
-                    (0.81d0-pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf))/0.81d0 *&
-                    sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
-                 write(*,*) 'w>1j2', b% r(b% a_i), min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
-                     b% s_accretor% accreted_material_j
-             end if
-         end if
+         
+		 if (b% r(b% a_i) < min_r) then
+			b% accretion_mode = 2
+			b% s_accretor% accreted_material_j = &
+				(2d0/(1d0+pow_cr(2.7183d0, &
+				10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9d0)))-1d0) *&
+				sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+		 write(*,*) 'j1', b% r(b% a_i), b% r(b% a_i)-min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+				 b% s_accretor% accreted_material_j
+		 else
+			b% accretion_mode = 1
+			b% s_accretor% accreted_material_j = &
+				(2d0/(1d0+pow_cr(2.7183d0, &
+				10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9d0)))-1d0)*&
+				sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
+		 write(*,*) 'j2', b% r(b% a_i), b% r(b% a_i)-min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+				 b% s_accretor% accreted_material_j
+		 end if
 
          b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
              sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
@@ -1323,10 +1334,23 @@
             end if
           end if
 
-         ! check for termination due to carbon depletion
+         if (b% s1% center_h1 < 1.0d-6 .and. b% s2% center_h1 < 1.0d-6) then
+		     write(*,'(g0)') "termination code: Secondary reaches TAMS"
+             extras_binary_finish_step = terminate
+             return
+		 end if
+		 if (b% s1% center_h1 < 1.0d-6 .and. b% rl_relative_gap(2) > 0.0_dp &
+		     .and.  abs(b% mtransfer_rate/(Msun/secyer))>1.0d-10) then
+		     write(*,'(g0)') "termination code: reverse mass transfer"
+             extras_binary_finish_step = terminate
+             return
+		 end if
+		  
+         ! check for termination due to envelope stripping
          if (b% point_mass_i /= 1) then
-            if (b% s1% center_c12 < 1.0d-2 .and. b% s1% center_he4 < 1.0d-6) then
-                  write(*,'(g0)') "termination code: Primary has depleted central carbon"
+            if (b% s1% surface_h1 < 1.0d-2 .and. b% rl_relative_gap(1) < 0.0_dp  &
+			   .and. abs(b% mtransfer_rate/(Msun/secyer))<1.0d-10) then
+                  write(*,'(g0)') "termination code: Primary has been stripped and detached"
                   extras_binary_finish_step = terminate
                   return
             !else
@@ -1349,8 +1373,9 @@
 
          ! check for termination due to carbon depletion
          if (b% point_mass_i /= 2) then
-            if (b% s2% center_c12 < 1.0d-2 .and. b% s2% center_he4 < 1.0d-6) then
-                  write(*,'(g0)') "termination code: Secondary has depleted central carbon"
+            if (b% s2% surface_h1 < 1.0d-2 .and. b% rl_relative_gap(2) < 0.0_dp  & 
+			   .and.  abs(b% mtransfer_rate/(Msun/secyer))<1.0d-10) then
+                  write(*,'(g0)') "termination code: Secondary has been stripped and detached"
                   extras_binary_finish_step = terminate
                   return
             !else
@@ -1585,38 +1610,33 @@
 	 qratio = b% m(b% a_i) / b% m(b% d_i)
      qratio = min(max(qratio,0.0667d0),15d0)
      min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio,0.25d0)
-     if (b% s_accretor% w_div_w_crit_avg_surf <1) then
-		 if (b% r(b% a_i) < min_r) then
-			 b% mass_transfer_beta =(1.5d0-1.5d0/(1.0d0+pow_cr(2.7183d0, &
-						   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.83))))/&
-						   (sqrt((1.7d0*min_r)/b% r(b% a_i))-&
-						   (1.5d0/(1.0d0+pow_cr(2.7183d0, &
-						   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.83)))-0.5d0))
-			 write(*,*) 'm1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
-				 b% mass_transfer_beta
+     
+	 if (b% r(b% a_i) < min_r) then
+		 b% mass_transfer_beta =(2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
+					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
+					   (sqrt(0.8d0*b% rl(b% a_i)/b% r(b% a_i))-&
+					   (1.5d0/(1.0d0+pow_cr(2.7183d0, &
+					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
+		 write(*,*) 'm1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+			 b% mass_transfer_beta
+	 else
+	     if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
+		     b% mass_transfer_beta = (2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
+					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
+					       (sqrt(0.8d0*b% rl(b% a_i)/(1.7d0*min_r))-&
+					       (2d0/(1.0d0+pow_cr(2.7183d0, &
+					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
 		 else
-			 b% mass_transfer_beta = (1.5d0-1.5d0/(1.0d0+pow_cr(2.7183d0, &
-						   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.83))))/&
-						   (sqrt(b% rl(b% a_i)/(1.7d0*min_r))-&
-						   (1.5d0/(1.0d0+pow_cr(2.7183d0, &
-						   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.83)))-0.5d0))
-			 write(*,*) 'm2', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
-				 b% mass_transfer_beta
-		 end if
-     else
-		 if (b% r(b% a_i) < min_r) then
-			 b% mass_transfer_beta = pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.81d0/&
-						   (sqrt(1.7*min_r/b% r(b% a_i))-&
-						   (1-pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.81d0))
-		 write(*,*) 'w>1m1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% w_div_w_crit_avg_surf, b% mass_transfer_beta
-		 else
-			 b% mass_transfer_beta = pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.81d0/&
-						   (sqrt(b% rl(b% a_i)/(1.7d0*min_r))-&
-						   (1-pow2(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf)/0.81d0))
-		 write(*,*) 'w>1m2', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% w_div_w_crit_avg_surf, b% mass_transfer_beta
-		 end if
-
-     end if
+		     b% mass_transfer_beta = (2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
+					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
+					       (sqrt(b% rl(b% a_i)/(1.7d0*min_r))-&
+					       (2d0/(1.0d0+pow_cr(2.7183d0, &
+					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
+	     end if
+		 write(*,*) 'm2', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+			     b% mass_transfer_beta
+	 end if
+ 
 
     b% mass_transfer_beta = max(0d0,b% mass_transfer_beta)
 
