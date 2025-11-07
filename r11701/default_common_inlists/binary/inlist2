@@ -116,7 +116,7 @@
       w_div_wcrit_max = 0.9d0
 
       max_mdot_redo_cnt = 0 !DEF: 0 (explicit).
-      surf_avg_tau_min = 1d0 !DEF: 1
+      surf_avg_tau_min = 10d0 !DEF: 1
       surf_avg_tau = 100d0 !DEF: 100
       min_years_dt_for_redo_mdot = 0d0 !DEF:0
       surf_w_div_w_crit_limit = 0.99d0 !DEF:0.99
@@ -249,10 +249,6 @@ delta_HR_ds_L = 0.125d0
     !     dHR = sqrt((delta_HR_ds_L*dlgL)**2 + (delta_HR_ds_Teff*dlgTeff)**2)
  delta_HR_limit = 0.1d0
  delta_HR_hard_limit = 0.2d0
-
- delta_lgR_limit = 0.1d0 
- delta_lgR_hard_limit = 0.01d0
- delta_lgR_limit_min_lgR = 0.01d0
 
       ! Turn on eq.8 Belczynski+2010 LBV2 winds  with factor 1 (10-4 Msun/yr) to replace other winds for postMS stars in Humphreys-Davidson limit
       x_logical_ctrl(3) = .true.
