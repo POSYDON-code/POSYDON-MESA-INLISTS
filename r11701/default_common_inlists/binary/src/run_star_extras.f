@@ -1707,11 +1707,26 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
     end subroutine eval_blocker_wind
 
 
-    subroutine eval_highT_Dutch(w)
+   ! subroutine eval_highT_Dutch(w)
+   !   real(dp), intent(out) :: w
+   !   include 'formats'
+   !   if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
+   !      w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
+   !      if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
+   !      current_wind_prscr(id) = 2d0
+   !   else
+   !      call eval_Vink_wind(w)
+   !      current_wind_prscr(id) = 1d0
+   !   end if
+
+   ! end subroutine eval_highT_Dutch
+
+   ! New code below: modified Nugis & Lamers (no Z dependence)
+   subroutine eval_highT_Dutch_noZ(w)
       real(dp), intent(out) :: w
       include 'formats'
-      if (surface_h1 < 0.4d0) then ! helium rich Wolf-Rayet star: Nugis & Lamers
-         w = 1d-11 * pow_cr(L1/Lsun,1.29d0) * pow_cr(Y,1.7d0) * sqrt(Zsurf)
+      if (surface_h1 < 0.4d0) then ! Helium-rich Wolf-Rayet star: modified Nugis & Lamers (no Z dependence)
+         w = 1d-11 * pow_cr(L1/Lsun, 1.29d0) * pow_cr(Y, 1.7d0)
          if (dbg) write(*,1) 'Dutch_wind = Nugis & Lamers', log10_cr(wind)
          current_wind_prscr(id) = 2d0
       else
@@ -1719,7 +1734,8 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          current_wind_prscr(id) = 1d0
       end if
 
-    end subroutine eval_highT_Dutch
+   end subroutine eval_highT_Dutch_noZ
+
 
 
     subroutine eval_lowT_Dutch(w)
