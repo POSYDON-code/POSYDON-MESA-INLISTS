@@ -1722,7 +1722,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
    ! end subroutine eval_highT_Dutch
 
    ! New code below: modified Nugis & Lamers (no Z dependence)
-   subroutine eval_highT_Dutch_noZ(w)
+   subroutine eval_highT_Dutch(w)
       real(dp), intent(out) :: w
       include 'formats'
       if (surface_h1 < 0.4d0) then ! Helium-rich Wolf-Rayet star: modified Nugis & Lamers (no Z dependence)
