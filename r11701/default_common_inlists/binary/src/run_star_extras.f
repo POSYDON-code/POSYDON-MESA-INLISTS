@@ -107,10 +107,10 @@ contains
   !prototype version for increasing overshoot above 4 Msun up to the Brott et
   !al. 2011 value at 8 Msun
     s% overshoot_scheme(:) = 'step'
-    s% overshoot_f_above_nonburn_core  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
+    s% step_overshoot_f_above_nonburn_core  = f_ov_fcn_of_mass(s% initial_mass)
+    s% step_overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
+    s% step_overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
+    s% step_overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
 
     s% overshoot_f0_above_nonburn_core = 1.0d-2
     s% overshoot_f0_above_burn_h_core  = 1.0d-2
