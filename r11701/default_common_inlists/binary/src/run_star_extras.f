@@ -122,7 +122,7 @@ contains
   function f_ov_fcn_of_mass(m) result(f_ov)
     real(dp), intent(in) :: m
     real(dp) :: f_ov, frac
-     real(dp), parameter :: f1 = 1.0d-1, f2=3.0d-1
+     real(dp), parameter :: f1 = 1.1d-1, f2=3.1d-1
     if(m < 1.66d0) then
        frac = 0.0d0
     elseif(m > 20.0d0) then
