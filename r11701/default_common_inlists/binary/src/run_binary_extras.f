@@ -248,8 +248,10 @@
          b% s1% xtra6 = jdot_RLOF_accretor
          b% s1% xtra7 = jdot_ecc_RLOF_accretor
          b% s1% xtra8 = adot_rlo
-	 b% s1% xtra9 = XL1
+	     b% s1% xtra9 = XL1
          b% s1% xtra10 = xfer_frac_rlo
+		 b% s1% xtra11 = k_div_T_posydon(b, b% s1, .true.)
+		 b% s1% xtra12 = k_div_T_posydon(b, b% s2, .true.)
       end subroutine jdot_ml_Sepinsky
 
       subroutine edot_Sepinsky(binary_id, ierr)
@@ -1306,7 +1308,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 14
+         how_many_extra_binary_history_columns = 16
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -1368,8 +1370,10 @@
          names(10) = 'jdot_RLOF_accretor'
          names(11) = 'jdot_ecc_RLOF_accretor'
          names(12) = 'adot_rlo'
-	 names(13) = 'X_L1'
+	     names(13) = 'X_L1'
          names(14) = 'MT_gamma'
+		 names(15) = 'k_div_T_1'
+		 names(16) = 'k_div_T_2'
          vals(7) = b% s1% xtra3
          vals(8) = b% s1% xtra4
          vals(9) = b% s1% xtra5
@@ -1378,6 +1382,9 @@
          vals(12) = b% s1% xtra8
          vals(13) = b% s1% xtra9
          vals(14) = b% s1% xtra10
+		 vals(15) = b% s1% xtra11
+         vals(16) = b% s1% xtra12
+
       end subroutine data_for_extra_binary_history_columns
 
 
