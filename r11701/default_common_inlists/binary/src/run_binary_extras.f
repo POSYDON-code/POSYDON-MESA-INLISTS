@@ -1259,6 +1259,17 @@
               write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
             end if
           end if
+		  if (b% s1% center_h1 < 1.0d-6 .and. b% s2% center_h1 < 1.0d-6) then
+		      write(*,'(g0)') "termination code: Secondary reaches TAMS"
+              extras_binary_finish_step = terminate
+              return
+		  end if
+		  if (b% s1% center_h1 < 1.0d-6 .and. b% rl_relative_gap(2) > 0.0_dp &
+		      .and.  abs(b% mtransfer_rate/(Msun/secyer))>1.0d-10) then
+		      write(*,'(g0)') "termination code: reverse mass transfer"
+              extras_binary_finish_step = terminate
+              return
+		  end if
 
          ! check for termination due to carbon depletion
          if (b% point_mass_i /= 1) then
