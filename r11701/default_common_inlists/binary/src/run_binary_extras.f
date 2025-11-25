@@ -260,7 +260,7 @@
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          real(dp) :: osep, q, rA1, m2dot_rlo, m2dot_wind, gamma_fast, gamma_iso, M, ang_mom_j
-         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, XL1, f_rot, prefactor, rA2, cos_theta_P
+         real(dp) :: m1dot_rlo, xfer_frac_rlo, edot_rlo, XL1, f_rot, prefactor, rA2, cos_theta_P, mdot_0
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
