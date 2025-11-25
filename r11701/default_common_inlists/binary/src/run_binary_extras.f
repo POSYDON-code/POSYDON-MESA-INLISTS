@@ -151,7 +151,7 @@
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          real(dp) :: osep, q, M, rA1, rA2, m1dot_rlo, m2dot_rlo, gamma_fast, gamma_iso, ang_mom_j
-         real(dp) :: jdot, xfer_frac_rlo
+         real(dp) :: jdot, xfer_frac_rlo, mdot_0
          real(dp) :: m1dot_wind, m2dot_wind, xfer_frac_wind
 
          real(dp) :: jdot_wind_donor, jdot_wind_accretor, jdot_RLOF_donor, jdot_RLOF_accretor
@@ -209,6 +209,7 @@
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
+		 mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
 
          ! Calculate mass transfer efficiency
          !xfer_frac_rlo = b% xfer_fraction
@@ -221,7 +222,7 @@
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 	 
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-	 prefactor = 2.0_dp * osep * m1dot_rlo / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
+	 prefactor = 2.0_dp * osep * mdot_0 / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
          adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0_dp) * (1.0_dp - pow2(b% eccentricity)) &
 	            + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * (1.0_dp - pow2(b% eccentricity)) * q/(1.0_dp+q) )
@@ -289,6 +290,7 @@
 
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
+		 mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
          
 	 ! Calculate mass transfer efficiency
@@ -303,7 +305,7 @@
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
 	 ! Note: M_dot_0 = 2 pi M_dot
-	 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * m1dot_rlo / b% m(b% d_i) 
+	 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) 
          edot_rlo =  (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P + (rA1 / osep) 
          edot_rlo = prefactor * (edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
                                           + 2.0_dp*(1.0_dp - xfer_frac_rlo)*(gamma_iso + 0.5_dp) &
