@@ -201,19 +201,21 @@
                 * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
-	 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
-  	 rA2 = b% r(b% a_i)
+		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
+		 rA2 = b% r(b% a_i)
          cos_theta_P = 0.5_dp
     
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
-		 mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
+		 !mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
+		 ! Changed Mdot calc to take Mdot at peri
+		 mdot_0 = m1dot_rlo 
 
          ! Calculate mass transfer efficiency
          !xfer_frac_rlo = b% xfer_fraction
-	 xfer_frac_rlo = 1.0_dp
+		 xfer_frac_rlo = 1.0_dp
          if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
 	     xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
              ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
@@ -222,7 +224,7 @@
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 	 
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-	 prefactor = 2.0_dp * osep * mdot_0 / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
+		 prefactor = 2.0_dp * osep * mdot_0 / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
          adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0_dp) * (1.0_dp - pow2(b% eccentricity)) &
 	            + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * (1.0_dp - pow2(b% eccentricity)) * q/(1.0_dp+q) )
@@ -275,14 +277,14 @@
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
-	 
-	 ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
+		 
+		 ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
          f_rot = 1.0_dp
          XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
                 * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
-	 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
+		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
     	 rA2 = b% r(b% a_i)
          cos_theta_P = 0.5_dp
 
@@ -290,12 +292,15 @@
 
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
-		 mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
+		 ! mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
+		 ! Mdot at periapse
+		 mdot_0 = m1dot_rlo
+		 
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
          
 	 ! Calculate mass transfer efficiency
          !xfer_frac_rlo = b% xfer_fraction
-	 xfer_frac_rlo = 1.0_dp
+		 xfer_frac_rlo = 1.0_dp
          if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
 	     xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
              ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
@@ -304,8 +309,8 @@
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
-	 ! Note: M_dot_0 = 2 pi M_dot
-	 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) 
+		 ! Note: M_dot_0 = 2 pi M_dot
+		 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) 
          edot_rlo =  (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P + (rA1 / osep) 
          edot_rlo = prefactor * (edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
                                           + 2.0_dp*(1.0_dp - xfer_frac_rlo)*(gamma_iso + 0.5_dp) &
@@ -1047,9 +1052,11 @@
           call get_info_for_kolb(b)
           mdot_normal = mdot_normal + b% mdot_thick
         else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
-           call get_info_for_ritter_eccentric(b)
+           ! call get_info_for_ritter_eccentric(b)
+		   call get_info_for_ritter_peri(b)
            mdot_normal = b% mdot_thin
-           call get_info_for_kolb_eccentric(b)
+           ! call get_info_for_kolb_eccentric(b)
+		   call get_info_for_kolb_peri(b)
            mdot_normal = mdot_normal + b% mdot_thick
          end if
 
@@ -1078,9 +1085,11 @@
               call get_info_for_kolb(b)
               mdot_reverse = mdot_reverse + b% mdot_thick
             else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
-               call get_info_for_ritter_eccentric(b)
+               ! call get_info_for_ritter_eccentric(b)
+			   call get_info_for_ritter_peri(b)
                mdot_reverse = b% mdot_thin
-               call get_info_for_kolb_eccentric(b)
+               ! call get_info_for_kolb_eccentric(b)
+			   call get_info_for_kolb_peri(b)
                mdot_reverse = mdot_reverse + b% mdot_thick
             end if
 
@@ -1152,6 +1161,51 @@
 
       end subroutine get_info_for_ritter
 
+      subroutine get_info_for_ritter_peri(b)
+         type(binary_info), pointer :: b
+         real(dp) :: rho_exponent, F1, q, rho, p, grav, hp, v_th, rl3, q_temp
+         include 'formats.inc'
+
+         !--------------------- Optically thin MT rate -----------------------------------------------
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+		 
+		 ! Evaluated only at peraipse by changing any RL with a -> a(1-e)
+		 
+         rho = b% s_donor% rho(1) ! density at surface in g/cm^3
+         p = b% s_donor% p(1) ! pressure at surface in dynes/cm^2
+         grav = b% s_donor% cgrav(1)*b% m(b% d_i)/(b% r(b% d_i))**2 ! local gravitational acceleration
+         hp = p/(grav*rho) ! pressure scale height
+         v_th = sqrt(kerg * b% s_donor% T(1) / (mp * b% s_donor% mu(1)))
+
+         q = b% m(b% a_i)/b% m(b% d_i) ! Mass ratio, as defined in Ritter 1988
+                                       ! (Kolb & Ritter 1990 use the opposite!)
+         ! consider range of validity for F1, do not extrapolate! Eq. A9 of Ritter 1988
+         q_temp = min(max(q,0.5d0),10d0)
+         F1 = (1.23d0  + 0.5D0* log10_cr(q_temp))
+         rl3 = (b% rl(b% d_i))*(b% rl(b% d_i))*(b% rl(b% d_i)) * pow_cr(1d0 - b% eccentricity, 3d0)
+         b% mdot_thin0 = (2.0D0*pi/exp_cr(0.5d0)) * v_th*v_th*v_th * &
+             rl3/(b% s_donor% cgrav(1)*b% m(b% d_i)) * rho * F1
+         !Once again, do not extrapolate! Eq. (7) of Ritter 1988
+         q_temp = min(max(q,0.04d0),20d0)
+         if (q_temp < 1.0d0) then
+            b% ritter_h = hp/( 0.954D0 + 0.025D0*log10_cr(q_temp) - 0.038D0*(log10_cr(q_temp))**2 )
+         else
+            b% ritter_h = hp/( 0.954D0 + 0.039D0*log10_cr(q_temp) + 0.114D0*(log10_cr(q_temp))**2 )
+         end if
+
+         b% ritter_exponent = (b% r(b% d_i) - b% rl(b% d_i) * (1d0 - b% eccentricity))/b% ritter_h
+
+         if (b% mdot_scheme == "Kolb") then
+            if (b% ritter_exponent > 0) then
+               b% mdot_thin = -b% mdot_thin0
+            else
+               b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
+            end if
+         else
+            b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
+         end if
+      end subroutine get_info_for_ritter_peri
+
       real(dp) function calculate_kolb_mdot_thick(b, indexR, rl_d) result(mdot_thick)
          real(dp), intent(in) :: rl_d
          integer, intent(in) :: indexR
@@ -1214,6 +1268,34 @@
          end if
 
       end subroutine get_info_for_kolb
+
+      subroutine get_info_for_kolb_peri(b)
+         type(binary_info), pointer :: b
+         real(dp) :: F3, FF, G1, x_L1, q, g
+         real(dp) :: mdot_thick0,  R_gas, dP, rl, s_div_rl
+         integer :: i, indexR
+         include 'formats.inc'
+
+         !--------------------- Optically thick MT rate -----------------------------------------------
+         ! As described in H. Ritter 1988, A&A 202,93-100 and U. Kolb and H. Ritter 1990, A&A 236,385-392
+
+         ! First we need to find how deep inside the star the Roche lobe reaches. In other words the mesh point of the star at which R=R_RL
+         b% mdot_thick = 0d0
+         indexR=-1
+         if(b% r(b% d_i)-b% rl(b% d_i) * (1d0 - b% eccentricity) > 0.0d0) then
+            i=1
+            do while (b% s_donor% r(i) > b% rl(b% d_i) * (1d0 - b% eccentricity))
+               i=i+1
+            end do
+
+            if (i .eq. 1) then
+               b% mdot_thick = 0d0
+            else
+               b% mdot_thick = calculate_kolb_mdot_thick(b, i-1, b% rl(b% d_i)* (1d0 - b% eccentricity))
+            end if
+         end if
+
+      end subroutine get_info_for_kolb_peri
 
       subroutine get_info_for_ritter_eccentric(b)
          type(binary_info), pointer :: b
