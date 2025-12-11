@@ -253,8 +253,17 @@
          b% s1% xtra8 = adot_rlo
 	     b% s1% xtra9 = XL1
          b% s1% xtra10 = xfer_frac_rlo
-		 b% s1% xtra11 = k_div_T_posydon(b, b% s1, .true.)
-		 b% s1% xtra12 = k_div_T_posydon(b, b% s2, .true.)
+         if (b% point_mass_i /= 1) then
+		     b% s1% xtra11 = k_div_T_posydon(b, b% s1, .true.)
+		 else
+		     b% s1% xtra11 = 0d0
+		 end if
+		 if (b% point_mass_i /= 2) then
+		     b% s1% xtra12 = k_div_T_posydon(b, b% s2, .true.)
+		 else
+		     b% s1% xtra12 = 0d0
+		 end if
+
       end subroutine jdot_ml_Sepinsky
 
       subroutine edot_Sepinsky(binary_id, ierr)
