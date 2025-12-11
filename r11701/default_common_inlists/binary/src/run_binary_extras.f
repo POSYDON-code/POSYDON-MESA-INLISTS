@@ -1542,21 +1542,22 @@
             i_don = 2
             b% s_donor => b% s2
             end if
+			! TO ISOLATE eMT, keep everything else turned off!
             ! Turning back on binary orbital evolution
             if (.not. b% s_donor% x_logical_ctrl(6)) then
-               b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
+               b% do_jdot_mb = .false. ! turn on magnetic braking for RLOFing HMS stars only
             end if
-            b% do_jdot_gr = .true.
+            b% do_jdot_gr = .false.
             b% do_jdot_ml = .true.
-            b% do_jdot_ls = .true.
-            b% do_jdot_missing_wind = .true.
-            b% do_j_accretion = .true.
+            b% do_jdot_ls = .false.
+            b% do_jdot_missing_wind = .false.
+            b% do_j_accretion = .false.
 
-            ! Turning back on eccentric orbital evolution
-            b% do_tidal_circ = .true.
+            ! Keep tidal circ off
+            b% do_tidal_circ = .false.
             ! Eccentric RLO MT
             b% use_other_extra_edot = .true.
-     	    b% use_other_jdot_ml = .true.
+            b% use_other_jdot_ml = .true.
          end if
 
 
