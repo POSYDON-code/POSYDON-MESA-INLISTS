@@ -1061,11 +1061,11 @@
           call get_info_for_kolb(b)
           mdot_normal = mdot_normal + b% mdot_thick
         else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
-           ! call get_info_for_ritter_eccentric(b)
-		   call get_info_for_ritter_peri(b)
+           call get_info_for_ritter_eccentric(b)
+		   !call get_info_for_ritter_peri(b)
            mdot_normal = b% mdot_thin
-           ! call get_info_for_kolb_eccentric(b)
-		   call get_info_for_kolb_peri(b)
+           call get_info_for_kolb_eccentric(b)
+		   !call get_info_for_kolb_peri(b)
            mdot_normal = mdot_normal + b% mdot_thick
          end if
 
@@ -1094,11 +1094,11 @@
               call get_info_for_kolb(b)
               mdot_reverse = mdot_reverse + b% mdot_thick
             else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
-               ! call get_info_for_ritter_eccentric(b)
-			   call get_info_for_ritter_peri(b)
+               call get_info_for_ritter_eccentric(b)
+			   !call get_info_for_ritter_peri(b)
                mdot_reverse = b% mdot_thin
-               ! call get_info_for_kolb_eccentric(b)
-			   call get_info_for_kolb_peri(b)
+               call get_info_for_kolb_eccentric(b)
+			   !call get_info_for_kolb_peri(b)
                mdot_reverse = mdot_reverse + b% mdot_thick
             end if
 
