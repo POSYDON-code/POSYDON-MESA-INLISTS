@@ -209,8 +209,9 @@
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
-		 !mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
-		 ! Changed Mdot calc to take Mdot at peri
+		 ! If using Mdot peri
+		 !mdot_0 = b% mtransfer_rate * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0)
+		 ! If using Mdot eccentric,
 		 mdot_0 = m1dot_rlo 
 
          ! Calculate mass transfer efficiency
@@ -1213,6 +1214,10 @@
          else
             b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
          end if
+
+		 ! Multiply the instantaneous mdot at periapse with the delta function weighting
+		 b% mdot_thin = b% mdot_thin * pow_cr( 1d0 - pow2(b% eccentricity), 1.5d0) / pow2(1d0 + b% eccentricity)
+
       end subroutine get_info_for_ritter_peri
 
       real(dp) function calculate_kolb_mdot_thick(b, indexR, rl_d) result(mdot_thick)
@@ -1301,6 +1306,8 @@
                b% mdot_thick = 0d0
             else
                b% mdot_thick = calculate_kolb_mdot_thick(b, i-1, b% rl(b% d_i)* (1d0 - b% eccentricity))
+			   ! Multiply the instantaneous mdot at periapse with the delta function weighting
+			   b% mdot_thick = b% mdot_thick * pow_cr( 1d0 - pow2(b% eccentricity), 1.5d0) / pow2(1d0 + b% eccentricity)
             end if
          end if
 
