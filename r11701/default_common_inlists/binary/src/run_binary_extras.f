@@ -203,7 +203,7 @@
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
 		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
 		 rA2 = b% r(b% a_i)
-         cos_theta_P = 0.5_dp
+         cos_theta_P = 0d0
     	 
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
@@ -264,8 +264,9 @@
 		 else
 		     b% s1% xtra12 = 0d0
 		 end if
-		 b% s1% xtra13 = mdot_0
-
+		 b% s1% xtra13 = abs(mdot_0)/(Msun/secyer)
+		 b% s1% xtra14 = (b% eccentricity * rA1 / osep)
+         b% s1% xtra15 = (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
       end subroutine jdot_ml_Sepinsky
 
       subroutine edot_Sepinsky(binary_id, ierr)
@@ -297,7 +298,7 @@
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
 		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
     	 rA2 = b% r(b% a_i)
-         cos_theta_P = 0.5_dp
+         cos_theta_P = 0d0
 
          gamma_iso = q  ! isotropic re-emission, lost from accretor
 
@@ -1409,7 +1410,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 17
+         how_many_extra_binary_history_columns = 19
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -1476,6 +1477,8 @@
 		 names(15) = 'k_div_T_1'
 		 names(16) = 'k_div_T_2'
 		 names(17) = 'mdot_0'
+		 names(18) = 'jdot_rA1_term'
+		 names(19) = 'jdot_rA2_term'
 
          vals(7) = b% s1% xtra3
          vals(8) = b% s1% xtra4
@@ -1488,6 +1491,8 @@
 		 vals(15) = b% s1% xtra11
          vals(16) = b% s1% xtra12
          vals(17) = b% s1% xtra13
+         vals(18) = b% s1% xtra14
+         vals(19) = b% s1% xtra15
 
       end subroutine data_for_extra_binary_history_columns
 
