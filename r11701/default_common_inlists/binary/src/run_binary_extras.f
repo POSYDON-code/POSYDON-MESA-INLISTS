@@ -204,20 +204,19 @@
 		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
 		 rA2 = b% r(b% a_i)
          cos_theta_P = 0.5_dp
-    
+         
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
-		 !mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
-		 ! Changed Mdot calc to take Mdot at peri
-		 mdot_0 = m1dot_rlo 
+         ! Invert the physical <dot M_1> to get Mdot_0, the value at periapse
+		 mdot_0 = m1dot_rlo * (2d0*pi) * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
 
          ! Calculate mass transfer efficiency
          !xfer_frac_rlo = b% xfer_fraction
 		 xfer_frac_rlo = 1.0_dp
          if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
-	     xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
+             xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
              ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
 	     !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
          end if
@@ -263,7 +262,9 @@
 		 else
 		     b% s1% xtra12 = 0d0
 		 end if
-
+		 b% s1% xtra13 = abs(mdot_0)/(Msun/secyer)
+		 b% s1% xtra14 = (b% eccentricity * rA1 / osep)
+         b% s1% xtra15 = (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
       end subroutine jdot_ml_Sepinsky
 
       subroutine edot_Sepinsky(binary_id, ierr)
@@ -301,9 +302,9 @@
 
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
-		 ! mdot_0 = m1dot_rlo * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
-		 ! Mdot at periapse
-		 mdot_0 = m1dot_rlo
+         ! Invert the physical <dot M_1> to get Mdot_0, the value at periapse
+		 mdot_0 = m1dot_rlo * (2d0*pi) * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
+
 		 
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
          
@@ -1054,17 +1055,14 @@
          mdot_normal = 0d0
          mdot_reverse = 0d0
 
-
         if (b% mdot_scheme == "Kolb" .and. b% eccentricity <= 0.0) then
           call get_info_for_ritter(b)
           mdot_normal = b% mdot_thin
           call get_info_for_kolb(b)
           mdot_normal = mdot_normal + b% mdot_thick
         else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
-           ! call get_info_for_ritter_eccentric(b)
 		   call get_info_for_ritter_peri(b)
            mdot_normal = b% mdot_thin
-           ! call get_info_for_kolb_eccentric(b)
 		   call get_info_for_kolb_peri(b)
            mdot_normal = mdot_normal + b% mdot_thick
          end if
@@ -1094,10 +1092,8 @@
               call get_info_for_kolb(b)
               mdot_reverse = mdot_reverse + b% mdot_thick
             else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
-               ! call get_info_for_ritter_eccentric(b)
 			   call get_info_for_ritter_peri(b)
                mdot_reverse = b% mdot_thin
-               ! call get_info_for_kolb_eccentric(b)
 			   call get_info_for_kolb_peri(b)
                mdot_reverse = mdot_reverse + b% mdot_thick
             end if
@@ -1213,6 +1209,9 @@
          else
             b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
          end if
+         ! Multiply the instantaneous mdot at periapse with the delta function weighting
+		 ! to get the true value of <Mdot_1>:
+         b% mdot_thin = b% mdot_thin * pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) / pow2(1d0 + b% eccentricity) / (2d0*pi)
       end subroutine get_info_for_ritter_peri
 
       real(dp) function calculate_kolb_mdot_thick(b, indexR, rl_d) result(mdot_thick)
@@ -1303,7 +1302,9 @@
                b% mdot_thick = calculate_kolb_mdot_thick(b, i-1, b% rl(b% d_i)* (1d0 - b% eccentricity))
             end if
          end if
-
+         ! Multiply the instantaneous mdot at periapse with the delta function weighting
+		 ! to get the true value of <Mdot_1>:
+		 b% mdot_thick = b% mdot_thick * pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) / pow2(1d0 + b% eccentricity) / (2d0*pi)
       end subroutine get_info_for_kolb_peri
 
       subroutine get_info_for_ritter_eccentric(b)
@@ -1401,7 +1402,7 @@
       integer function how_many_extra_binary_history_columns(binary_id)
          use binary_def, only: binary_info
          integer, intent(in) :: binary_id
-         how_many_extra_binary_history_columns = 16
+         how_many_extra_binary_history_columns = 19
       end function how_many_extra_binary_history_columns
 
       subroutine data_for_extra_binary_history_columns(binary_id, n, names, vals, ierr)
@@ -1467,7 +1468,11 @@
          names(14) = 'MT_gamma'
 		 names(15) = 'k_div_T_1'
 		 names(16) = 'k_div_T_2'
-         vals(7) = b% s1% xtra3
+		 names(17) = 'abs_mdot_0'
+		 names(18) = 'jdot_rA1_term'
+		 names(19) = 'jdot_rA2_term'
+         
+		 vals(7) = b% s1% xtra3
          vals(8) = b% s1% xtra4
          vals(9) = b% s1% xtra5
          vals(10) = b% s1% xtra6
@@ -1477,6 +1482,9 @@
          vals(14) = b% s1% xtra10
 		 vals(15) = b% s1% xtra11
          vals(16) = b% s1% xtra12
+         vals(17) = b% s1% xtra13
+		 vals(18) = b% s1% xtra14
+         vals(19) = b% s1% xtra15
 
       end subroutine data_for_extra_binary_history_columns
 
