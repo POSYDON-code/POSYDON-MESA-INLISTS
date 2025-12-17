@@ -201,9 +201,9 @@
                 * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
-		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
-		 rA2 = b% r(b% a_i)
-         cos_theta_P = 0d0
+         rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
+         rA2 = b% r(b% a_i)
+         cos_theta_P = -1d0
     	 
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
@@ -218,7 +218,7 @@
          !xfer_frac_rlo = b% xfer_fraction
 		 xfer_frac_rlo = 1.0_dp
          if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
-	     xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
+             xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
              ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
 	     !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
          end if
@@ -296,9 +296,9 @@
                 * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
 
          ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
-		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
-    	 rA2 = b% r(b% a_i)
-         cos_theta_P = 0d0
+         rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
+         rA2 = b% r(b% a_i)
+         cos_theta_P = -1d0
 
          gamma_iso = q  ! isotropic re-emission, lost from accretor
 
