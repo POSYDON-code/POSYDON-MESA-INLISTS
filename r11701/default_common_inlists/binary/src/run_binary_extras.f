@@ -89,12 +89,12 @@
              sqrt(1 - b% eccentricity**2)
 		 if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
              b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2+(0.8d0*b% rl(b% a_i))**2)*2*pi/b% period *&
-                 sqrt(1 - b% eccentricity**2)
+				 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *0.8d0*b% rl(b% a_i)))
 		 else 
 		     b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2+(b% rl(b% a_i))**2)*2*pi/b% period *&
-                 sqrt(1 - b% eccentricity**2)
+                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *b% rl(b% a_i)))
 		 end if
 
          b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
