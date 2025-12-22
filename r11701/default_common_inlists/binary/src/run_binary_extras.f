@@ -89,14 +89,14 @@
              sqrt(1 - b% eccentricity**2)
 		 if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
              b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2+(0.8d0*b% rl(b% a_i))**2)*2*pi/b% period *&
-                 sqrt(1 - b% eccentricity**2)
+				 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *0.8d0*b% rl(b% a_i)))
 		 else 
 		     b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2+(b% rl(b% a_i))**2)*2*pi/b% period *&
-                 sqrt(1 - b% eccentricity**2)
+                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *b% rl(b% a_i)))
 		 end if
-
+		 
          b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
              sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
       end subroutine my_jdot_ml
@@ -1346,11 +1346,10 @@
              return
 		 end if
 		  
-         ! check for termination due to envelope stripping
+         ! check for termination due to carbon depletion
          if (b% point_mass_i /= 1) then
-            if (b% s1% surface_h1 < 1.0d-2 .and. b% rl_relative_gap(1) < 0.0_dp  &
-			   .and. abs(b% mtransfer_rate/(Msun/secyer))<1.0d-10) then
-                  write(*,'(g0)') "termination code: Primary has been stripped and detached"
+            if (b% s1% center_c12 < 1.0d-2 .and. b% s1% center_he4 < 1.0d-6) then
+                  write(*,'(g0)') "termination code: Primary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
             !else
@@ -1373,9 +1372,8 @@
 
          ! check for termination due to carbon depletion
          if (b% point_mass_i /= 2) then
-            if (b% s2% surface_h1 < 1.0d-2 .and. b% rl_relative_gap(2) < 0.0_dp  & 
-			   .and.  abs(b% mtransfer_rate/(Msun/secyer))<1.0d-10) then
-                  write(*,'(g0)') "termination code: Secondary has been stripped and detached"
+            if (b% s2% center_c12 < 1.0d-2 .and. b% s2% center_he4 < 1.0d-6) then
+                  write(*,'(g0)') "termination code: Secondary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
             !else
