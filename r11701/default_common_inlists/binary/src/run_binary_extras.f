@@ -211,8 +211,6 @@
          m2dot_rlo = - b% xfer_fraction * m1dot_rlo
 		 ! If using Mdot peri
 		 mdot_0 = b% mtransfer_rate * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) * (2d0*pi)
-		 ! If using Mdot eccentric,
-		 ! mdot_0 = m1dot_rlo 
 
          ! Calculate mass transfer efficiency
          !xfer_frac_rlo = b% xfer_fraction
@@ -225,7 +223,7 @@
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 	 
          ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-		 prefactor = 2.0_dp * osep * mdot_0 / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
+		 prefactor =  osep * mdot_0 / pi / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
          adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0_dp) * (1.0_dp - pow2(b% eccentricity)) &
 	            + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * (1.0_dp - pow2(b% eccentricity)) * q/(1.0_dp+q) )
@@ -305,8 +303,6 @@
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
 		 mdot_0 = m1dot_rlo * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) * (2d0*pi)
-		 ! Mdot at periapse
-		 !mdot_0 = m1dot_rlo
 		 
          m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
          
@@ -321,7 +317,7 @@
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
-		 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) 
+		 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) / (2d0*pi)
          edot_rlo =  (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P + (rA1 / osep) 
          edot_rlo = prefactor * (edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
                                           + 2.0_dp*(1.0_dp - xfer_frac_rlo)*(gamma_iso + 0.5_dp) &
