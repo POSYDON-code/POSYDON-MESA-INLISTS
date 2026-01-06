@@ -1609,6 +1609,12 @@
             end if
          end if
 
+		 ! Check if the binary has reached the maximum eccentricity and terminate, 
+		 ! otherwise the eccentricity is capped and evolution continues.
+		 if (b% eccentricity .ge. b% max_eccentricity) then
+		     extras_binary_finish_step = terminate
+			 write(*,'(g0)') "termination code: binary has reached the maximum allowed eccentricity"
+		 end if
 
          !remove gradL_composition term after MS, it can cause the convective helium core to recede
          if (b% point_mass_i /= 1 .and. b% s1% center_h1 < 1.0d-6) then
