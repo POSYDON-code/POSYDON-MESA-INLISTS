@@ -38,6 +38,7 @@
    fr_dt_limit = 5d2 !1d1
    fa = 5d-3 !DEF: 1d-2
    fa_hard = 1d-2 !DEF: 2d-2
+   fe = 5d-3 ! DEF: 1d-2
    fm = 5d-3 !DEF: 1d-2
    fj = 8d-3 !DEF: 1d-3
    fj_hard = 1d-2 !DEF: 1d-2
@@ -73,5 +74,7 @@
    sync_type_1 = "structure_dependent"
    sync_type_2 = "structure_dependent"
 
+   ! If the model reaches this value, terminate
+   max_eccentricity = 0.99d0
 
 / ! end of binary_controls namelist
