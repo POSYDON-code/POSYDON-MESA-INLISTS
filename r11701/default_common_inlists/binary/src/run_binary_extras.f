@@ -68,7 +68,7 @@
          b% other_rlo_mdot => my_rlo_mdot
          b% other_jdot_ml => jdot_ml_Sepinsky
          b% other_extra_edot => edot_Sepinsky
-	 b% other_edot_tidal => my_edot_tidal
+         b% other_edot_tidal => my_edot_tidal
       end subroutine extras_binary_controls
 
     ! ==========================================
@@ -199,8 +199,6 @@
          f_rot = 1.0_dp
          XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
                 * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
-
-         ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
          rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
          rA2 = b% r(b% a_i)
          cos_theta_P = -1d0
@@ -218,7 +216,7 @@
          if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
              xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
              ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
-	     !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
+         !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
          end if
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 	 
@@ -229,10 +227,16 @@
 	            + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * (1.0_dp - pow2(b% eccentricity)) * q/(1.0_dp+q) )
 	 
          ! Translate to binary ang. mom.
+         ! Inside binary evolve, jdot is called first and the orbit is updated before the eccentricity. Since
+		 ! we are calculating our eMT Jdot from this extra_edot, we must call it explicitly instead of relying
+		 ! on the call to get_edot.
+		 edot_RLOF = b% extra_edot ! old
+		 call edot_Sepinsky(b, ierr)
+		 write(*,*) ">>> extra edot (old, new, diff): ",  edot_RLOF, ", ", b% extra_edot, ", ", edot_RLOF - b% extra_edot
          edot_RLOF = b% extra_edot ! calculated in my_edot
-         jdot_rlo = .5d0 * (adot_rlo / osep + 2 * m1dot_rlo / b% m(b% d_i) + 2 * m2dot_rlo / b% m(b% a_i) - &
+         jdot_rlo = 0.5d0 * ( adot_rlo/osep + 2d0 * m1dot_rlo/b% m(b% d_i) + 2d0 * m2dot_rlo/b% m(b% a_i) - &
                (m1dot_rlo + m2dot_rlo) / M &
-               - 2 * b% eccentricity * edot_RLOF / (1 - pow2(b% eccentricity))) * ang_mom_j
+               - 2d0 * b% eccentricity * edot_RLOF / (1d0 - pow2(b% eccentricity)) ) * ang_mom_j
 
          jdot_ecc_RLOF_accretor = jdot_rlo
          
@@ -253,17 +257,17 @@
 	     b% s1% xtra9 = XL1
          b% s1% xtra10 = xfer_frac_rlo
          if (b% point_mass_i /= 1) then
-		     b% s1% xtra11 = k_div_T_posydon(b, b% s1, .true.)
-		 else
-		     b% s1% xtra11 = 0d0
-		 end if
-		 if (b% point_mass_i /= 2) then
-		     b% s1% xtra12 = k_div_T_posydon(b, b% s2, .true.)
-		 else
-		     b% s1% xtra12 = 0d0
-		 end if
-		 b% s1% xtra13 = abs(mdot_0)/(Msun/secyer)
-		 b% s1% xtra14 = (b% eccentricity * rA1 / osep)
+             b% s1% xtra11 = k_div_T_posydon(b, b% s1, .true.)
+         else
+             b% s1% xtra11 = 0d0
+         end if
+         if (b% point_mass_i /= 2) then
+             b% s1% xtra12 = k_div_T_posydon(b, b% s2, .true.)
+         else
+             b% s1% xtra12 = 0d0
+         end if
+         b% s1% xtra13 = abs(mdot_0)/(Msun/secyer)
+         b% s1% xtra14 = (b% eccentricity * rA1 / osep)
          b% s1% xtra15 = (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
       end subroutine jdot_ml_Sepinsky
 
@@ -292,8 +296,6 @@
          f_rot = 1.0_dp
          XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
                 * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
-
-         ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
          rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
          rA2 = b% r(b% a_i)
          cos_theta_P = -1d0
@@ -303,16 +305,14 @@
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
 		 mdot_0 = m1dot_rlo * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) * (2d0*pi)
-		 
-         m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
-         
+		          
          ! Calculate mass transfer efficiency
          !xfer_frac_rlo = b% xfer_fraction
 		 xfer_frac_rlo = 1.0_dp
          if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
 	     xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
              ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
-	     !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
+         !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
          end if
          xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
 
