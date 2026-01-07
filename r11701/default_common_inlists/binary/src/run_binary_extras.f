@@ -185,60 +185,61 @@
          b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
              sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
          
-         ! Now we calculate the Jdot_ml from eccentric RLOF
-         !========================!
-         !write(*,*) "calling my jdot"
-         !========================!
-	 
+         !============================================!
          ! Get relevant quantities - cgs
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
-	 
+ 
          ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
-         f_rot = 1.0_dp
-         XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
-                * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
-         rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
+         f_rot = 1.0d0
+         XL1 = 0.529d0 + 0.231d0 * log10_cr(q) - pow2(f_rot) &
+                * (0.031d0 + 0.025d0 * b% eccentricity)*(1.0d0 + 0.4d0 * log10_cr(q))
+         rA1 = XL1 * osep * (1.0d0 - b% eccentricity)
          rA2 = b% r(b% a_i)
+		 ! Angle between x^ and the vector from the CM of the accretor to A2 (Fig. 1, Sepinsky+2007b)
          cos_theta_P = -1d0
-    	 
+         
+         ! Calculate MT efficiency
+		 ! For rotationally limited accretion, xfer_fraction does not capture the mass transfer efficiency
+         ! so we manually calculate it instead using the following, else xfer_fraction is given by L_Edd.
+         if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-25  .and.  b% point_mass_i == 0) then 
+		     ! For two stars,  (prone to numerical noise)
+             xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
+             ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
+             xfer_frac_rlo = min( max(0.0d0, xfer_frac_rlo), 1.0d0) ! bounded in [0,1]
+		 else
+		     xfer_frac_rlo = b% xfer_fraction
+         end if
+		 !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
+         
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
-         m2dot_rlo = - b% xfer_fraction * m1dot_rlo
+         m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
          ! If using Mdot peri
          mdot_0 = b% mtransfer_rate * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) * (2d0*pi)
 
-         ! Calculate mass transfer efficiency -- (prone to numerical noise)
-		 !xfer_frac_rlo = 1.0_dp
-         !if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
-         !    xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
-         !    ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
-         !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
-         !end if
-         !xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
-	     xfer_frac_rlo = b% xfer_fraction
-
-         ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-		 prefactor =  osep * mdot_0 / pi / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
+         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - !
+         ! a dot: Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al. (2009)
+		 prefactor =  osep * mdot_0 / pi / b% m(b% d_i) / sqrt(1.0d0 - pow2(b% eccentricity))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
-         adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0_dp) * (1.0_dp - pow2(b% eccentricity)) &
-	            + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * (1.0_dp - pow2(b% eccentricity)) * q/(1.0_dp+q) )
-	 
-         ! Translate to binary ang. mom.
-         ! Inside binary evolve, jdot is called first and the orbit is updated before the eccentricity. Since
-		 ! we are calculating our eMT Jdot from this extra_edot, we must call it explicitly instead of relying
-		 ! on the call to get_edot or the order will be off.
-		 edot_RLOF = b% extra_edot ! old
+         adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0d0) * (1.0d0 - pow2(b% eccentricity)) &
+	            + (1.0d0 - xfer_frac_rlo) * (gamma_iso + 0.5d0) * (1.0d0 - pow2(b% eccentricity)) * q/(1d0+q) )
+	     
+         ! e dot: Eccenctric mass transfer contribution - Eqn 19 Sepinsky et al. (2009)
+         ! Inside binary_evolve, jdot is called first and the orbit is updated before the eccentricity. Since
+		 ! we are calculating our eMT Jdot using extra_edot, we must call it explicitly instead of relying
+		 ! on the call to get_edot or the value used will be off by one timestep.
+		 edot_RLOF = b% extra_edot ! old edot
 		 call edot_Sepinsky(b% binary_id, ierr)
-		 !write(*,*) ">>> extra edot (old, new, diff): ",  edot_RLOF, ", ", b% extra_edot, ", ", edot_RLOF - b% extra_edot
-         edot_RLOF = b% extra_edot ! new - calculated in my_edot
-         jdot_rlo =  ( 0.5d0 * adot_rlo/osep +  m1dot_rlo/b% m(b% d_i) + m2dot_rlo/b% m(b% a_i) - &
+		 !write(*,*) "> extra edot (old, new, diff): ",  edot_RLOF, ", ", b% extra_edot, ", ", edot_RLOF - b% extra_edot
+         edot_RLOF = b% extra_edot ! new edot - calculated in edot_Sepinsky
+         
+		 ! Translate to binary angular momentum:
+		 jdot_rlo =  ( 0.5d0 * adot_rlo/osep +  m1dot_rlo/b% m(b% d_i) + m2dot_rlo/b% m(b% a_i) - &
                        0.5d0 * (m1dot_rlo + m2dot_rlo) / M  &
                        - b% eccentricity * edot_RLOF / (1.0d0 - pow2(b% eccentricity)) ) * ang_mom_j
-
-		 write(*,*) ">>> Jdot terms: ",  (m1dot_rlo+m2dot_rlo)/M, ", ", b% extra_edot, ", ", edot_RLOF - b% extra_edot
 
          jdot_ecc_RLOF_accretor = jdot_rlo
          
@@ -287,44 +288,45 @@
             return
          end if
          
-         ! write(*,*) 'Calling my extra edot!'
-
          ! Get relevant quantities
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
 		 
 		 ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
-         f_rot = 1.0_dp
-         XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
-                * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
-         rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
+         f_rot = 1.0d0
+         XL1 = 0.529d0 + 0.231d0 * log10_cr(q) - pow2(f_rot) &
+                * (0.031d0 + 0.025d0 * b% eccentricity)*(1.0d0 + 0.4d0*log10_cr(q))
+         rA1 = XL1 * osep * (1.0d0 - b% eccentricity)
          rA2 = b% r(b% a_i)
+		 ! Angle between x^ and the vector from the CM of the accretor to A2 (Fig. 1, Sepinsky+2007b)
          cos_theta_P = -1d0
-
          gamma_iso = q  ! isotropic re-emission, lost from accretor
-
+		          
+         ! Calculate MT efficiency
+         ! For rotationally limited accretion, xfer_fraction does not capture the mass transfer efficiency
+         ! so we manually calculate it instead using the following, else xfer_fraction is given by L_Edd.
+         if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-25  .and.  b% point_mass_i == 0) then 
+		     ! For two stars,  (prone to numerical noise)
+             xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
+             ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
+             xfer_frac_rlo = min( max(0.0d0, xfer_frac_rlo), 1.0d0) ! bounded in [0,1]
+		 else
+		     xfer_frac_rlo = b% xfer_fraction
+         end if
+		 !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
+ 
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
-		 mdot_0 = m1dot_rlo * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) * (2d0*pi)
-		          
-         ! Calculate mass transfer efficiency
-		 !xfer_frac_rlo = 1.0_dp
-         !if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
-	     !xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
-             ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
-         !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
-         !end if
-         !xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
-         xfer_frac_rlo = b% xfer_fraction
+         mdot_0 = m1dot_rlo * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) * (2d0*pi)
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
-		 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) / (2d0*pi)
+         prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) / (2d0*pi)
          edot_rlo =  (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P + (rA1 / osep) 
-         edot_rlo = prefactor * (edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
-                                          + 2.0_dp*(1.0_dp - xfer_frac_rlo)*(gamma_iso + 0.5_dp) &
-				                  *(1.0_dp - b% eccentricity)* q/(1.0_dp + q)  )
-
+         edot_rlo = prefactor * (edot_rlo + 2.0d0*(xfer_frac_rlo * q - 1.0_dp)*(1.0d0 - b% eccentricity) &
+                                          + 2.0d0*(1.0d0 - xfer_frac_rlo)*(gamma_iso + 0.5d0) &
+				                  *(1.0d0 - b% eccentricity)* q/(1.0d0 + q)  )
+								  
          b% extra_edot = edot_rlo
       end subroutine edot_Sepinsky
 
