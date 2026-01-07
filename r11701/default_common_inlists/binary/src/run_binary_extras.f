@@ -1558,19 +1558,18 @@
             i_don = 2
             b% s_donor => b% s2
             end if
-			! TO ISOLATE eMT, keep everything else turned off!
             ! Turning back on binary orbital evolution
             if (.not. b% s_donor% x_logical_ctrl(6)) then
-               b% do_jdot_mb = .false. ! turn on magnetic braking for RLOFing HMS stars only
+               b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
             end if
-            b% do_jdot_gr = .false.
+            b% do_jdot_gr = .true.
             b% do_jdot_ml = .true.
-            b% do_jdot_ls = .false.
-            b% do_jdot_missing_wind = .false.
-            b% do_j_accretion = .false.
+            b% do_jdot_ls = .true.
+            b% do_jdot_missing_wind = .true.
+            b% do_j_accretion = .true.
 
-            ! Keep tidal circ off
-            b% do_tidal_circ = .false.
+            ! Turn on tides if not on
+            b% do_tidal_circ = .true.
             ! Eccentric RLO MT
             b% use_other_extra_edot = .true.
             b% use_other_jdot_ml = .true.
@@ -1580,14 +1579,14 @@
       end function extras_binary_check_model
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! returns either keep_going or terminate.
       ! note: cannot request retry or backup; extras_check_model can do that.
       integer function extras_binary_finish_step(binary_id)
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	 real(dp) :: r_l2, d_l2
+	     real(dp) :: r_l2, d_l2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
