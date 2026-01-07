@@ -68,7 +68,7 @@
          b% other_rlo_mdot => my_rlo_mdot
          b% other_jdot_ml => jdot_ml_Sepinsky
          b% other_extra_edot => edot_Sepinsky
-	 b% other_edot_tidal => my_edot_tidal
+         b% other_edot_tidal => my_edot_tidal
       end subroutine extras_binary_controls
 
     ! ==========================================
@@ -185,54 +185,61 @@
          b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
              sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
          
-         ! Now we calculate the Jdot_ml from eccentric RLOF
-         !========================!
-         !write(*,*) "calling my jdot"
-         !========================!
-	 
+         !============================================!
          ! Get relevant quantities - cgs
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
-	 
+ 
          ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
-         f_rot = 1.0_dp
-         XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
-                * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
-
-         ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
-		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
-		 rA2 = b% r(b% a_i)
-         cos_theta_P = 0.5_dp
+         f_rot = 1.0d0
+         XL1 = 0.529d0 + 0.231d0 * log10_cr(q) - pow2(f_rot) &
+                * (0.031d0 + 0.025d0 * b% eccentricity)*(1.0d0 + 0.4d0 * log10_cr(q))
+         rA1 = XL1 * osep * (1.0d0 - b% eccentricity)
+         rA2 = b% r(b% a_i)
+		 ! Angle between x^ and the vector from the CM of the accretor to A2 (Fig. 1, Sepinsky+2007b)
+         cos_theta_P = -1d0
+         
+         ! Calculate MT efficiency
+		 ! For rotationally limited accretion, xfer_fraction does not capture the mass transfer efficiency
+         ! so we manually calculate it instead using the following, else xfer_fraction is given by L_Edd.
+         if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-25  .and.  b% point_mass_i == 0) then 
+		     ! For two stars,  (prone to numerical noise)
+             xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
+             ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
+             xfer_frac_rlo = min( max(0.0d0, xfer_frac_rlo), 1.0d0) ! bounded in [0,1]
+		 else
+		     xfer_frac_rlo = b% xfer_fraction
+         end if
+		 !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
          
          gamma_iso = q  ! isotropic re-emission, lost from accretor
          ang_mom_j = b% angular_momentum_j
          m1dot_rlo = b% mtransfer_rate
-         m2dot_rlo = - b% xfer_fraction * m1dot_rlo
-         ! Invert the physical <dot M_1> to get Mdot_0, the value at periapse
-		 mdot_0 = m1dot_rlo * (2d0*pi) * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
+         m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
+         ! If using Mdot peri
+         mdot_0 = b% mtransfer_rate * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) * (2d0*pi)
 
-         ! Calculate mass transfer efficiency
-         !xfer_frac_rlo = b% xfer_fraction
-		 xfer_frac_rlo = 1.0_dp
-         if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
-             xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
-             ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
-	     !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
-         end if
-         xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
-	 
-         ! Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al (2009)
-		 prefactor = 2.0_dp * osep * mdot_0 / b% m(b% d_i) / sqrt(1.0_dp - pow2(b% eccentricity))
+         !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - !
+         ! a dot: Eccenctric mass transfer contribution - Eqn 18 Sepinsky et al. (2009)
+		 prefactor =  osep * mdot_0 / pi / b% m(b% d_i) / sqrt(1.0d0 - pow2(b% eccentricity))
          adot_rlo = (b% eccentricity * rA1 / osep) + (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
-         adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0_dp) * (1.0_dp - pow2(b% eccentricity)) &
-	            + (1.0_dp - xfer_frac_rlo) * (gamma_iso + 0.5_dp) * (1.0_dp - pow2(b% eccentricity)) * q/(1.0_dp+q) )
-	 
-         ! Translate to binary ang. mom.
-         edot_RLOF = b% extra_edot ! calculated in my_edot
-         jdot_rlo = .5d0 * (adot_rlo / osep + 2 * m1dot_rlo / b% m(b% d_i) + 2 * m2dot_rlo / b% m(b% a_i) - &
-               (m1dot_rlo + m2dot_rlo) / M &
-               - 2 * b% eccentricity * edot_RLOF / (1 - pow2(b% eccentricity))) * ang_mom_j
+         adot_rlo = prefactor * ( adot_rlo + (xfer_frac_rlo * q - 1.0d0) * (1.0d0 - pow2(b% eccentricity)) &
+	            + (1.0d0 - xfer_frac_rlo) * (gamma_iso + 0.5d0) * (1.0d0 - pow2(b% eccentricity)) * q/(1d0+q) )
+	     
+         ! e dot: Eccenctric mass transfer contribution - Eqn 19 Sepinsky et al. (2009)
+         ! Inside binary_evolve, jdot is called first and the orbit is updated before the eccentricity. Since
+		 ! we are calculating our eMT Jdot using extra_edot, we must call it explicitly instead of relying
+		 ! on the call to get_edot or the value used will be off by one timestep.
+		 edot_RLOF = b% extra_edot ! old edot
+		 call edot_Sepinsky(b% binary_id, ierr)
+		 !write(*,*) "> extra edot (old, new, diff): ",  edot_RLOF, ", ", b% extra_edot, ", ", edot_RLOF - b% extra_edot
+         edot_RLOF = b% extra_edot ! new edot - calculated in edot_Sepinsky
+         
+		 ! Translate to binary angular momentum:
+		 jdot_rlo =  ( 0.5d0 * adot_rlo/osep +  m1dot_rlo/b% m(b% d_i) + m2dot_rlo/b% m(b% a_i) - &
+                       0.5d0 * (m1dot_rlo + m2dot_rlo) / M  &
+                       - b% eccentricity * edot_RLOF / (1.0d0 - pow2(b% eccentricity)) ) * ang_mom_j
 
          jdot_ecc_RLOF_accretor = jdot_rlo
          
@@ -253,17 +260,17 @@
 	     b% s1% xtra9 = XL1
          b% s1% xtra10 = xfer_frac_rlo
          if (b% point_mass_i /= 1) then
-		     b% s1% xtra11 = k_div_T_posydon(b, b% s1, .true.)
-		 else
-		     b% s1% xtra11 = 0d0
-		 end if
-		 if (b% point_mass_i /= 2) then
-		     b% s1% xtra12 = k_div_T_posydon(b, b% s2, .true.)
-		 else
-		     b% s1% xtra12 = 0d0
-		 end if
-		 b% s1% xtra13 = abs(mdot_0)/(Msun/secyer)
-		 b% s1% xtra14 = (b% eccentricity * rA1 / osep)
+             b% s1% xtra11 = k_div_T_posydon(b, b% s1, .true.)
+         else
+             b% s1% xtra11 = 0d0
+         end if
+         if (b% point_mass_i /= 2) then
+             b% s1% xtra12 = k_div_T_posydon(b, b% s2, .true.)
+         else
+             b% s1% xtra12 = 0d0
+         end if
+         b% s1% xtra13 = abs(mdot_0)/(Msun/secyer)
+         b% s1% xtra14 = (b% eccentricity * rA1 / osep)
          b% s1% xtra15 = (xfer_frac_rlo * q * b% eccentricity * rA2 / osep) * cos_theta_P
       end subroutine jdot_ml_Sepinsky
 
@@ -281,51 +288,45 @@
             return
          end if
          
-         ! write(*,*) 'Calling my extra edot!'
-
          ! Get relevant quantities
          osep = b% separation
          q = b% m(b% d_i) / b% m(b% a_i)
          M = b% m(b% d_i) + b% m(b% a_i)
 		 
 		 ! Distance from CM of donor to the point where mass is transfered (Eq. A15, Sepinsky+2007b)
-         f_rot = 1.0_dp
-         XL1 = 0.529_dp + 0.231_dp * log10_cr(q) - pow2(f_rot) &
-                * (0.031_dp + 0.025_dp * b% eccentricity)*(1.0_dp + 0.4_dp*log10_cr(q))
-
-         ! rA1 = eval_rlobe(b% m(b% d_i), b% m(b% a_i), osep * (1.0_dp - b% eccentricity) )
-		 rA1 = XL1 * osep * (1.0_dp - b% eccentricity)
-    	 rA2 = b% r(b% a_i)
-         cos_theta_P = 0.5_dp
-
+         f_rot = 1.0d0
+         XL1 = 0.529d0 + 0.231d0 * log10_cr(q) - pow2(f_rot) &
+                * (0.031d0 + 0.025d0 * b% eccentricity)*(1.0d0 + 0.4d0*log10_cr(q))
+         rA1 = XL1 * osep * (1.0d0 - b% eccentricity)
+         rA2 = b% r(b% a_i)
+		 ! Angle between x^ and the vector from the CM of the accretor to A2 (Fig. 1, Sepinsky+2007b)
+         cos_theta_P = -1d0
          gamma_iso = q  ! isotropic re-emission, lost from accretor
-
+		          
+         ! Calculate MT efficiency
+         ! For rotationally limited accretion, xfer_fraction does not capture the mass transfer efficiency
+         ! so we manually calculate it instead using the following, else xfer_fraction is given by L_Edd.
+         if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-25  .and.  b% point_mass_i == 0) then 
+		     ! For two stars,  (prone to numerical noise)
+             xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
+             ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
+             xfer_frac_rlo = min( max(0.0d0, xfer_frac_rlo), 1.0d0) ! bounded in [0,1]
+		 else
+		     xfer_frac_rlo = b% xfer_fraction
+         end if
+		 !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
+ 
          m1dot_rlo = b% mtransfer_rate
          m2dot_rlo = - xfer_frac_rlo * m1dot_rlo
-         ! Invert the physical <dot M_1> to get Mdot_0, the value at periapse
-		 mdot_0 = m1dot_rlo * (2d0*pi) * pow2(1.0_dp + b% eccentricity) / pow_cr(1.0_dp - pow2(b% eccentricity), 1.5_dp)
-
-		 
-         m2dot_wind = - b% wind_xfer_fraction(b% d_i) * b% mdot_wind_transfer(b% d_i)
-         
-	 ! Calculate mass transfer efficiency
-         !xfer_frac_rlo = b% xfer_fraction
-		 xfer_frac_rlo = 1.0_dp
-         if (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-15) then
-	     xfer_frac_rlo = (b% m(b% a_i) - b% m_old(b% a_i)) / abs(b% mtransfer_rate * b% time_step * secyer)
-             ! negative means a net mass loss from the accretor -> if in active RLO, gamma shold be zero
-	     !write(*,*) "MT_gamma: ",  xfer_frac_rlo, b% time_step, b% m_old(b% a_i) - b% m(b% a_i)
-         end if
-         xfer_frac_rlo = min( max(0.0_dp, xfer_frac_rlo), 1.0_dp) ! bounded in [0,1]
+         mdot_0 = m1dot_rlo * pow2(1d0 + b% eccentricity) / pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) * (2d0*pi)
 
          ! Calculate edot contribution - Eqn 19, Sepinsky et al (2009)
-		 ! Note: M_dot_0 = 2 pi M_dot
-		 prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) 
+         prefactor =  sqrt(1.0_dp - pow2(b% eccentricity)) * mdot_0 / b% m(b% d_i) / (2d0*pi)
          edot_rlo =  (xfer_frac_rlo * q * rA2 / osep) * cos_theta_P + (rA1 / osep) 
-         edot_rlo = prefactor * (edot_rlo + 2.0_dp*(xfer_frac_rlo * q - 1.0_dp)*(1.0_dp - b% eccentricity) &
-                                          + 2.0_dp*(1.0_dp - xfer_frac_rlo)*(gamma_iso + 0.5_dp) &
-				                  *(1.0_dp - b% eccentricity)* q/(1.0_dp + q)  )
-
+         edot_rlo = prefactor * (edot_rlo + 2.0d0*(xfer_frac_rlo * q - 1.0_dp)*(1.0d0 - b% eccentricity) &
+                                          + 2.0d0*(1.0d0 - xfer_frac_rlo)*(gamma_iso + 0.5d0) &
+				                  *(1.0d0 - b% eccentricity)* q/(1.0d0 + q)  )
+								  
          b% extra_edot = edot_rlo
       end subroutine edot_Sepinsky
 
@@ -1061,8 +1062,10 @@
           call get_info_for_kolb(b)
           mdot_normal = mdot_normal + b% mdot_thick
         else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
+           !call get_info_for_ritter_eccentric(b)
 		   call get_info_for_ritter_peri(b)
            mdot_normal = b% mdot_thin
+           !call get_info_for_kolb_eccentric(b)
 		   call get_info_for_kolb_peri(b)
            mdot_normal = mdot_normal + b% mdot_thick
          end if
@@ -1092,8 +1095,10 @@
               call get_info_for_kolb(b)
               mdot_reverse = mdot_reverse + b% mdot_thick
             else if (b% mdot_scheme == "Kolb" .and. b% eccentricity > 0.0) then
+               !call get_info_for_ritter_eccentric(b)
 			   call get_info_for_ritter_peri(b)
                mdot_reverse = b% mdot_thin
+               !call get_info_for_kolb_eccentric(b)
 			   call get_info_for_kolb_peri(b)
                mdot_reverse = mdot_reverse + b% mdot_thick
             end if
@@ -1209,9 +1214,10 @@
          else
             b% mdot_thin = -b% mdot_thin0 * exp_cr(b% ritter_exponent)
          end if
-         ! Multiply the instantaneous mdot at periapse with the delta function weighting
+
+		 ! Multiply the instantaneous mdot at periapse with the delta function weighting
 		 ! to get the true value of <Mdot_1>:
-         b% mdot_thin = b% mdot_thin * pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) / pow2(1d0 + b% eccentricity) / (2d0*pi)
+		 b% mdot_thin = b% mdot_thin * pow_cr( 1d0 - pow2(b% eccentricity), 1.5d0) / pow2(1d0 + b% eccentricity) / (2d0*pi)
       end subroutine get_info_for_ritter_peri
 
       real(dp) function calculate_kolb_mdot_thick(b, indexR, rl_d) result(mdot_thick)
@@ -1300,11 +1306,13 @@
                b% mdot_thick = 0d0
             else
                b% mdot_thick = calculate_kolb_mdot_thick(b, i-1, b% rl(b% d_i)* (1d0 - b% eccentricity))
+			   
+			   ! Multiply the instantaneous mdot at periapse with the delta function weighting
+		       ! to get the true value of <Mdot_1>:
+			   b% mdot_thick = b% mdot_thick * pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) / pow2(1d0 + b% eccentricity) / (2d0*pi)
             end if
          end if
-         ! Multiply the instantaneous mdot at periapse with the delta function weighting
-		 ! to get the true value of <Mdot_1>:
-		 b% mdot_thick = b% mdot_thick * pow_cr(1d0 - pow2(b% eccentricity), 1.5d0) / pow2(1d0 + b% eccentricity) / (2d0*pi)
+
       end subroutine get_info_for_kolb_peri
 
       subroutine get_info_for_ritter_eccentric(b)
@@ -1468,11 +1476,11 @@
          names(14) = 'MT_gamma'
 		 names(15) = 'k_div_T_1'
 		 names(16) = 'k_div_T_2'
-		 names(17) = 'abs_mdot_0'
+		 names(17) = 'mdot_0'
 		 names(18) = 'jdot_rA1_term'
 		 names(19) = 'jdot_rA2_term'
-         
-		 vals(7) = b% s1% xtra3
+
+         vals(7) = b% s1% xtra3
          vals(8) = b% s1% xtra4
          vals(9) = b% s1% xtra5
          vals(10) = b% s1% xtra6
@@ -1483,7 +1491,7 @@
 		 vals(15) = b% s1% xtra11
          vals(16) = b% s1% xtra12
          vals(17) = b% s1% xtra13
-		 vals(18) = b% s1% xtra14
+         vals(18) = b% s1% xtra14
          vals(19) = b% s1% xtra15
 
       end subroutine data_for_extra_binary_history_columns
@@ -1550,21 +1558,22 @@
             i_don = 2
             b% s_donor => b% s2
             end if
+			! TO ISOLATE eMT, keep everything else turned off!
             ! Turning back on binary orbital evolution
             if (.not. b% s_donor% x_logical_ctrl(6)) then
-               b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
+               b% do_jdot_mb = .false. ! turn on magnetic braking for RLOFing HMS stars only
             end if
-            b% do_jdot_gr = .true.
+            b% do_jdot_gr = .false.
             b% do_jdot_ml = .true.
-            b% do_jdot_ls = .true.
-            b% do_jdot_missing_wind = .true.
-            b% do_j_accretion = .true.
+            b% do_jdot_ls = .false.
+            b% do_jdot_missing_wind = .false.
+            b% do_j_accretion = .false.
 
-            ! Turning back on eccentric orbital evolution
-            b% do_tidal_circ = .true.
+            ! Keep tidal circ off
+            b% do_tidal_circ = .false.
             ! Eccentric RLO MT
             b% use_other_extra_edot = .true.
-     	    b% use_other_jdot_ml = .true.
+            b% use_other_jdot_ml = .true.
          end if
 
 
@@ -1604,6 +1613,12 @@
             end if
          end if
 
+		 ! Check if the binary has reached the maximum eccentricity and terminate, 
+		 ! otherwise the eccentricity is capped and evolution continues.
+		 if (b% eccentricity .ge. b% max_eccentricity) then
+		     extras_binary_finish_step = terminate
+			 write(*,'(g0)') "termination code: binary has reached the maximum allowed eccentricity"
+		 end if
 
          !remove gradL_composition term after MS, it can cause the convective helium core to recede
          if (b% point_mass_i /= 1 .and. b% s1% center_h1 < 1.0d-6) then
