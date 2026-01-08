@@ -89,18 +89,18 @@
              sqrt(1 - b% eccentricity**2)
 		 if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
              b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2+(0.8d0*b% rl(b% a_i))**2)*2*pi/b% period *&
-                 sqrt(1 - b% eccentricity**2)
+				 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *0.8d0*b% rl(b% a_i)))
 		 else 
 		     b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2+(b% rl(b% a_i))**2)*2*pi/b% period *&
-                 sqrt(1 - b% eccentricity**2)
+                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *b% rl(b% a_i)))
 		 end if
 		 if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
-		     b% jdot_ml = b% jdot_ml - 4d0*b% mdot_system_transfer(b% a_i)*&
+		     b% jdot_ml = b% jdot_ml - b% mdot_system_transfer(b% a_i)*&
 		            sqrt(b% s_accretor% cgrav(1) *b% m(b% a_i) * 0.8d0* b% rl(b% a_i))
 		 else
-             b% jdot_ml = b% jdot_ml - 4d0*b% mdot_system_transfer(b% a_i)*&
+             b% jdot_ml = b% jdot_ml - b% mdot_system_transfer(b% a_i)*&
 		            sqrt(b% s_accretor% cgrav(1) *b% m(b% a_i) * b% rl(b% a_i))
 		 end if
          b% jdot_ml = b% jdot_ml + b% mdot_system_cct * b% mass_transfer_gamma * &
@@ -1629,13 +1629,13 @@
 	     if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
 		     b% mass_transfer_beta = (2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
 					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
-					       (5d0*sqrt(0.8d0*b% rl(b% a_i)/(1.7d0*min_r))-&
+					       (2d0*sqrt(0.8d0*b% rl(b% a_i)/(1.7d0*min_r))-&
 					       (2d0/(1.0d0+pow_cr(2.7183d0, &
 					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
 		 else
 		     b% mass_transfer_beta = (2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
 					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
-					       (5d0*sqrt(b% rl(b% a_i)/(1.7d0*min_r))-&
+					       (2d0*sqrt(b% rl(b% a_i)/(1.7d0*min_r))-&
 					       (2d0/(1.0d0+pow_cr(2.7183d0, &
 					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
 	     end if
