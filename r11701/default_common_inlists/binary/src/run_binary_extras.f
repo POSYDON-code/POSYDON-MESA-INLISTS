@@ -1613,7 +1613,7 @@
 		 b% mass_transfer_beta =(2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
 					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
 					   (sqrt(0.8d0*b% rl(b% a_i)/b% r(b% a_i))-&
-					   (1.5d0/(1.0d0+pow_cr(2.7183d0, &
+					   (2d0/(1.0d0+pow_cr(2.7183d0, &
 					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
 		 write(*,*) 'm1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
 			 b% mass_transfer_beta
