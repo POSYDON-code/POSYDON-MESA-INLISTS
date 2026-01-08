@@ -106,28 +106,29 @@ contains
 
   !prototype version for increasing overshoot above 4 Msun up to the Brott et
   !al. 2011 value at 8 Msun
-    s% overshoot_f_above_nonburn_core  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
-    s% overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
+    s% overshoot_scheme(:) = 'step'
+    s% step_overshoot_f_above_nonburn_core  = f_ov_fcn_of_mass(s% initial_mass)
+    s% step_overshoot_f_above_burn_h_core   = f_ov_fcn_of_mass(s% initial_mass)
+    s% step_overshoot_f_above_burn_he_core  = f_ov_fcn_of_mass(s% initial_mass)
+    s% step_overshoot_f_above_burn_z_core   = f_ov_fcn_of_mass(s% initial_mass)
 
-    s% overshoot_f0_above_nonburn_core = 8.0d-3
-    s% overshoot_f0_above_burn_h_core  = 8.0d-3
-    s% overshoot_f0_above_burn_he_core = 8.0d-3
-    s% overshoot_f0_above_burn_z_core  = 8.0d-3
+    s% overshoot_f0_above_nonburn_core = 1.0d-2
+    s% overshoot_f0_above_burn_h_core  = 1.0d-2
+    s% overshoot_f0_above_burn_he_core = 1.0d-2
+    s% overshoot_f0_above_burn_z_core  = 1.0d-2
 
   end function extras_startup
 
   function f_ov_fcn_of_mass(m) result(f_ov)
     real(dp), intent(in) :: m
     real(dp) :: f_ov, frac
-    real(dp), parameter :: f1 = 1.6d-2, f2=4.15d-2
-    if(m < 4.0d0) then
+     real(dp), parameter :: f1 = 1.1d-1, f2=3.1d-1
+    if(m < 1.66d0) then
        frac = 0.0d0
-    elseif(m > 8.0d0) then
+    elseif(m > 20.0d0) then
        frac = 1.0d0
     else
-       frac = 0.5d0 * (1.0d0 - cospi_cr(0.25d0*(m-4.0d0)))
+       frac = (m-1.66)/(20.0d0-1.66d0)
     endif
     f_ov = f1 + (f2-f1)*frac
   end function f_ov_fcn_of_mass
