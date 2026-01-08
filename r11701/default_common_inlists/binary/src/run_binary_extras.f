@@ -1352,11 +1352,10 @@
              return
 		 end if
 		  
-         ! check for termination due to envelope stripping
+         ! check for termination due to carbon depletion
          if (b% point_mass_i /= 1) then
-            if (b% s1% surface_h1 < 1.0d-2 .and. b% rl_relative_gap(1) < 0.0_dp  &
-			   .and. abs(b% mtransfer_rate/(Msun/secyer))<1.0d-10) then
-                  write(*,'(g0)') "termination code: Primary has been stripped and detached"
+            if (b% s1% center_c12 < 1.0d-2 .and. b% s1% center_he4 < 1.0d-6) then
+                  write(*,'(g0)') "termination code: Primary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
             !else
@@ -1379,9 +1378,8 @@
 
          ! check for termination due to carbon depletion
          if (b% point_mass_i /= 2) then
-            if (b% s2% surface_h1 < 1.0d-2 .and. b% rl_relative_gap(2) < 0.0_dp  & 
-			   .and.  abs(b% mtransfer_rate/(Msun/secyer))<1.0d-10) then
-                  write(*,'(g0)') "termination code: Secondary has been stripped and detached"
+            if (b% s2% center_c12 < 1.0d-2 .and. b% s2% center_he4 < 1.0d-6) then
+                  write(*,'(g0)') "termination code: Secondary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
             !else
@@ -1620,8 +1618,8 @@
 	 if (b% r(b% a_i) < min_r) then
 		 b% mass_transfer_beta =(2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
 					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
-					   (5d0*sqrt(0.8d0*b% rl(b% a_i)/b% r(b% a_i))-&
-					   (1.5d0/(1.0d0+pow_cr(2.7183d0, &
+					   (2d0*sqrt(0.8d0*b% rl(b% a_i)/b% r(b% a_i))-&
+					   (2.0d0/(1.0d0+pow_cr(2.7183d0, &
 					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
 		 write(*,*) 'm1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
 			 b% mass_transfer_beta
