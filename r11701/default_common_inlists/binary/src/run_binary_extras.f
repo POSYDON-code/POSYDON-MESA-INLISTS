@@ -1348,9 +1348,8 @@
 		  
          ! check for termination due to carbon depletion
          if (b% point_mass_i /= 1) then
-            if (b% s1% surface_h1 < 1.0d-2 .and. b% rl_relative_gap(1) < 0.0_dp  &
-			   .and. abs(b% mtransfer_rate/(Msun/secyer))<1.0d-10) then
-                  write(*,'(g0)') "termination code: Primary has been stripped and detached"
+            if (b% s1% center_c12 < 1.0d-2 .and. b% s1% center_he4 < 1.0d-6) then
+                  write(*,'(g0)') "termination code: Primary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
             !else
@@ -1373,9 +1372,8 @@
 
          ! check for termination due to carbon depletion
          if (b% point_mass_i /= 2) then
-            if (b% s2% surface_h1 < 1.0d-2 .and. b% rl_relative_gap(2) < 0.0_dp  & 
-			   .and.  abs(b% mtransfer_rate/(Msun/secyer))<1.0d-10) then
-                  write(*,'(g0)') "termination code: Secondary has been stripped and detached"
+            if (b% s2% center_c12 < 1.0d-2 .and. b% s2% center_he4 < 1.0d-6) then
+                  write(*,'(g0)') "termination code: Secondary has depleted central carbon"
                   extras_binary_finish_step = terminate
                   return
             !else
