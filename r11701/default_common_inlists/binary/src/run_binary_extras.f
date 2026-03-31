@@ -32,6 +32,19 @@
       use utils_lib
 
       implicit none
+	  logical :: fL2_loaded = .false
+      integer :: nq = 0
+      integer :: nm = 0
+      integer :: nx = 0
+      integer :: na = 0
+
+      real(dp), allocatable :: q_grid(:)
+      real(dp), allocatable :: m_grid(:)
+      real(dp), allocatable :: x_grid(:)   ! x = log10(Mdot)
+      real(dp), allocatable :: a_grid(:)
+      real(dp), allocatable :: fL2(:,:,:,:) ! (nq, nm, nx, na)
+
+      character(len=256) :: fL2_filename = 'fL2_table.dat'
 
       contains
 
@@ -65,9 +78,316 @@
           b% other_sync_spin_to_orbit => my_sync_spin_to_orbit
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
-	  b% other_rlo_mdot => my_rlo_mdot
+	      b% other_rlo_mdot => my_rlo_mdot
+		  b% other_jdot_ml => my_jdot_ml
       end subroutine extras_binary_controls
+	  
+	  subroutine unload_fL2_table()
+	      if (allocated(q_grid)) deallocate(q_grid)
+	      if (allocated(m_grid)) deallocate(m_grid)
+	      if (allocated(x_grid)) deallocate(x_grid)
+	      if (allocated(a_grid)) deallocate(a_grid)
+	      if (allocated(fL2))    deallocate(fL2)
+	
+	      nq = 0
+	      nm = 0
+	      nx = 0
+	      na = 0
+	      fL2_loaded = .false.
+      end subroutine unload_fL2_table
+      subroutine load_fL2_table(filename, ierr)
+	      character(len=*), intent(in) :: filename
+	      integer, intent(out) :: ierr
+	
+	      integer :: iu
+	      integer :: iq, im, ix
+	      logical :: exists
+	
+	      ierr = 0
+	
+	      call unload_fL2_table()
+	
+	      inquire(file=filename, exist=exists)
+	      if (.not. exists) then
+	         ierr = 101
+	         return
+	      end if
+		  
+		  open(newunit=iu, file=filename, status='old', action='read', iostat=ierr)
+	      if (ierr /= 0) then
+	         ierr = 102
+	         return
+	      end if
+	
+	      read(iu, *, iostat=ierr) nq, nm, nx, na
+	      if (ierr /= 0) then
+	         ierr = 103
+	         close(iu)
+	         return
+	      end if
+	
+	      if (nq < 2 .or. nm < 2 .or. nx < 2 .or. na < 2) then
+	         ierr = 104
+	         close(iu)
+	         return
+	      end if
+	
+	      allocate(q_grid(nq), stat=ierr)
+	      if (ierr /= 0) then
+	         ierr = 105
+	         close(iu)
+	         return
+	      end if
+	
+	      allocate(m_grid(nm), stat=ierr)
+	      if (ierr /= 0) then
+	         ierr = 106
+	         close(iu)
+	         return
+	      end if
+	
+	      allocate(x_grid(nx), stat=ierr)
+	      if (ierr /= 0) then
+	         ierr = 107
+	         close(iu)
+	         return
+	      end if
+	
+	      allocate(a_grid(na), stat=ierr)
+	      if (ierr /= 0) then
+	         ierr = 108
+	         close(iu)
+	         return
+	      end if
+	      allocate(fL2(nq, nm, nx, na), stat=ierr)
+	      if (ierr /= 0) then
+	         ierr = 109
+	         close(iu)
+	         return
+	      end if
+	
+	      read(iu, *, iostat=ierr) q_grid
+	      if (ierr /= 0) then
+	         ierr = 110
+	         close(iu)
+	         call unload_fL2_table()
+	         return
+	      end if
+	
+	      read(iu, *, iostat=ierr) m_grid
+	      if (ierr /= 0) then
+	         ierr = 111
+	         close(iu)
+	         call unload_fL2_table()
+	         return
+	      end if
+	
+	      read(iu, *, iostat=ierr) x_grid
+	      if (ierr /= 0) then
+	         ierr = 112
+	         close(iu)
+	         call unload_fL2_table()
+	         return
+	      end if
+	
+	      read(iu, *, iostat=ierr) a_grid
+	      if (ierr /= 0) then
+	         ierr = 113
+	         close(iu)
+	         call unload_fL2_table()
+	         return
+	      end if
+		  
+	      do iq = 1, nq
+	         do im = 1, nm
+	            do ix = 1, nx
+	               read(iu, *, iostat=ierr) fL2(iq, im, ix, :)
+	               if (ierr /= 0) then
+	                  ierr = 114
+	                  close(iu)
+	                  call unload_fL2_table()
+	                  return
+	               end if
+	            end do
+	         end do
+	      end do
+	
+	      close(iu)
+	
+	      if (.not. strictly_increasing(q_grid)) then
+	         ierr = 115
+	         call unload_fL2_table()
+	         return
+	      end if
+	
+	      if (.not. strictly_increasing(m_grid)) then
+	         ierr = 116
+	         call unload_fL2_table()
+	         return
+	      end if
+	
+	      if (.not. strictly_increasing(x_grid)) then
+	         ierr = 117
+	         call unload_fL2_table()
+	         return
+	      end if
+	
+	      if (.not. strictly_increasing(a_grid)) then
+	         ierr = 118
+	         call unload_fL2_table()
+	         return
+	      end if
+	
+	      fL2_loaded = .true.
+	  end subroutine load_fL2_table
+	  subroutine get_fL2_value(qv, mv, xv, av, val, ierr, clamp_to_bounds)
+	      real(dp), intent(in) :: qv
+	      real(dp), intent(in) :: mv
+	      real(dp), intent(in) :: xv
+	      real(dp), intent(in) :: av
+	      real(dp), intent(out) :: val
+	      integer, intent(out) :: ierr
+	      logical, intent(in), optional :: clamp_to_bounds
+	
+	      integer :: iq0, im0, ix0, ia0
+	      real(dp) :: tq, tm, tx, ta
+	      real(dp) :: wq, wm, wx, wa
+	      logical :: do_clamp
+	      integer :: dq, dm, dx, da
+	      real(dp) :: qq, mm, xx, aa
+	
+	      ierr = 0
+	      val = 0.0_dp
+	
+	      if (.not. fL2_loaded) then
+	         ierr = 201
+	         return
+	      end if
+	
+	      do_clamp = .false.
+	      if (present(clamp_to_bounds)) do_clamp = clamp_to_bounds
+	
+	      qq = qv
+	      mm = mv
+	      xx = xv
+	      aa = av
+	
+	      if (do_clamp) then
+	         qq = min(max(qq, q_grid(1)), q_grid(nq))
+	         mm = min(max(mm, m_grid(1)), m_grid(nm))
+	         xx = min(max(xx, x_grid(1)), x_grid(nx))
+	         aa = min(max(aa, a_grid(1)), a_grid(na))
+	      end if
+	      call find_cell(q_grid, nq, qq, iq0, tq, ierr)
+	      if (ierr /= 0) then
+	         ierr = 202
+	         return
+	      end if
+	
+	      call find_cell(m_grid, nm, mm, im0, tm, ierr)
+	      if (ierr /= 0) then
+	         ierr = 203
+	         return
+	      end if
+	
+	      call find_cell(x_grid, nx, xx, ix0, tx, ierr)
+	      if (ierr /= 0) then
+	         ierr = 204
+	         return
+	      end if
+	
+	      call find_cell(a_grid, na, aa, ia0, ta, ierr)
+	      if (ierr /= 0) then
+	         ierr = 205
+	         return
+	      end if
+	
+	      val = 0.0_dp
+	      do dq = 0, 1
+	         if (dq == 0) then
+	            wq = 1.0_dp - tq
+	         else
+	            wq = tq
+	         end if
+	
+	         do dm = 0, 1
+	            if (dm == 0) then
+	               wm = 1.0_dp - tm
+	            else
+	               wm = tm
+	            end if
+	
+	            do dx = 0, 1
+	               if (dx == 0) then
+	                  wx = 1.0_dp - tx
+	               else
+	                  wx = tx
+	               end if
+	
+	               do da = 0, 1
+	                  if (da == 0) then
+	                     wa = 1.0_dp - ta
+	                  else
+	                     wa = ta
+	                  end if
+	
+	                  val = val + wq*wm*wx*wa * &
+	                       fL2(iq0+dq, im0+dm, ix0+dx, ia0+da)
+	               end do
+	            end do
+	         end do
+	      end do
+	   end subroutine get_fL2_value
 
+	   subroutine find_cell(grid, n, x, i0, t, ierr)
+	      integer, intent(in) :: n
+	      real(dp), intent(in) :: grid(n)
+	      real(dp), intent(in) :: x
+	      integer, intent(out) :: i0
+	      real(dp), intent(out) :: t
+	      integer, intent(out) :: ierr
+	
+	      integer :: i
+	
+	      ierr = 0
+	      i0 = -1
+	      t = 0.0_dp
+	
+	      if (x < grid(1) .or. x > grid(n)) then
+	         ierr = 1
+	         return
+	      end if
+	
+	      if (x == grid(n)) then
+	         i0 = n - 1
+	         t = 1.0_dp
+	         return
+	      end if
+	
+	      do i = 1, n - 1
+	         if (grid(i) <= x .and. x < grid(i+1)) then
+	            i0 = i
+	            t = (x - grid(i)) / (grid(i+1) - grid(i))
+	            return
+	         end if
+	      end do
+	
+	      ierr = 2
+	   end subroutine find_cell
+
+	   logical function strictly_increasing(arr)
+	      real(dp), intent(in) :: arr(:)
+	      integer :: i
+	
+	      strictly_increasing = .true.
+	      do i = 1, size(arr) - 1
+	         if (arr(i+1) <= arr(i)) then
+	            strictly_increasing = .false.
+	            return
+	         end if
+	      end do
+	   end function strictly_increasing
+	   
       subroutine my_tsync(id, sync_type, Ftid, qratio, m, r_phot, osep, t_sync, ierr)
          integer, intent(in) :: id
          character (len=strlen), intent(in) :: sync_type !synchronization timescale
@@ -1159,6 +1479,54 @@
             end if
 
       end function  extras_binary_startup
+
+      subroutine my_jdot_ml(binary_id, ierr)
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl2
+         type (binary_info), pointer :: b
+         real(dp) :: alfa
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         if (.not. fL2_loaded) then
+            call load_fL2_table('fL2_table.dat', ierr)
+            if (ierr /= 0) then
+                write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
+                stop
+            end if
+          end if
+          q_now = b% m(b% a_i)/(b% m(b% d_i)
+          m_now=  b% m(b% a_i)
+          logMdot_now = log10_cr(b% mtransfer_rate/(Msun/secyer))
+          a_now = b% separation/Rsun
+          call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
+          if (b% mtransfer_rate /= 0) &
+               b% xfer_fraction = min(b% xfer_fraction, b% mdot_edd/(abs(b% mtransfer_rate)*(1-fL2_now)))
+		  end if
+		  if (q_now<1) then
+		      xl2 = 0.0756*log10_cr(q_now)**2+0.424*log10_cr(q_now)+1.699
+		  else
+		      xl2 = 1-(0.0756*log10_cr(1/q_now)**2+0.424*log10_cr(1/q_now)+1.699)
+		  end if
+         !mass lost from vicinity of donor
+         b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
+             (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+         !mass lost from vicinity of accretor
+         b% jdot_ml = b% jdot_ml + (b% mtransfer_rate*(1-fL2_now)*(1-b% xfer_fraction)  + b% mdot_system_wind(b% a_i))*&
+             ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)+0.5*sqrt(b% s_accretor% cgrav(1)*b% m(b% a_i)*0.75*b% rl(b% a_i))
+         !mass lost from L2
+		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*((xl2-(b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period 
+
+		 
+         b% jdot_ml = b% jdot_ml + fL2_now * &
+             sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
+      end subroutine my_jdot_ml
 
       !Return either rety,backup,keep_going or terminate
       integer function extras_binary_check_model(binary_id)
