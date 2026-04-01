@@ -32,7 +32,7 @@
       use utils_lib
 
       implicit none
-	  logical :: fL2_loaded = .false
+	  logical :: fL2_loaded = .false.
       integer :: nq = 0
       integer :: nm = 0
       integer :: nx = 0
@@ -1499,14 +1499,13 @@
                 stop
             end if
           end if
-          q_now = b% m(b% a_i)/(b% m(b% d_i)
+          q_now = b% m(b% a_i)/b% m(b% d_i)
           m_now=  b% m(b% a_i)
           logMdot_now = log10_cr(b% mtransfer_rate/(Msun/secyer))
           a_now = b% separation/Rsun
           call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-          if (b% mtransfer_rate /= 0) &
-               b% xfer_fraction = min(b% xfer_fraction, b% mdot_edd/(abs(b% mtransfer_rate)*(1-fL2_now)))
-		  end if
+          
+          b% xfer_fraction = min(b% xfer_fraction, b% mdot_edd/(abs(b% mtransfer_rate)*(1-fL2_now)))
 		  if (q_now<1) then
 		      xl2 = 0.0756*log10_cr(q_now)**2+0.424*log10_cr(q_now)+1.699
 		  else
@@ -1519,9 +1518,10 @@
          !mass lost from vicinity of accretor
          b% jdot_ml = b% jdot_ml + (b% mtransfer_rate*(1-fL2_now)*(1-b% xfer_fraction)  + b% mdot_system_wind(b% a_i))*&
              ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
-             sqrt(1 - b% eccentricity**2)+0.5*sqrt(b% s_accretor% cgrav(1)*b% m(b% a_i)*0.75*b% rl(b% a_i))
+             sqrt(1 - b% eccentricity**2)+0.5*sqrt(b% s_accretor% cgrav(1)*b% m(b% a_i)*0.75*b% rl(b% a_i)))
          !mass lost from L2
-		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*((xl2-(b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period 
+		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
+		     ((xl2-(b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period )
 
 		 
          b% jdot_ml = b% jdot_ml + fL2_now * &
