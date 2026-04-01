@@ -1493,7 +1493,7 @@
             return
          end if
          if (.not. fL2_loaded) then
-            call load_fL2_table('fL2_table.dat', ierr)
+            call load_fL2_table('../fL2_table.dat', ierr)
             if (ierr /= 0) then
                 write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
                 stop
