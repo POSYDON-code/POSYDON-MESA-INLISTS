@@ -1525,10 +1525,7 @@
                  0.5d0 * sqrt(standard_cgrav * b% m(b% a_i) * 0.75d0 * b% rl(b% a_i))
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
-                 ((xl2-(b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period )
-
-         b% jdot_ml = b% jdot_ml + fL2_now * &
-             sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
+                 (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
       end subroutine my_jdot_ml
 
       !Return either rety,backup,keep_going or terminate
