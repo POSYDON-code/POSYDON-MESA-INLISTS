@@ -1500,30 +1500,33 @@
             end if
           end if
           q_now = b% m(b% a_i)/b% m(b% d_i)
-          m_now=  b% m(b% a_i)
-          logMdot_now = log10_cr(b% mtransfer_rate/(Msun/secyer))
-          a_now = b% separation/Rsun
+          m_now=  b% m(b% a_i)/Msun
+          logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
+          a_now = log10_cr(b% separation/Rsun)
           call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
           
           b% xfer_fraction = min(b% xfer_fraction, b% mdot_edd/(abs(b% mtransfer_rate)*(1-fL2_now)))
 		  if (q_now<1) then
 		      xl2 = 0.0756*log10_cr(q_now)**2+0.424*log10_cr(q_now)+1.699
 		  else
-		      xl2 = 1-(0.0756*log10_cr(1/q_now)**2+0.424*log10_cr(1/q_now)+1.699)
+		      xl2 = 1-(0.0756*log10_cr(1.0d0/q_now)**2+0.424*log10_cr(1.0d0/q_now)+1.699)
 		  end if
+		 b% mdot_system_transfer(b% a_i) = b% mtransfer_rate*(1-b% xfer_fraction)*(1-fL2_now) - &
+             b% mdot_system_transfer(b% d_i) - b% mdot_system_cct
          !mass lost from vicinity of donor
          b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
              (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
          !mass lost from vicinity of accretor
-         b% jdot_ml = b% jdot_ml + (b% mtransfer_rate*(1-fL2_now)*(1-b% xfer_fraction)  + b% mdot_system_wind(b% a_i))*&
-             ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
-             sqrt(1 - b% eccentricity**2)+0.5*sqrt(b% s_accretor% cgrav(1)*b% m(b% a_i)*0.75*b% rl(b% a_i)))
+         b% jdot_ml = b% jdot_ml + (b% mdot_system_transfer(b% a_i) + b% mdot_system_wind(b% a_i))*&
+             (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+             sqrt(1 - b% eccentricity**2)
+		 b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
+                 0.5d0 * sqrt(standard_cgrav * b% m(b% a_i) * 0.75d0 * b% rl(b% a_i))
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
-		     ((xl2-(b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period )
+                 ((xl2-(b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period )
 
-		 
          b% jdot_ml = b% jdot_ml + fL2_now * &
              sqrt(b% s_donor% cgrav(1) * (b% m(1) + b% m(2)) * b% separation)
       end subroutine my_jdot_ml
