@@ -20,8 +20,8 @@
    do_jdot_ls = .false.
 
    mdot_scheme = "roche_lobe" ! This switches to Kolb after TAMS
-   limit_retention_by_mdot_edd= .true.
-   use_other_mdot_edd = .true.
+   limit_retention_by_mdot_edd= .false.
+   use_other_mdot_edd = .false.
 
    history_interval = 1
    terminal_interval = 10
