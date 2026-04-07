@@ -1265,7 +1265,6 @@
                end if
             end if
          end if
- 
       end subroutine mb_torque_selector
 
       ! Matt et al. (2015), ApJ, 799, L23 magnetic braking prescription
@@ -1998,9 +1997,10 @@
             end if
          end if
 
-         !if (b% s1% use_other_torque .or. b% s2% use_other_torque) then
+         ! This is if we want to modulate orbital AML via LS coupling
          if (b% do_jdot_ls .and. b% use_other_jdot_ls) then
-            ! ensure these options are set
+            ! ensure these options are set b/c LS is incompatible 
+            ! with do_jdot_mb, which assumes tidal locking
             b% do_jdot_mb = .false.
             b% do_tidal_sync = .true.
 
@@ -2072,8 +2072,8 @@
 	      real(dp) :: r_l2, d_l2
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
-            center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23,rl2_1,trap_rad, mdot_edd, tau_kh, tau_macc
+                     center_h1, center_h1_old, center_he4, center_he4_old, &
+                     rl23,rl2_1,trap_rad, mdot_edd, tau_kh, tau_macc
          logical :: is_ne_biggest, superthermal_accretion
          real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
@@ -2113,26 +2113,26 @@
 
          ! check trapping radius only for runs with a compact object
          if (b% point_mass_i == 2) then
-           call my_mdot_edd(binary_id,mdot_edd,ierr)
+            call my_mdot_edd(binary_id,mdot_edd,ierr)
 
-           ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
-           trap_rad = 0.5_dp*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+            ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
+            trap_rad = 0.5_dp*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
 
-           !check if mass transfer rate reached maximun, assume unstable regime if it happens
-           if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
-             !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
-             extras_binary_finish_step = terminate
-             write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
-	          return
-           end if
+            !check if mass transfer rate reached maximun, assume unstable regime if it happens
+            if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
+               !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
+               extras_binary_finish_step = terminate
+               write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
+	            return
+            end if
          end if
 
          ! check for termination due to carbon depletion
          if (b% point_mass_i /= 1) then
             if (b% s1% center_c12 < 1.0d-2 .and. b% s1% center_he4 < 1.0d-6) then
-                  write(*,'(g0)') "termination code: Primary has depleted central carbon"
-                  extras_binary_finish_step = terminate
-                  return
+               write(*,'(g0)') "termination code: Primary has depleted central carbon"
+               extras_binary_finish_step = terminate
+               return
             !else
             !   ! check if neon is by far greatest source of energy
             !   is_ne_biggest = .true.
@@ -2154,9 +2154,9 @@
          ! check for termination due to carbon depletion
          if (b% point_mass_i /= 2) then
             if (b% s2% center_c12 < 1.0d-2 .and. b% s2% center_he4 < 1.0d-6) then
-                  write(*,'(g0)') "termination code: Secondary has depleted central carbon"
-                  extras_binary_finish_step = terminate
-                  return
+               write(*,'(g0)') "termination code: Secondary has depleted central carbon"
+               extras_binary_finish_step = terminate
+               return
             !else
             !   ! check if neon is by far greatest source of energy
             !   is_ne_biggest = .true.
@@ -2176,19 +2176,22 @@
          end if
 
          ! check for L2 overflow after ZAMS, but before TAMS as in Marchant et al. 2016
-         if(.not. b% ignore_rlof_flag .and. extras_binary_finish_step /= terminate .and. (b% point_mass_i == 0)) then ! only when we evolve both stars in MS
+         if(.not. b% ignore_rlof_flag &
+            .and. extras_binary_finish_step /= terminate &
+            .and. (b% point_mass_i == 0)) then ! only when we evolve both stars in MS
+
             if (b% s1% center_h1 > 1d-6 .and. b% s2% center_h1 > 1d-6) then
                if (b% m(1) > b% m(2)) then
-                 q = b% m(2) / b% m(1)
-                 star_id = 2
+                  q = b% m(2) / b% m(1)
+                  star_id = 2
                else
-                 q = b% m(1) / b% m(2)
-                 star_id = 1
+                  q = b% m(1) / b% m(2)
+                  star_id = 1
                end if
                if (b% rl_relative_gap(star_id) > 0.29858997d0*atan_cr(1.83530121d0*pow_cr(q,0.39661426d0))) then
-                 write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A"
-                 extras_binary_finish_step = terminate
-		 return
+                  write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A"
+                  extras_binary_finish_step = terminate
+		            return
                end if
             end if
          end if
@@ -2196,9 +2199,11 @@
 
 
          if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
-          if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
-             i_don = 1
-             i_acc = 2
+            ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars.
+            ! Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+            if (b% s1% center_h1 < 1.0d-6) then  
+               i_don = 1
+               i_acc = 2
                if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
                   q = b% m(i_acc) / b% m(i_don)
                   r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
@@ -2214,8 +2219,8 @@
                      write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
                      return
                   end if
-
-               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
+               ! mdonor < maccretor, Condition to stop when mass loss from L2 (previously it was L3) q>1
+               else             
                   q = b% m(i_acc) / b% m(i_don)
                   r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
                   d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
@@ -2230,17 +2235,20 @@
                      return
                   end if
                end if
-          end if
-       end if
+            end if
+         end if
 
-       if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
-          if (b% s2% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
-             i_don = 2
-             i_acc = 1
-               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
+         if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
+            ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars.
+            ! Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
+            if (b% s2% center_h1 < 1.0d-6) then  
+               i_don = 2
+               i_acc = 1
+               ! mdon > macc, q < 1
+               if (b% m(i_don) .gt. b% m(i_acc)) then 
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q, 1.05_dp) * exp_cr(-0.188_dp * q) + 1.004_dp)
-                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q,  0.514_dp) * exp_cr(-0.052_dp * q) + 1.308_dp)
+                  r_l2 = b% rl(i_don)*(0.784_dp*pow_cr(q, 1.05_dp)*exp_cr(-0.188_dp*q) + 1.004_dp)
+                  d_l2 = b% rl(i_don)*(3.334_dp*pow_cr(q,  0.514_dp)*exp_cr(-0.052_dp*q) + 1.308_dp)
                   !Condition to stop when star overflows L2
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_finish_step = terminate
@@ -2252,11 +2260,11 @@
                      write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 2'
                      return
                   end if
-
-               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
+               ! mdonor<maccretor, Condition to stop when mass loss from L2 (previously it was L3) q>1
+               else             
                   q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
-                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
+                  r_l2 = b% rl(i_don)*(0.29066811_dp*pow_cr(q, 0.82788069_dp)*exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
+                  d_l2 = b% rl(i_don)*(-0.04029713_dp*pow_cr(q, 0.862143_dp)*exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
                   if (b% r(i_don) .ge. (r_l2)) then
                      extras_binary_finish_step = terminate
                      write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
@@ -2268,8 +2276,8 @@
                      return
                   end if
                end if
-          end if
-       end if
+            end if
+         end if
 
          ! check for termination due to pair-instability in primary
          if (b% point_mass_i /= 1) then
@@ -2280,7 +2288,7 @@
                Pdm_over_rho = b% s1% P(i)*b% s1% dm(i)/b% s1% rho(i)
                integral_norm = integral_norm + Pdm_over_rho
                gamma1_integral = gamma1_integral + &
-                  (b% s1% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
+                                 (b% s1% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
             end do
             gamma1_integral = gamma1_integral/max(1.0d-99,integral_norm)
             if (gamma1_integral < 0.0d0) then
@@ -2306,7 +2314,7 @@
                Pdm_over_rho = b% s2% P(i)*b% s2% dm(i)/b% s2% rho(i)
                integral_norm = integral_norm + Pdm_over_rho
                gamma1_integral = gamma1_integral + &
-                  (b% s2% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
+                                 (b% s2% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
             end do
             gamma1_integral = gamma1_integral/max(1.0d-99,integral_norm)
             if (gamma1_integral < 0.0d0) then
@@ -2323,8 +2331,6 @@
             end if
          end if
 
-
-
          if (extras_binary_finish_step == terminate) then
             !write(*,*) "saving final profilesA"
             !call star_write_profile_info(b% s1% id, "LOGS1/prof_9FINAL.data", b% s1% id, ierr)
@@ -2333,22 +2339,22 @@
             !if (ierr /= 0) return ! failure in profile
          else
             if (b% point_mass_i /= 1) then
-                if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! Changing from 'contact' scheme to Kolb if one star reaches TAMS
-                   b% mdot_scheme = "Kolb"
-                   write(*,*) "Primary reached TAMS, changing mdot_scheme to ", b% mdot_scheme, &
+               if (b% s1% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then ! Changing from 'contact' scheme to Kolb if one star reaches TAMS
+                  b% mdot_scheme = "Kolb"
+                  write(*,*) "Primary reached TAMS, changing mdot_scheme to ", b% mdot_scheme, &
                              " and changing L2 overflow check according to Misra et al. 2020"
-                   b% terminate_if_L2_overflow = .false.
-                end if
+                  b% terminate_if_L2_overflow = .false.
+               end if
             end if
             if (b% point_mass_i /= 2) then
-                if (b% s2% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then
-                   b% mdot_scheme = "Kolb"
-                   write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
+               if (b% s2% center_h1 < 1d-6 .and. b% mdot_scheme .ne. "Kolb") then
+                  b% mdot_scheme = "Kolb"
+                  write(*,*) "Secondary reached TAMS, changing mdot_scheme to", b% mdot_scheme, &
                              " and changing L2 overflow check according to Misra et al. 2020"
-                   b% terminate_if_L2_overflow = .false.
-                end if
+                  b% terminate_if_L2_overflow = .false.
+               end if
             end if
-           !write(*,*) "still using: ", b% mdot_scheme
+            !write(*,*) "still using: ", b% mdot_scheme
 
             !if (b% model_number == 1 ) then ! Saving initial_profiles
             !   write(*,*) "saving initial profiles"
@@ -2364,28 +2370,28 @@
             if (b% model_number == 1 ) then ! Saving initial_models
                write(*,*) "saving initial models"
                if (b% point_mass_i /= 1) then
-                    call star_write_model(b% s1% id, "initial_star1.mod",  ierr)
+                  call star_write_model(b% s1% id, "initial_star1.mod", ierr)
                end if
                if (ierr /= 0) return ! failure
                if (b% point_mass_i /= 2) then
-                    call star_write_model(b% s2% id, "initial_star2.mod",  ierr)
+                  call star_write_model(b% s2% id, "initial_star2.mod", ierr)
                end if
                if (ierr /= 0) return ! failure
             end if
          end if
 
-	 if (b% point_mass_i == 0) then
-             if (b% s_accretor% x_logical_ctrl(4)) then
-                if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
-	            b% mass_transfer_beta = 1.0d0
-                    b% s_accretor% max_wind = 1d-12
-	        end if
-	        if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
-	            b% mass_transfer_beta = 0d0
-	            b% s_accretor% max_wind = 0d0
-	        end if
-             end if
-	 end if
+	      if (b% point_mass_i == 0) then
+            if (b% s_accretor% x_logical_ctrl(4)) then
+               if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
+	               b% mass_transfer_beta = 1.0d0
+                  b% s_accretor% max_wind = 1d-12
+	            end if
+	            if (b% mass_transfer_beta == 1.0d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) <= 1d-7) then
+	               b% mass_transfer_beta = 0d0
+	               b% s_accretor% max_wind = 0d0
+	            end if
+            end if
+	      end if
 
          ! conditions to check for termination in the case of superthermal accretion w/ contact and
          ! critical rotation + accretion disk
@@ -2435,9 +2441,9 @@
          real(dp), intent(in) :: m1, m2, a
          real(dp) :: q
          q = pow_cr(m1/m2,one_third)
-      ! Roche lobe size for star of mass m1 with a
-      ! companion of mass m2 at separation a, according to
-      ! the approximation of Eggleton 1983, apj 268:368-369
+         ! Roche lobe size for star of mass m1 with a
+         ! companion of mass m2 at separation a, according to
+         ! the approximation of Eggleton 1983, apj 268:368-369
          rlobe = a*0.49d0*q*q/(0.6d0*q*q + log1p_cr(q))
       end function eval_rlobe
 
@@ -2450,15 +2456,14 @@
          integer :: iounit
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) return
-          !if (b% point_mass_i /= 1) then
-                 call star_write_profile_info(b% s1% id, "LOGS1/final_profile.data", b% s1% id, ierr)
-          !end if
-            if (ierr /= 0) return ! failure in profile
-
-            if (b% point_mass_i /= 2) then
-                 call star_write_profile_info(b% s2% id, "LOGS2/final_profile.data", b% s2% id, ierr)
-            end if
-            if (ierr /= 0) return ! failure in profile
+         !if (b% point_mass_i /= 1) then
+         call star_write_profile_info(b% s1% id, "LOGS1/final_profile.data", b% s1% id, ierr)
+         !end if
+         if (ierr /= 0) return ! failure in profile
+         if (b% point_mass_i /= 2) then
+              call star_write_profile_info(b% s2% id, "LOGS2/final_profile.data", b% s2% id, ierr)
+         end if
+         if (ierr /= 0) return ! failure in profile
 
       end subroutine extras_binary_after_evolve
 
