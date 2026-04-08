@@ -274,7 +274,7 @@
       x_logical_ctrl(6) = .false.
 
       ! a string that specifies which magnetic braking prescription to use, out of several implemented (see run_star_extras.f for more details)
-      x_character_ctrl(1) = 'g18'
+      x_character_ctrl(1) = 'm15'
 
 
 / ! end of controls namelist
