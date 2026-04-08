@@ -1425,7 +1425,7 @@
                ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
                (ocz_bot_mass > 0d0)) then
 
-               call calc_tau_convective(id, tau_convective, ierr)
+               call calc_tau_convective(binary_id, s, tau_convective, ierr)
 
                ! MAGNETIC BRAKING CALCULATION
                rsun4 = pow4(rsun)
