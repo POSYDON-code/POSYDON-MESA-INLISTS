@@ -1278,7 +1278,8 @@
  
          real(dp) :: Prot, Ro, Rosol, Rosat, K_const, m, p, u, gamma, dJdt, &
                      tau_convective, mixing_length_at_bcz, MOI, Om, rsol, &
-                     msol, omega_sol, tau_cz_sol, chi, T0, t_spindown
+                     msol, omega_sol, tau_cz_sol, chi, T0, t_spindown,
+                     ocz_bot_mass
  
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -1294,10 +1295,15 @@
          dJdt = 0d0
          s% extra_omegadot(:) = 0d0
  
-         if ((s% n_conv_regions > 0)) then 
+         ! This only calculates if a convective envelope exists and not fully conv.
+         ! (ocz_bot_mass > 0d0) is used to detect whether fully convective
+         if ((s% n_conv_regions > 0)) then
+
+            ocz_bot_mass = s% cz_bot_mass(i)
+
             if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
                ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11) .and. &
-               (s% star_age > s% x_ctrl(2))) then
+               (ocz_bot_mass > 0d0)) then
   
                call calc_tau_convective(binary_id, s, tau_convective, ierr)  
  
@@ -1380,195 +1386,94 @@
       subroutine carb_torque(binary_id, s, dJdt, ierr)
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-         integer :: k, nz
+         integer :: k, nz, i
          type (binary_info), pointer :: b
          type (star_info), pointer :: s
-         real(dp) :: turnover_time, tt_temp, tt_temp_scaled, tt_old, tt_diff
-         real(dp) :: vel, vel_ratio, vel_diff, upper_lim, lower_lim, scaled_vel
-         real(dp) :: eps_nuc_lim, eps_nuc
-         real(dp) :: dr, tau_lim, delta_mag_chk
+         real(dp) :: tau_convective, period, mdot, mstar, ocz_bot_mass
          real(dp) :: rsun4, two_pi_div_p3, two_pi_div_p2, K2
          real(dp) :: tt_ratio, tt4
          real(dp) :: rot_ratio, rot4
-         real(dp) :: rad4
+         real(dp) :: rad4, rsurf
          real(dp) :: v_esc2, v_mod2
          real(dp) :: alfven_no_R, R_alfven
          real(dp) :: dJdt, MOI
-         real(dp) :: conv_env_r, conv_env_m, sonic_cross_time, mag_field
-         common/ old_var/ tt_old
          logical :: conv_env_found
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
          if (ierr .ne. 0) then
-             write(*,*) 'failed in binary_ptr'
-             return
+            write(*,*) 'failed in binary_ptr'
+            return
          end if
  
-         ! INITIALIZE THE VARIABLES
          nz = s% nz
-         vel_ratio = 1d-4! s% x_ctrl(1)
-         tau_lim = 1d0 ! s% x_ctrl(2)
- 
-         conv_env_found = .false.
- 
-         turnover_time = 0.0
-         tt_temp = 0.0
-         tt_temp_scaled = 0.0
- 
-         eps_nuc_lim = 1.0d-2
-         vel_diff = 0.0
-         scaled_vel = 0.0
- 
+         i = s% n_conv_regions
+         tau_convective = 0d0
+         period = 2d0 * pi / s% omega_avg_surf
          MOI = dot_product(s% dm_bar(1:s% nz), s% i_rot(1:s% nz))
- 
-         dJdt = 0d0
+         mdot = s% star_mdot * msun / 3.154d7 ! [g/sec]
+         rsurf = rsun * pow_cr(10d0, s% log_surface_radius) ! [cm]
+         mstar = s% star_mass * msun ! [g]
+
+         s% extra_jdot(:) = 0d0
          s% extra_omegadot(:) = 0d0
-  
-         ! INITIAL TURNOVER TIME CALCULATION
-         do k = nz, 1, -1 ! beginning of do loop to calculate convective turnover time
  
-            eps_nuc = s% eps_nuc(k)
-            ! check if the cell we are looping through satisfies our convection criteria
-            if ((s% gradr(k) .gt. s% grada(k)) .and. (eps_nuc .lt. eps_nuc_lim)) then
-               ! toggle the boolean to begin integration
-               conv_env_found = .true.
-            end if
+         if (s% n_conv_regions > 0) then
+
+            ocz_bot_mass = s% cz_bot_mass(i)
+
+            if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
+               ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
+               (ocz_bot_mass > 0d0)) then
+
+               call calc_tau_convective(id, tau_convective, ierr)
+
+               ! MAGNETIC BRAKING CALCULATION
+               rsun4 = pow4(rsun)
+               two_pi_div_p2 = (2.0 * pi / period) * (2.0 * pi / period)
+               K2 = 0.07 * 0.07
+               tt_ratio = tau_convective / 2.8d6
+               tt4 = pow4(tt_ratio)
+               rot_ratio = (2073600d0 / period)
+               rot4 = pow4(rot_ratio)
+               rad4 = pow4(rsurf)
  
-            ! only enter this portion if the convective boolean is true
-            ! this loop will go from the innermost cell that is convective to 
-            ! the surface. This is to try and smooth through any numeric issues
-            ! with convective zones appearing and disappearing in MESA.
-            if (conv_env_found) then
-              ! loop to calculate the size of the cell, the innermost cell
-              ! needs special consideration as it is above the core
-              if (k .lt. s% nz) then
-                  dr = (s% r(k) - s% r(k + 1))
-               else
-                  dr = (s% r(k) - s% R_center)
-            end if
+               ! escape speed
+               v_esc2 = 2.0 * standard_cgrav * b% m(b% d_i) / b% r(b% d_i)
+               ! modified escape speed, e.g., Matt et al. 2012/Reville et al. 2015
+               v_mod2 = v_esc2 + 2.0 * two_pi_div_p2 * b% r(b% d_i) * b% r(b% d_i) / K2 
                      
-            ! determine the convective velocity inside each given cell
-            if (s% mixing_type(k) == convective_mixing) then
- 
-               ! need to ensure that the convective velocity is within
-               ! our defined limits, if they are outside of these limits
-               ! set them to be the max/min value allowed.
-               vel = s% conv_vel(k)
-               lower_lim = vel_ratio * s% csound(k)
-               upper_lim = 1.0 * s% csound(k)
- 
-               if (vel .lt. lower_lim) then
-                  vel = lower_lim
-               else if (vel .gt. upper_lim) then
-                  vel = upper_lim
-               end if
-                     
-               ! if the cell isnt defined by MESA to be convective take the
-               ! convective velocity to be equal to sound speed
+               ! SSG edit to prevent INF values when b% mdot_system_wind(b% d_i) = 0
+               if (abs(b% mdot_system_wind(b% d_i)) > 0d0) then
+                  alfven_no_R = rad4 * rot4 * tt4 / (b% mdot_system_wind(b% d_i) * &
+                                b% mdot_system_wind(b% d_i)) * (1.0 / v_mod2)
                else
-                  vel = s% csound(k)
+                  alfven_no_R = 0d0
                end if
- 
-               ! Final check involving the opacity of the given cell. If the 
-               ! cell isn't near the surface (low tau) then include it in our integration
-               if (s% tau(k) .gt. tau_lim) then
-                  sonic_cross_time = sonic_cross_time + (dr / s% csound(k))
-                  conv_env_r = conv_env_r + dr
-                  conv_env_m = conv_env_m + s% dm(k)
-                  tt_temp = tt_temp + (dr / vel)
-               end if
+   
+               R_alfven = b% r(b% d_i) * alfven_no_R**(1.d0/3.d0)
+               dJdt = 1d0 * (2.0/3.0) * (2.0*pi/b% period) * b% mdot_system_wind(b% d_i) * R_alfven * R_alfven
+   
+               ! If tidal sync is enforced, remove AM from the orbit
+               if (.not. b% do_jdot_ls) then
+                  return
+               ! If tidal sync is not enforced, remove AM from the individual stars
+               else
+                  do k = s% nz, 1, -1
+                     ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
+                     if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
+                        ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
+                        s% extra_omegadot(k) = - s% omega(k) / s% dt
+                     else
+                        ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
+                        s% extra_omegadot(k) = dJdt / MOI 
+                     end if
+                  end do
+                  ! Reset dJdt so it is not also removed from the orbit
+                  dJdt = 0d0
+                  return
+               end if   
             end if
-         end do ! end of do loop to calculate convective turnover time
- 
-         ! reset the boolean just in case
-         conv_env_found = .false.
- 
-         ! TURNOVER TIME CHECK, THIS IS TO TRY AND AVOID LARGE CHANGES
- 
-         ! simply set the turnover time to the internal variable calculated above
-         turnover_time = tt_temp
- 
-         if (s% model_number .gt. 1) then
-            ! calculate the variables used to check if our system is rapidly evolving
-            tt_diff = abs(tt_old - tt_temp) / tt_old
-            delta_mag_chk = s% dt / tt_old
- 
-            ! check if timesteps are very small or if the relative change is very large
-            if (tt_diff .gt. delta_mag_chk) then 
-               write (*,*) "large change, adjusting accordingly"
-               turnover_time = tt_old + (tt_temp - tt_old) * min((s% dt / tt_old), 0.5)
-               mag_field = (turnover_time / 2.8d6) * (2073600. / b% period) 
-            end if ! end of timestep/relative change check
          end if
- 
-         ! remember the current values to be used as comparison in the next step
-         tt_old = turnover_time
- 
-         ! MAGNETIC BRAKING CALCULATION
-         rsun4 = pow4(rsun)
- 
-         ! check if a radiative core exists
-         call check_radiative_core(b)
- 
-         two_pi_div_p3 = (2.0*pi/b% period)*(2.0*pi/b% period)*(2.0*pi/b% period)
-         two_pi_div_p2 = (2.0*pi/b% period)*(2.0*pi/b% period)
- 
-         ! K as 0.07, from Reville et al. 2015
-         K2 = 0.07 * 0.07
- 
-         ! use the formula from rappaport, verbunt, and joss.  apj, 275, 713-731. 1983.
-         if (b% have_radiative_core(b% d_i) .or. b% keep_mb_on) then
- 
-            ! turnover time ratio, stellar/solar
-            tt_ratio = turnover_time / 2.8d6
-            tt4 = pow4(tt_ratio)
-            ! rotation rate ratio solar/stellar (assuming 24 day solar Prot)
-            rot_ratio = (2073600. / b% period )
-            rot4 = pow4(rot_ratio)
-            rad4 = pow4(b% r(b% d_i))
- 
-            ! escape speed
-            v_esc2 = 2.0 * standard_cgrav * b% m(b% d_i) / b% r(b% d_i)
-            ! modified escape speed, e.g., Matt et al. 2012/Reville et al. 2015
-            v_mod2 = v_esc2 + 2.0 * two_pi_div_p2 * b% r(b% d_i) * b% r(b% d_i) / K2 
-                    
-            ! SSG edit to prevent INF values when b% mdot_system_wind(b% d_i) = 0
-            if (abs(b% mdot_system_wind(b% d_i)) > 0d0) then
-               alfven_no_R = rad4 * rot4 * tt4 / (b% mdot_system_wind(b% d_i) * &
-                             b% mdot_system_wind(b% d_i)) * (1.0 / v_mod2)
-            else
-               alfven_no_R = 0d0
-            end if
- 
-            R_alfven = b% r(b% d_i) * alfven_no_R**(1.d0/3.d0)
-            dJdt = 1d0 * (2.0/3.0) * (2.0*pi/b% period) * b% mdot_system_wind(b% d_i) * R_alfven * R_alfven
- 
-            ! If tidal sync is enforced, remove AM from the orbit
-            if (.not. b% do_jdot_ls) then
-               return
-            ! If tidal sync is not enforced, remove AM from the individual stars
-            else
-               do k = s% nz, 1, -1
-                  ! angular velocity loss per second. If d(omega)/ dt would be too large for current cell:
-                  if (s% omega(k) < s% dt * abs(dJdt / MOI) ) then
-                     ! use omega(k) / dt to as a cap on the 'max rate of change' for omega
-                     s% extra_omegadot(k) = - s% omega(k) / s% dt
-                  else
-                     ! or else if d(omega)/dt * dt is < current cell's omega, use the calculated value. 
-                     s% extra_omegadot(k) = dJdt / MOI 
-                  end if
-               end do
-               ! Reset dJdt so it is not also removed from the orbit
-               dJdt = 0d0
-               return
-            end if   
-         end if
- 
-         s% xtra1 = turnover_time
-         s% xtra2 = mag_field
-         s% xtra3 = conv_env_r
-         s% xtra4 = conv_env_m
-         s% xtra5 = sonic_cross_time
  
       end subroutine carb_torque
 

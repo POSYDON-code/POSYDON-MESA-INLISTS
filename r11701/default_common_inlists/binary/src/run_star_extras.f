@@ -1401,7 +1401,6 @@
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
 
-         ! INITIALIZE THE VARIABLES
          nz = s% nz
          i = s% n_conv_regions
          tau_convective = 0d0
