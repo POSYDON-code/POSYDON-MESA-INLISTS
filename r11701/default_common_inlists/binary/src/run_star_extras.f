@@ -1043,11 +1043,11 @@
             if (gamma1_integral < 0.0d0) then
                ! check central value of adiabatic index to differentiate between full and pulsational pair-instability
                if (s% gamma1(s% nz)-4.0d0/3.0d0 < 0.0d0) then
-                  write(*,'(g0)') "termination code: Single star enters pair-instability "//
+                  write(*,'(g0)') "termination code: Single star enters pair-instability "// &
                                   "regime, terminating from run_star_extras"
                   extras_finish_step = terminate
                else
-                  write(*,'(g0)') "termination code: Single star enters pulsational "//
+                  write(*,'(g0)') "termination code: Single star enters pulsational "// &
                                   "pair-instability regime, terminating from run_star_extras"
                   extras_finish_step = terminate
                end if
