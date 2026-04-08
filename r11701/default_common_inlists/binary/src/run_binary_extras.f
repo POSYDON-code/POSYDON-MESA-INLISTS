@@ -1278,7 +1278,7 @@
  
          real(dp) :: Prot, Ro, Rosol, Rosat, K_const, m, p, u, gamma, dJdt, &
                      tau_convective, mixing_length_at_bcz, MOI, Om, rsol, &
-                     msol, omega_sol, tau_cz_sol, chi, T0, t_spindown,
+                     msol, omega_sol, tau_cz_sol, chi, T0, t_spindown, &
                      ocz_bot_mass
  
          ierr = 0
