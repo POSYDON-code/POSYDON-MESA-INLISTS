@@ -1225,8 +1225,12 @@
          s% extra_omegadot(:) = 0d0
 
          if ((s% n_conv_regions > 0)) then 
-            if ((s% cz_top_mass(i)/s% mstar > 0.99d0) .and. &
-               ((s% cz_top_mass(i)-s% cz_bot_mass(i))/s% mstar > 1d-11)) then
+
+            ocz_bot_mass = s% cz_bot_mass(i)
+
+            if ((s% cz_top_mass(i) / s% mstar > 0.99d0) .and. &
+               ((s% cz_top_mass(i) - s% cz_bot_mass(i)) / s% mstar > 1d-11) .and. &
+               (ocz_bot_mass > 0d0)) then
 
                call calc_tau_convective(id, tau_convective, ierr)  
 
