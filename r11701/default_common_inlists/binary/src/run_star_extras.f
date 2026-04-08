@@ -1247,7 +1247,7 @@
                m = 0.22d0 ! Solar calibrated '                                    '
                p = 2.6d0 ! Solar calibrated '                                     '
                tau_cz_sol = 12.9d0*86400d0 ! 12.9 days Matt+ 2015 [sec]
-               omega_sol = 2.6d-6 !2.6E-6 s^-1 solar solid body ang. rot. rate from measured Prot of Sun...
+               omega_sol = 2.6d-6 ! 2.6E-6 s^-1 solar solid body ang. rot. rate from measured Prot of Sun...
                u = s% v_div_v_crit_avg_surf 
                msol = 1.99d33 ! g
                rsol = 6.96d10 ! cm
