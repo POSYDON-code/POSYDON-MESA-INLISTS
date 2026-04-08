@@ -1043,10 +1043,12 @@
             if (gamma1_integral < 0.0d0) then
                ! check central value of adiabatic index to differentiate between full and pulsational pair-instability
                if (s% gamma1(s% nz)-4.0d0/3.0d0 < 0.0d0) then
-                  write(*,'(g0)') "termination code: Single star enters pair-instability regime, terminating from run_star_extras"
+                  write(*,'(g0)') "termination code: Single star enters pair-instability "//
+                                  "regime, terminating from run_star_extras"
                   extras_finish_step = terminate
                else
-                  write(*,'(g0)') "termination code: Single star enters pulsational pair-instability regime, term. from run_star_extras"
+                  write(*,'(g0)') "termination code: Single star enters pulsational "//
+                                  "pair-instability regime, terminating from run_star_extras"
                   extras_finish_step = terminate
                end if
             end if
@@ -1210,7 +1212,7 @@
 
          real(dp) :: Prot, Ro, Rosol, Rosat, K_const, m, p, u, gamma, dJdt, &
                      tau_convective, mixing_length_at_bcz, MOI, Om, rsol, &
-                     msol, omega_sol, tau_cz_sol, chi, T0
+                     msol, omega_sol, tau_cz_sol, chi, T0, ocz_bot_mass
 
          ierr = 0
          call star_ptr(id, s, ierr)
