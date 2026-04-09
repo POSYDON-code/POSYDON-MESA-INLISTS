@@ -1837,7 +1837,7 @@
 
          if (b% point_mass_i /= 2) then
 
-            call star_ptr(1, s, ierr)
+            call star_ptr(2, s, ierr)
             if (ierr /= 0) then
                write(*,*) 'failed in star_ptr'
                return
