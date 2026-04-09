@@ -1804,8 +1804,12 @@
                write(*,*) 'failed in star_ptr'
                return
             end if
-
-            call calc_tau_convective(binary_id, s, tau_convective, ierr)
+            
+            if (b% s1% n_conv_regions > 0) then
+               call calc_tau_convective(binary_id, s, tau_convective, ierr)
+            else
+               tau_convective = 1d-99
+            end if
             prot = 2d0 * pi / b% s1% omega_avg_surf
             Ro = prot / tau_convective
 
@@ -1839,7 +1843,11 @@
                return
             end if
 
-            call calc_tau_convective(binary_id, s, tau_convective, ierr)
+            if (b% s2% n_conv_regions > 0) then
+               call calc_tau_convective(binary_id, s, tau_convective, ierr)
+            else
+               tau_convective = 1d-99
+            end if
             prot = 2d0 * pi / b% s2% omega_avg_surf
             Ro = prot / tau_convective
 
