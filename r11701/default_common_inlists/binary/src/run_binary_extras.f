@@ -1048,7 +1048,7 @@
          integer, intent(in) :: binary_id
          real(dp), intent(out) :: mdot_edd
          integer, intent(out) :: ierr
-         real(dp) :: mdot_edd_eta
+         real(dp) :: mdot_edd_eta, mdot_edd_old, mdot_edd_limit
          real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
          type (binary_info), pointer :: b
          ierr = 0
@@ -1084,12 +1084,19 @@
              !! mdot_edd_eta for BH following Podsiadlowski, Rappaport & Han (2003), MNRAS, 341, 385
              mdot_edd_eta = 1d0 - sqrt(1d0 - &
                    pow2(min(b% m(b% a_i),sqrt(6d0)*eq_initial_bh_mass)/(3d0*eq_initial_bh_mass)))
+			 mdot_edd_old = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
+                   /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
+	         mdot_edd_limit = abs(10d0*mdot_edd_old) * 0.4d0 * pow_cr(abs(10d0),-0.09d0)
+             mdot_edd = abs(b% mtransfer_rate) * 0.4d0 * pow_cr(abs(b% mtransfer_rate)/mdot_edd_old, -0.09d0)
+	         if (mdot_edd < mdot_edd_limit) then
+                 mdot_edd = mdot_edd_limit
+	         end if
          else ! NS
              !! mdot_edd_eta for NS accretors
              mdot_edd_eta = b% s_donor% cgrav(1) * b% m(2) / (pow2(clight) * acc_radius(b, b% m(2)))
+			 mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
+                 /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
          end if
-         mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
-                  /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
           !b% s1% x_ctrl(1) used to adjust the Eddington limit in inlist1
           mdot_edd = mdot_edd * b% s1% x_ctrl(1)
       end subroutine my_mdot_edd
@@ -1504,7 +1511,7 @@
           logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
           a_now = log10_cr(b% separation/Rsun)
           call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-          
+          call b% other_mdot_edd(b% binary_id, b% mdot_edd, ierr)
           b% xfer_fraction = min(b% xfer_fraction, b% mdot_edd/(abs(b% mtransfer_rate)*(1-fL2_now)))
 		  if (q_now<1) then
 		      xl2 = 0.0756*log10_cr(q_now)**2+0.424*log10_cr(q_now)+1.699
