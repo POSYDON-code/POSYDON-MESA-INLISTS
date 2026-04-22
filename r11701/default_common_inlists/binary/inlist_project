@@ -9,7 +9,7 @@
 
 &binary_controls
    photo_interval = 0
-   do_jdot_mb = .false.
+   do_jdot_mb = .true.
    do_jdot_missing_wind = .true.
    do_j_accretion = .true. ! according to De Mink et al. 2013
 
@@ -68,7 +68,6 @@
    sync_type_2 = "structure_dependent"
 
    ! use alternate magnetic braking prescriptions, besides RVJ83
-   ! do_jdot_mb = .true.
    use_other_jdot_mb = .true.
 
 / ! end of binary_controls namelist
