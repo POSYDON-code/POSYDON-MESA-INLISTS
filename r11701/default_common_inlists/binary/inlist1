@@ -275,6 +275,8 @@
 
       ! a string that specifies which magnetic braking prescription to use, out of several implemented (see run_star_extras.f for more details)
       x_character_ctrl(1) = 'm15'
+      ! use custom torque for magnetic braking
+      use_other_torque = .true.
 
 
 / ! end of controls namelist
