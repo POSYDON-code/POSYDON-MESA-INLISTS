@@ -87,10 +87,10 @@
          b% jdot_ml = b% jdot_ml +  b% mdot_system_wind(b% a_i)*&
              (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
-		 if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
+		 if (b% r(b% a_i) < 0.75d0*b% rl(b% a_i)) then
              b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
 				 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
-                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *0.8d0*b% rl(b% a_i)))
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *0.75d0*b% rl(b% a_i)))
 		 else 
 		     b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
                  ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
@@ -1612,16 +1612,16 @@
 	 if (b% r(b% a_i) < min_r) then
 		 b% mass_transfer_beta =(2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
 					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
-					   (sqrt(0.8d0*b% rl(b% a_i)/b% r(b% a_i))-&
+					   (sqrt(0.75d0*b% rl(b% a_i)/b% r(b% a_i))-&
 					   (2d0/(1.0d0+pow_cr(2.7183d0, &
 					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
 		 write(*,*) 'm1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
 			 b% mass_transfer_beta
 	 else
-	     if (b% r(b% a_i) < 0.8d0*b% rl(b% a_i)) then
+	     if (b% r(b% a_i) < 0.75d0*b% rl(b% a_i)) then
 		     b% mass_transfer_beta = (2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
 					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
-					       (sqrt(0.8d0*b% rl(b% a_i)/(1.7d0*min_r))-&
+					       (sqrt(0.75d0*b% rl(b% a_i)/(1.7d0*min_r))-&
 					       (2d0/(1.0d0+pow_cr(2.7183d0, &
 					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
 		 else
