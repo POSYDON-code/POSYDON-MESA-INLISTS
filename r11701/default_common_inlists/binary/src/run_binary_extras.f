@@ -1526,6 +1526,8 @@
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
+		 write(*,*), fL2_now, b% mtransfer_rate*fL2_now*&
+                 (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
       end subroutine my_jdot_ml
 
       !Return either rety,backup,keep_going or terminate
@@ -1573,7 +1575,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer:: i_don, i_acc
-	 real(dp) :: r_l2, d_l2
+	     real(dp) :: r_l2, d_l2, fL2_now,q_now,m_now,logMdot_now,a_now
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
@@ -1612,13 +1614,25 @@
             extras_binary_finish_step = terminate
             write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
          end if
-
+          
          ! check trapping radius only for runs with a compact object
          if (b% point_mass_i == 2) then
            call my_mdot_edd(binary_id,mdot_edd,ierr)
-
+           if (.not. fL2_loaded) then
+            call load_fL2_table('../fL2_table.dat', ierr)
+            if (ierr /= 0) then
+                write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
+                stop
+            end if
+          end if
+          q_now = b% m(b% a_i)/b% m(b% d_i)
+          m_now=  b% m(b% a_i)/Msun
+          logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
+          a_now = log10_cr(b% separation/Rsun)
+          call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
+		  
            ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
-           trap_rad = 0.5_dp*abs(b% mtransfer_rate) * acc_radius(b, b% m(2)) / mdot_edd
+           trap_rad = 0.5_dp*abs(b% mtransfer_rate) *(1-fL2_now) * acc_radius(b, b% m(2)) / mdot_edd
 
            !check if mass transfer rate reached maximun, assume unstable regime if it happens
             if (trap_rad >= b% rl(2)) then                                     !stop when trapping radius larger than rl(2)
@@ -1695,82 +1709,7 @@
 
 
 
-         if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
-          if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
-             i_don = 1
-             i_acc = 2
-               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q,1.05_dp) * exp_cr(-0.188_dp*q) + 1.004_dp)
-                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q, 0.514_dp) * exp_cr(-0.052_dp*q) + 1.308_dp)
-                  !Condition to stop when star overflows L2
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 1'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 1'
-                     return
-                  end if
-
-               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
-                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 1'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 1'
-                     return
-                  end if
-               end if
-          end if
-       end if
-
-       if (b% point_mass_i /= 2) then  !Check for L2 overflow for primary when not in MS
-          if (b% s2% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
-             i_don = 2
-             i_acc = 1
-               if (b% m(i_don) .gt. b% m(i_acc)) then !mdon>macc, q<1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.784_dp * pow_cr(q, 1.05_dp) * exp_cr(-0.188_dp * q) + 1.004_dp)
-                  d_l2 = b% rl(i_don) * (3.334_dp * pow_cr(q,  0.514_dp) * exp_cr(-0.052_dp * q) + 1.308_dp)
-                  !Condition to stop when star overflows L2
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)<1, donor is star 2'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)<1, donor is star 2'
-                     return
-                  end if
-
-               else             !mdonor<maccretor  Condition to stop when mass loss from L2 (previously it was L3) q>1
-                  q = b% m(i_acc) / b% m(i_don)
-                  r_l2 = b% rl(i_don) * (0.29066811_dp * pow_cr(q, 0.82788069_dp) * exp_cr(-0.01572339_dp*q) + 1.36176161_dp)
-                  d_l2 = b% rl(i_don) * (-0.04029713_dp * pow_cr(q, 0.862143_dp) * exp_cr(-0.04049814_dp*q) + 1.88325644_dp)
-                  if (b% r(i_don) .ge. (r_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (R_L2) surface for q(=Macc/Mdon)>1, donor is star 2'
-                     return
-                  end if
-                  if (b% r(i_don) .ge. (d_l2)) then
-                     extras_binary_finish_step = terminate
-                     write(*,'(g0)') 'termination code: overflow from L2 (D_L2) distance for q(=Macc/Mdon)>1, donor is star 2'
-                     return
-                  end if
-               end if
-          end if
-       end if
-
+         
          ! check for termination due to pair-instability in primary
          if (b% point_mass_i /= 1) then
             ! calculate volumetric pressure-weighted average adiabatic index -4/3, following Renzo et al. 2020
