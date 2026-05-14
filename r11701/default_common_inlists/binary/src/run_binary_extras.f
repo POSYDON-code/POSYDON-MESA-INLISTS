@@ -1483,7 +1483,7 @@
       subroutine my_jdot_ml(binary_id, ierr)
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-         real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl2,trap_rad, mdot_edd
+         real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl2,trap_rad, mdot_edd,qratio,min_r
          type (binary_info), pointer :: b
          real(dp) :: alfa
          ierr = 0
@@ -1522,14 +1522,17 @@
              (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
 
-		 call my_mdot_edd(binary_id,mdot_edd,ierr)
-         trap_rad = 0.5_dp*abs(b% mtransfer_rate) *(1-fL2_now) * acc_radius(b, b% m(2)) / mdot_edd
+		 !call my_mdot_edd(binary_id,mdot_edd,ierr)
+         !trap_rad = 0.5_dp*abs(b% mtransfer_rate) *(1-fL2_now) * acc_radius(b, b% m(2)) / mdot_edd
+
+         qratio = min(max(q_now,0.0667d0),15d0)
+         min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
 		 b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 sqrt(standard_cgrav * b% m(b% a_i) * trap_rad)
+                 0.5d0 * sqrt(standard_cgrav * b% m(b% a_i) * 1.7*min_r)
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
-		 write(*,*) trap_rad, 0.5d0 * b% rl(b% a_i)
+		 write(*,*) 1.7*min_r, 0.2d0 * b% rl(b% a_i)
 		 write(*,*) fL2_now, b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
       end subroutine my_jdot_ml
