@@ -1522,12 +1522,12 @@
              (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
 		 b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 0.5d0 * sqrt(standard_cgrav * b% m(b% a_i) * 0.2d0 * b% rl(b% a_i))
+                 0.44d0 * sqrt(standard_cgrav * b% m(b% a_i) * 0.5d0 * b% rl(b% a_i))
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
 		 write(*,*) b% mdot_system_transfer(b% a_i)*&
-                 0.5d0 * sqrt(standard_cgrav * b% m(b% a_i) * 0.5d0 * b% rl(b% a_i))
+                 0.44d0 * sqrt(standard_cgrav * b% m(b% a_i) * 0.5d0 * b% rl(b% a_i))
 		 write(*,*) fL2_now, b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
       end subroutine my_jdot_ml
