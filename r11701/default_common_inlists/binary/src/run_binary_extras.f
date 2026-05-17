@@ -1526,7 +1526,7 @@
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
-		 write(*,*), fL2_now, b% mtransfer_rate*fL2_now*&
+		 write(*,*) fL2_now, b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
       end subroutine my_jdot_ml
 
