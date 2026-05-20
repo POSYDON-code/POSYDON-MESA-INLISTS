@@ -1533,8 +1533,7 @@
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
 		 write(*,*) trap_rad/acc_radius(b, b% m(2)),(1.7*min_r)/acc_radius(b, b% m(2))
-		 write(*,*) fL2_now, b% mtransfer_rate*fL2_now*&
-                 (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
+		 write(*,*) fL2_now, abs(b% mtransfer_rate),mdot_edd
       end subroutine my_jdot_ml
 
       !Return either rety,backup,keep_going or terminate
