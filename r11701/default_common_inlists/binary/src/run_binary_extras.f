@@ -1522,7 +1522,8 @@
              (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
 
-		 call my_mdot_edd(binary_id,mdot_edd,ierr)
+		 mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
+                  /(clight*0.2d0*(1d0+b% s_donor% surface_h1))
          trap_rad = 0.5_dp*abs(b% mtransfer_rate) *(1-fL2_now) * acc_radius(b, b% m(2)) / mdot_edd
 
          qratio = min(max(q_now,0.0667d0),15d0)
@@ -1533,7 +1534,7 @@
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
 		 write(*,*) trap_rad/acc_radius(b, b% m(2)),(1.7*min_r)/acc_radius(b, b% m(2))
-		 write(*,*) fL2_now, abs(b% mtransfer_rate),mdot_edd
+		 write(*,*) fL2_now
       end subroutine my_jdot_ml
 
       !Return either rety,backup,keep_going or terminate
