@@ -1528,11 +1528,11 @@
          qratio = min(max(q_now,0.0667d0),15d0)
          min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
 		 b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 sqrt(standard_cgrav * b% m(b% a_i) * trap_rad)
+                 sqrt(standard_cgrav * b% m(b% a_i) * 1.3*trap_rad)
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
-		 write(*,*) 1.7*min_r, 0.2d0 * b% rl(b% a_i)
+		 write(*,*) trap_rad/(1.7*min_r),trap_rad/b% rl(2)
 		 write(*,*) fL2_now, b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
       end subroutine my_jdot_ml
