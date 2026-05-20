@@ -1528,7 +1528,7 @@
          qratio = min(max(q_now,0.0667d0),15d0)
          min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
 		 b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 0.4d0/0.9d0*sqrt(standard_cgrav * b% m(b% a_i) * 1.7*min_r)
+                 0.3d0/0.8d0*sqrt(standard_cgrav * b% m(b% a_i) * 1.7*min_r)
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
