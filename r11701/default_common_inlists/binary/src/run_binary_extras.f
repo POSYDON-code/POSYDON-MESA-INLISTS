@@ -1486,7 +1486,7 @@
       subroutine my_jdot_ml(binary_id, ierr)
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-         real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl2
+         real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl2,trap_rad,mdot_edd
          type (binary_info), pointer :: b
          real(dp) :: alfa
          ierr = 0
