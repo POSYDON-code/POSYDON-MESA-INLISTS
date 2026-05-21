@@ -1504,14 +1504,17 @@
           logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
           a_now = log10_cr(b% separation/Rsun)
           call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-          
-          b% xfer_fraction = min(b% xfer_fraction, b% mdot_edd/(abs(b% mtransfer_rate)*(1-fL2_now)))
+          call my_mdot_edd(binary_id,mdot_edd,ierr)
+		  if (b% use_radiation_corrected_transfer_rate) then
+               b% xfer_fraction = (1 - b% mdot_edd_eta) * b% xfer_fraction
+		  end if
 		  if (q_now<1) then
 		      xl2 = 0.0756*log10_cr(q_now)**2+0.424*log10_cr(q_now)+1.699
 		  else
 		      xl2 = 1-(0.0756*log10_cr(1.0d0/q_now)**2+0.424*log10_cr(1.0d0/q_now)+1.699)
 		  end if
-		 b% mdot_system_transfer(b% a_i) = b% mtransfer_rate*(1-b% xfer_fraction)*(1-fL2_now) - &
+		 b% xfer_fraction = min(b% xfer_fraction, mdot_edd/(abs(b% mtransfer_rate)), 1.0d0-fL2_now)
+		 b% mdot_system_transfer(b% a_i) = b% mtransfer_rate*(1-b% xfer_fraction-fL2_now) - &
              b% mdot_system_transfer(b% d_i) - b% mdot_system_cct
          !mass lost from vicinity of donor
          b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
