@@ -1049,6 +1049,7 @@
          real(dp), intent(out) :: mdot_edd
          integer, intent(out) :: ierr
          real(dp) :: mdot_edd_eta
+		 real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now
          real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
          type (binary_info), pointer :: b
          ierr = 0
@@ -1092,6 +1093,8 @@
                   /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
           !b% s1% x_ctrl(1) used to adjust the Eddington limit in inlist1
           mdot_edd = mdot_edd * b% s1% x_ctrl(1)
+		  call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
+		  mdot_edd = min(mdot_edd, abs(b% mtransfer_rate) *(1-fL2_now))
       end subroutine my_mdot_edd
 
       subroutine my_rlo_mdot(binary_id, mdot, ierr) ! Adapted from a routine kindly provided by Anastasios Fragkos
