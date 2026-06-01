@@ -1523,7 +1523,7 @@
          integer:: i_don, i_acc
          real(dp) :: q
          integer :: ierr
-		 real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl1,mu
+		 real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl1,mu,r_circ
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
             return
