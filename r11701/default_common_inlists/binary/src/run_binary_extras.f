@@ -1512,7 +1512,7 @@
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mdot_system_cct *&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
-		 write(*,*) 'ml',b% r(b% a_i),b% s_accretor% mass_transfer_delta, b% mdot_system_cct
+		 write(*,*) 'ml',b% r(b% a_i),b% mass_transfer_delta, b% mdot_system_cct
                  
       end subroutine my_jdot_ml
 
@@ -1552,13 +1552,13 @@
        end if
        q_now = b% m(b% a_i)/b% m(b% d_i)
 	   xl1 = -0.0355 * log10_cr(q_now)**2 + 0.251 * abs(log10_cr(q_now)) + 0.500
-	   if log10_cr(q_now)>0 then
+	   if (log10_cr(q_now)>0) then
 	       xl1 = 1d0-xl1
 	   end if
 	   mu = q_now/(1 + q_now)
 	   r_circ = (1-xL1)**4/mu 
 	   if (.not. fL2_loaded) then
-	       if b% r(b% a_i) < r_circ then 
+	       if (b% r(b% a_i) < r_circ) then 
 	           call load_fL2_table('../fL2_table.dat', ierr)
 			   if (ierr /= 0) then
                    write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
@@ -1577,8 +1577,8 @@
         logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
         a_now = log10_cr(b% separation/Rsun)
 		call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-		b% s_accretor% mass_transfer_delta = fL2_now
-		write(*,*) 'extra', r_circ,b% r(b% a_i),b% s_accretor% mass_transfer_delta
+		b% mass_transfer_delta = fL2_now
+		write(*,*) 'extra', r_circ,b% r(b% a_i),b% mass_transfer_delta
  
 
       end function extras_binary_check_model
