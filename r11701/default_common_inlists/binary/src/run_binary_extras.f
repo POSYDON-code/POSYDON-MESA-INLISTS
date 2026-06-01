@@ -1556,7 +1556,7 @@
 	       xl1 = 1d0-xl1
 	   end if
 	   mu = q_now/(1 + q_now)
-	   r_circ = (1-xL1)**4/mu 
+	   r_circ = (1-xL1)**4/mu * b% separation
 	   if (.not. fL2_loaded) then
 	       if (b% r(b% a_i) < r_circ) then 
 	           call load_fL2_table('../fL2_table.dat', ierr)
