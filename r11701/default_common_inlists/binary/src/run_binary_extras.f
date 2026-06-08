@@ -44,7 +44,6 @@
       real(dp), allocatable :: a_grid(:)
       real(dp), allocatable :: fL2(:,:,:,:) ! (nq, nm, nx, na)
 
-      character(len=256) :: fL2_filename = 'fL2_table.dat'
 
       contains
 
@@ -1486,7 +1485,7 @@
       subroutine my_jdot_ml(binary_id, ierr)
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-         real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl2,trap_rad, mdot_edd,qratio,min_r
+         real(dp) :: q_now,xl2
          type (binary_info), pointer :: b
          real(dp) :: alfa
          ierr = 0
@@ -1495,27 +1494,13 @@
             write(*,*) 'failed in binary_ptr'
             return
          end if
-         if (.not. fL2_loaded) then
-            call load_fL2_table('../fL2_table.dat', ierr)
-            if (ierr /= 0) then
-                write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
-                stop
-            end if
-          end if
+         
           q_now = b% m(b% a_i)/b% m(b% d_i)
-          m_now=  b% m(b% a_i)/Msun
-          logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
-          a_now = log10_cr(b% separation/Rsun)
-          call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-          call my_mdot_edd(binary_id,mdot_edd,ierr)
 		  if (q_now<1) then
 		      xl2 = 0.0756*log10_cr(q_now)**2+0.424*log10_cr(q_now)+1.699
 		  else
 		      xl2 = 1-(0.0756*log10_cr(1.0d0/q_now)**2+0.424*log10_cr(1.0d0/q_now)+1.699)
 		  end if
-		 b% xfer_fraction = min(b% xfer_fraction, 1.0d0-fL2_now)
-		 b% mdot_system_transfer(b% a_i) = b% mtransfer_rate*(1-b% xfer_fraction-fL2_now) - &
-             b% mdot_system_transfer(b% d_i) - b% mdot_system_cct
          !mass lost from vicinity of donor
          b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
              (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
@@ -1524,20 +1509,11 @@
          b% jdot_ml = b% jdot_ml + (b% mdot_system_transfer(b% a_i) + b% mdot_system_wind(b% a_i))*&
              (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
-
-		 mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
-                  /(clight*0.2d0*(1d0+b% s_donor% surface_h1))
-         trap_rad = 0.5_dp*abs(b% mtransfer_rate) *(1-fL2_now) * acc_radius(b, b% m(2)) / mdot_edd
-
-         qratio = min(max(q_now,0.0667d0),15d0)
-         min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
-		 b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
-                 0.5d0*sqrt(standard_cgrav * b% m(b% a_i) * trap_rad)
          !mass lost from L2
-		 b% jdot_ml = b% jdot_ml + b% mtransfer_rate*fL2_now*&
+		 b% jdot_ml = b% jdot_ml + b% mdot_system_cct *&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
-		 write(*,*) trap_rad/acc_radius(b, b% m(2)),(1.7*min_r)/acc_radius(b, b% m(2))
-		 write(*,*) fL2_now
+		 write(*,*) 'ml', b% mass_transfer_delta
+                 
       end subroutine my_jdot_ml
 
       !Return either rety,backup,keep_going or terminate
@@ -1547,6 +1523,7 @@
          integer:: i_don, i_acc
          real(dp) :: q
          integer :: ierr
+		 real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl1,mu,r_circ
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
             return
@@ -1573,7 +1550,28 @@
           b% do_jdot_missing_wind = .true.
           b% do_j_accretion = .true.
        end if
-
+       q_now = b% m(b% a_i)/b% m(b% d_i)
+	   xl1 = -0.0355 * log10_cr(q_now)**2 + 0.251 * abs(log10_cr(q_now)) + 0.500
+	   if (log10_cr(q_now)>0) then
+	       xl1 = 1d0-xl1
+	   end if
+	   mu = q_now/(1 + q_now)
+	   r_circ = (1-xL1)**4/mu * b% separation
+	   if (.not. fL2_loaded) then
+		    call load_fL2_table('../fL2_table_70rl.dat', ierr)
+			!write(*,*) 'call fL2_table_70rl'
+			if (ierr /= 0) then
+                write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
+                stop
+            end if  
+		end if
+		
+        m_now=  b% m(b% a_i)/Msun
+        logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
+        a_now = log10_cr(b% separation/Rsun)
+		call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
+		b% mass_transfer_delta = fL2_now
+ 
 
       end function extras_binary_check_model
 
