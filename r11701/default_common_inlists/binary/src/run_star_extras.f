@@ -12,7 +12,7 @@
 !     mesa is distributed in the hope that it will be useful,
 !     but without any warranty; without even the implied warranty of
 !     merchantability or fitness for a particular purpose.  see the
-!     gnu library general public license for more details.
+!     gnu library general public license for more details
 !
 !     you should have received a copy of the gnu library general public license
 !     along with this software; if not, write to the free software
@@ -1716,7 +1716,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          current_wind_prscr(id) = 2d0
       else
          call eval_Vink_wind(w)
-         w = w * 1d0
+         w = w * 1d0/3d0
          current_wind_prscr(id) = 1d0
       end if
 
