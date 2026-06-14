@@ -2295,7 +2295,7 @@
 
          ! check if accreting onto a cooling white dwarf
          if (b% point_mass_i == 0) then
-             if (b% s_accretor% central_gamma >= 3d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-12) then
+             if (b% s_accretor% center_gamma >= 3d0 .and. abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-12) then
                   write(*,'(g0)') "termination code: Mass transfer onto a cooling white dwarf"
                   extras_binary_finish_step = terminate
                   return
