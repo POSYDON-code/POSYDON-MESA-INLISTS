@@ -52,6 +52,7 @@ contains
     !s% other_mlt => my_other_mlt
     s% other_am_mixing => TSF
     s% other_wind => other_set_mdot
+    s% other_am_mixing => my_am_mixing
 
     s% extras_startup => extras_startup
     s% extras_check_model => extras_check_model
@@ -70,6 +71,22 @@ contains
 
   end subroutine extras_controls
 
+  subroutine my_am_mixing(id, ierr)
+
+     integer, intent(in) :: id
+     integer, intent(out) :: ierr
+     type(star_info), pointer :: s
+     integer :: k
+     real(dp) :: boost
+     ierr = 0
+     call star_ptr(id, s, ierr)
+     if (ierr /= 0) return
+     
+     do k = 1, s% k_below_just_added
+        ! Only boost in outer k_below_just_added layers
+        s% am_nu_omega(k) = s% am_nu_omega(k) * 5d0
+     end do
+   end subroutine null_other_am_mixing
 
   integer function extras_startup(id, restart, ierr)
     integer, intent(in) :: id
