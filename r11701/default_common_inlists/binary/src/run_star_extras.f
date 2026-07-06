@@ -86,7 +86,7 @@ contains
         ! Only boost in outer k_below_just_added layers
         s% am_nu_omega(k) = s% am_nu_omega(k) * 5d0
      end do
-   end subroutine null_other_am_mixing
+   end subroutine my_am_mixing
 
   integer function extras_startup(id, restart, ierr)
     integer, intent(in) :: id
