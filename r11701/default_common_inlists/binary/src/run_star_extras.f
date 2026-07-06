@@ -50,7 +50,7 @@ contains
     if (ierr /= 0) return
 
     !s% other_mlt => my_other_mlt
-    s% other_am_mixing => TSF
+    !s% other_am_mixing => TSF
     s% other_wind => other_set_mdot
     s% other_am_mixing => my_am_mixing
 
