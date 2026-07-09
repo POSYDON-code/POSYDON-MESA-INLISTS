@@ -142,7 +142,7 @@
       am_gradmu_factor = 0.05d0 !f_mu = 0.05 in Heger+2000, 0.1 in Yoon+2006
 
       am_nu_ST_factor = 1.0d0 ! 0:noTS, 1:TS
-      use_other_am_mixing = .true. ! use this if you want to use the enhanced FULLER et al. TAYLER-SPRUIT
+      use_other_am_mixing = .false. ! use this if you want to use the enhanced FULLER et al. TAYLER-SPRUIT
       am_time_average = .true.
       premix_omega = .true.
       recalc_mixing_info_each_substep = .true.
@@ -150,6 +150,8 @@
       am_nu_non_rotation_factor = 1.0d0
       am_nu_visc_factor = 0.333d0 !
       angsml = 0.0d0 !
+      am_nu_omega_rot_factor = 5d0
+      
 
       !MASS LOSS
       use_other_wind=.true. ! combination of Dutch and Reimers, with Z=Zbase for the scaling
