@@ -1559,18 +1559,12 @@
 	   r_circ = (1-xL1)**4/mu * b% separation
 	   if (.not. fL2_loaded) then
 		    if (b% r(b% a_i) < r_circ) then 
-	           call load_fL2_table('../fL2_table.dat', ierr)
-			   if (ierr /= 0) then
-                   write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
-                   stop
-               end if
-		   else
-		       call load_fL2_table('../fL2_table_50rl.dat', ierr)
-			   write(*,*) 'call fL2_table_50rl'
-			   if (ierr /= 0) then
-                   write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
-                   stop
-               end if  
+	           call load_fL2_table('../fL2_table_70rl.dat', ierr)
+			!write(*,*) 'call fL2_table_70rl'
+			if (ierr /= 0) then
+                write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
+                stop
+            end if  
 		   end if
 		end if
 		
