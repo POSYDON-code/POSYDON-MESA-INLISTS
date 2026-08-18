@@ -1672,7 +1672,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
       end if
 
       w = alfa*w1 + (1d0 - alfa)*w2
-      w = w * 1d0/3d0
+      
       if (dbg) write(*,*) 'vink wind', w
 
     end subroutine eval_Vink_wind
@@ -1716,6 +1716,7 @@ subroutine loop_conv_layers(s,n_conv_regions_posydon, n_zones_of_region, bot_bdy
          current_wind_prscr(id) = 2d0
       else
          call eval_Vink_wind(w)
+         w = w * 1d0/3d0
          current_wind_prscr(id) = 1d0
       end if
 
