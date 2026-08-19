@@ -1558,14 +1558,12 @@
 	   mu = q_now/(1 + q_now)
 	   r_circ = (1-xL1)**4/mu * b% separation
 	   if (.not. fL2_loaded) then
-		    if (b% r(b% a_i) < r_circ) then 
-	           call load_fL2_table('../fL2_table_70rl.dat', ierr)
-			!write(*,*) 'call fL2_table_70rl'
+	        call load_fL2_table('../fL2_table_70rl.dat', ierr)
+			write(*,*) 'call fL2_table_70rl'
 			if (ierr /= 0) then
                 write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
                 stop
             end if  
-		   end if
 		end if
 		
         m_now=  b% m(b% a_i)/Msun
@@ -1629,7 +1627,7 @@
          if (b% point_mass_i == 2) then
            call my_mdot_edd(binary_id,mdot_edd,ierr)
            if (.not. fL2_loaded) then
-            call load_fL2_table('../fL2_table.dat', ierr)
+            call load_fL2_table('../fL2_table_70rl.dat', ierr)
             if (ierr /= 0) then
                 write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
                 stop
