@@ -78,6 +78,7 @@
           b% other_tsync => my_tsync
           b% other_mdot_edd => my_mdot_edd
 	      b% other_rlo_mdot => my_rlo_mdot
+		  b% other_accreted_material_j => my_accreted_material_j
 		  b% other_jdot_ml => my_jdot_ml
       end subroutine extras_binary_controls
 	  
@@ -1506,15 +1507,63 @@
              (b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
          !mass lost from vicinity of accretor
-         b% jdot_ml = b% jdot_ml + (b% mdot_system_transfer(b% a_i) + b% mdot_system_wind(b% a_i))*&
+         b% jdot_ml = b% jdot_ml +  b% mdot_system_wind(b% a_i)*&
              (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
+		 if (b% r(b% a_i) < 0.75d0*b% rl(b% a_i)) then
+             b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
+				 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *0.75d0*b% rl(b% a_i)))
+		 else 
+		     b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
+                 ((b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
+                 sqrt(1 - b% eccentricity**2) + sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) *b% rl(b% a_i)))
+		 end if
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mdot_system_cct *&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
 		 write(*,*) 'ml', b% mass_transfer_delta
                  
       end subroutine my_jdot_ml
+
+      subroutine my_accreted_material_j(binary_id, ierr)
+         use const_def, only: dp
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+         real(dp) :: qratio, min_r
+         type (binary_info), pointer :: b
+         ierr = 0
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then
+            write(*,*) 'failed in binary_ptr'
+            return
+         end if
+         qratio = b% m(b% a_i) / b% m(b% d_i)
+         qratio = min(max(qratio,0.0667d0),15d0)
+         min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio, 0.25d0)
+
+		 if (b% r(b% a_i) < min_r) then
+			b% accretion_mode = 2
+			b% s_accretor% accreted_material_j = &
+				(2d0/(1d0+pow_cr(2.7183d0, &
+				10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9d0)))-1d0) *&
+				sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+		 write(*,*) 'j1', b% r(b% a_i), b% r(b% a_i)-min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+				 b% s_accretor% accreted_material_j
+		 else
+			b% accretion_mode = 1
+			b% s_accretor% accreted_material_j = &
+				(2d0/(1d0+pow_cr(2.7183d0, &
+				10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9d0)))-1d0)*&
+				sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * 1.7d0*min_r)
+		 write(*,*) 'j2', b% r(b% a_i), b% r(b% a_i)-min_r, b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+				 b% s_accretor% accreted_material_j
+		 end if
+
+         b% acc_am_div_kep_am = b% s_accretor% accreted_material_j / &
+             sqrt(b% s_accretor% cgrav(1) * b% m(b% a_i) * b% r(b% a_i))
+
+      end subroutine my_accreted_material_j
 
       !Return either rety,backup,keep_going or terminate
       integer function extras_binary_check_model(binary_id)
@@ -1595,7 +1644,8 @@
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23,rl2_1,trap_rad, mdot_edd
+            rl23,rl2_1,trap_rad, mdot_edd,Lrad_div_Ledd,gamma_factor,&
+			omega_crit, qratio, min_r
          logical :: is_ne_biggest
          real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
@@ -1915,6 +1965,38 @@
 	        end if
              end if
 	 end if
+
+	 qratio = b% m(b% a_i) / b% m(b% d_i)
+     qratio = min(max(qratio,0.0667d0),15d0)
+     min_r = 0.0425d0*b% separation*pow_cr(qratio+qratio*qratio,0.25d0)
+     
+	 if (b% r(b% a_i) < min_r) then
+		 b% mass_transfer_beta =(2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
+					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
+					   (2d0*sqrt(0.75d0*b% rl(b% a_i)/b% r(b% a_i))-&
+					   (2.0d0/(1.0d0+pow_cr(2.7183d0, &
+					   10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
+		 write(*,*) 'm1', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+			 b% mass_transfer_beta
+	 else
+	     if (b% r(b% a_i) < 0.75d0*b% rl(b% a_i)) then
+		     b% mass_transfer_beta = (2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
+					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
+					       (2d0*sqrt(0.75d0*b% rl(b% a_i)/(1.7d0*min_r))-&
+					       (2d0/(1.0d0+pow_cr(2.7183d0, &
+					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
+		 else
+		     b% mass_transfer_beta = (2d0-2d0/(1.0d0+pow_cr(2.7183d0, &
+					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9))))/&
+					       (2d0*sqrt(b% rl(b% a_i)/(1.7d0*min_r))-&
+					       (2d0/(1.0d0+pow_cr(2.7183d0, &
+					       10d0*(b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf-0.9)))-1d0))
+	     end if
+		 write(*,*) 'm2', b% r(b% a_i), min_r, b% rl(b% a_i),b% s_accretor% omega_avg_surf/b% s_accretor% omega_crit_avg_surf,&
+			     b% mass_transfer_beta
+	 end if
+ 
+    b% mass_transfer_beta = max(0d0,b% mass_transfer_beta)
 
       end function extras_binary_finish_step
 
