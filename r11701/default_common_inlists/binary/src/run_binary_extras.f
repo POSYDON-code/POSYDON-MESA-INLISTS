@@ -66,6 +66,7 @@
          b% data_for_extra_binary_history_columns => data_for_extra_binary_history_columns
 
          b% extras_binary_startup=> extras_binary_startup
+		 b% extras_binary_start_step=> extras_binary_start_step
          b% extras_binary_check_model=> extras_binary_check_model
          b% extras_binary_finish_step => extras_binary_finish_step
          b% extras_binary_after_evolve=> extras_binary_after_evolve
@@ -97,163 +98,77 @@
       subroutine load_fL2_table(filename, ierr)
 	      character(len=*), intent(in) :: filename
 	      integer, intent(out) :: ierr
-	
-	      integer :: iu
-	      integer :: iq, im, ix
-	      logical :: exists
-	
+	      integer :: iu, iq, im, ix
 	      ierr = 0
-	
 	      call unload_fL2_table()
 	
-	      inquire(file=filename, exist=exists)
-	      if (.not. exists) then
-	         ierr = 101
-	         return
-	      end if
-		  
-		  open(newunit=iu, file=filename, status='old', action='read', iostat=ierr)
+	      open(newunit=iu, file=filename, status='old', &
+	           action='read', iostat=ierr)
 	      if (ierr /= 0) then
-	         ierr = 102
-	         return
-	      end if
+		     ierr = 101
+			 return
+		  end if
 	
 	      read(iu, *, iostat=ierr) nq, nm, nx, na
-	      if (ierr /= 0) then
-	         ierr = 103
-	         close(iu)
-	         return
-	      end if
+	      if (ierr /= 0) go to 900
 	
-	      if (nq < 2 .or. nm < 2 .or. nx < 2 .or. na < 2) then
+	      if (min(nq, nm, nx, na) < 2) then
 	         ierr = 104
-	         close(iu)
-	         return
+	         go to 900
 	      end if
 	
-	      allocate(q_grid(nq), stat=ierr)
-	      if (ierr /= 0) then
-	         ierr = 105
-	         close(iu)
-	         return
-	      end if
-	
-	      allocate(m_grid(nm), stat=ierr)
-	      if (ierr /= 0) then
-	         ierr = 106
-	         close(iu)
-	         return
-	      end if
-	
-	      allocate(x_grid(nx), stat=ierr)
-	      if (ierr /= 0) then
-	         ierr = 107
-	         close(iu)
-	         return
-	      end if
-	
-	      allocate(a_grid(na), stat=ierr)
-	      if (ierr /= 0) then
-	         ierr = 108
-	         close(iu)
-	         return
-	      end if
-	      allocate(fL2(nq, nm, nx, na), stat=ierr)
-	      if (ierr /= 0) then
-	         ierr = 109
-	         close(iu)
-	         return
-	      end if
+	      allocate(q_grid(nq), m_grid(nm), x_grid(nx), a_grid(na), &
+	               fL2(nq, nm, nx, na), stat=ierr)
+	      if (ierr /= 0) go to 900
 	
 	      read(iu, *, iostat=ierr) q_grid
-	      if (ierr /= 0) then
-	         ierr = 110
-	         close(iu)
-	         call unload_fL2_table()
-	         return
-	      end if
-	
+	      if (ierr /= 0) go to 900
 	      read(iu, *, iostat=ierr) m_grid
-	      if (ierr /= 0) then
-	         ierr = 111
-	         close(iu)
-	         call unload_fL2_table()
-	         return
-	      end if
-	
+	      if (ierr /= 0) go to 900
 	      read(iu, *, iostat=ierr) x_grid
-	      if (ierr /= 0) then
-	         ierr = 112
-	         close(iu)
-	         call unload_fL2_table()
-	         return
-	      end if
-	
+	      if (ierr /= 0) go to 900
 	      read(iu, *, iostat=ierr) a_grid
-	      if (ierr /= 0) then
-	         ierr = 113
-	         close(iu)
-	         call unload_fL2_table()
-	         return
-	      end if
-		  
+	      if (ierr /= 0) go to 900
+	
 	      do iq = 1, nq
 	         do im = 1, nm
 	            do ix = 1, nx
 	               read(iu, *, iostat=ierr) fL2(iq, im, ix, :)
-	               if (ierr /= 0) then
-	                  ierr = 114
-	                  close(iu)
-	                  call unload_fL2_table()
-	                  return
-	               end if
+	               if (ierr /= 0) go to 900
 	            end do
 	         end do
 	      end do
 	
-	      close(iu)
-	
-	      if (.not. strictly_increasing(q_grid)) then
+	      if (.not. (strictly_increasing(q_grid) .and. &
+	                 strictly_increasing(m_grid) .and. &
+	                 strictly_increasing(x_grid) .and. &
+	                 strictly_increasing(a_grid))) then
 	         ierr = 115
-	         call unload_fL2_table()
-	         return
+	         go to 900
 	      end if
 	
-	      if (.not. strictly_increasing(m_grid)) then
-	         ierr = 116
-	         call unload_fL2_table()
-	         return
-	      end if
-	
-	      if (.not. strictly_increasing(x_grid)) then
-	         ierr = 117
-	         call unload_fL2_table()
-	         return
-	      end if
-	
-	      if (.not. strictly_increasing(a_grid)) then
-	         ierr = 118
-	         call unload_fL2_table()
-	         return
-	      end if
-	
+	      close(iu)
 	      fL2_loaded = .true.
+	      return
+	
+	   ! Common cleanup for any failure after opening the file.
+	  900 continue
+	      close(iu)
+	      call unload_fL2_table()
+	
 	  end subroutine load_fL2_table
 	  subroutine get_fL2_value(qv, mv, xv, av, val, ierr, clamp_to_bounds)
-	      real(dp), intent(in) :: qv
-	      real(dp), intent(in) :: mv
-	      real(dp), intent(in) :: xv
-	      real(dp), intent(in) :: av
+	      real(dp), intent(in) :: qv, mv, xv, av
 	      real(dp), intent(out) :: val
 	      integer, intent(out) :: ierr
 	      logical, intent(in), optional :: clamp_to_bounds
 	
 	      integer :: iq0, im0, ix0, ia0
-	      real(dp) :: tq, tm, tx, ta
-	      real(dp) :: wq, wm, wx, wa
-	      logical :: do_clamp
-	      integer :: dq, dm, dx, da
-	      real(dp) :: qq, mm, xx, aa
+          integer :: dq, dm, dx, da
+   		  real(dp) :: tq, tm, tx, ta
+   		  real(dp) :: wq(0:1), wm(0:1), wx(0:1), wa(0:1)
+  		  real(dp) :: qq, mm, xx, aa
+   		  logical :: do_clamp
 	
 	      ierr = 0
 	      val = 0.0_dp
@@ -277,65 +192,35 @@
 	         xx = min(max(xx, x_grid(1)), x_grid(nx))
 	         aa = min(max(aa, a_grid(1)), a_grid(na))
 	      end if
+		  
 	      call find_cell(q_grid, nq, qq, iq0, tq, ierr)
-	      if (ierr /= 0) then
-	         ierr = 202
-	         return
-	      end if
+          if (ierr /= 0) return
 	
 	      call find_cell(m_grid, nm, mm, im0, tm, ierr)
-	      if (ierr /= 0) then
-	         ierr = 203
-	         return
-	      end if
+          if (ierr /= 0) return
+
+          call find_cell(x_grid, nx, xx, ix0, tx, ierr)
+          if (ierr /= 0) return
+
+          call find_cell(a_grid, na, aa, ia0, ta, ierr)
+          if (ierr /= 0) return
 	
-	      call find_cell(x_grid, nx, xx, ix0, tx, ierr)
-	      if (ierr /= 0) then
-	         ierr = 204
-	         return
-	      end if
-	
-	      call find_cell(a_grid, na, aa, ia0, ta, ierr)
-	      if (ierr /= 0) then
-	         ierr = 205
-	         return
-	      end if
-	
-	      val = 0.0_dp
-	      do dq = 0, 1
-	         if (dq == 0) then
-	            wq = 1.0_dp - tq
-	         else
-	            wq = tq
-	         end if
-	
-	         do dm = 0, 1
-	            if (dm == 0) then
-	               wm = 1.0_dp - tm
-	            else
-	               wm = tm
-	            end if
-	
-	            do dx = 0, 1
-	               if (dx == 0) then
-	                  wx = 1.0_dp - tx
-	               else
-	                  wx = tx
-	               end if
-	
-	               do da = 0, 1
-	                  if (da == 0) then
-	                     wa = 1.0_dp - ta
-	                  else
-	                     wa = ta
-	                  end if
-	
-	                  val = val + wq*wm*wx*wa * &
-	                       fL2(iq0+dq, im0+dm, ix0+dx, ia0+da)
-	               end do
-	            end do
-	         end do
-	      end do
+	      wq = [1.0_dp - tq, tq]
+          wm = [1.0_dp - tm, tm]
+          wx = [1.0_dp - tx, tx]
+          wa = [1.0_dp - ta, ta]
+
+		  do dq = 0, 1
+             do dm = 0, 1
+                do dx = 0, 1
+                   do da = 0, 1
+                      val = val + wq(dq)*wm(dm)*wx(dx)*wa(da) * &
+                            fL2(iq0+dq, im0+dm, ix0+dx, ia0+da)
+                   end do
+                end do
+             end do
+          end do
+
 	   end subroutine get_fL2_value
 
 	   subroutine find_cell(grid, n, x, i0, t, ierr)
@@ -1048,7 +933,6 @@
          real(dp), intent(out) :: mdot_edd
          integer, intent(out) :: ierr
          real(dp) :: mdot_edd_eta
-		 real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now
          real(dp) :: r_isco, Z1, Z2, eq_initial_bh_mass
          type (binary_info), pointer :: b
          ierr = 0
@@ -1092,8 +976,6 @@
                   /(clight*0.2d0*(1d0+b% s_donor% surface_h1)*mdot_edd_eta)
           !b% s1% x_ctrl(1) used to adjust the Eddington limit in inlist1
           mdot_edd = mdot_edd * b% s1% x_ctrl(1)
-		  call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-		  mdot_edd = min(mdot_edd, abs(b% mtransfer_rate) *(1-fL2_now))
       end subroutine my_mdot_edd
 
       subroutine my_rlo_mdot(binary_id, mdot, ierr) ! Adapted from a routine kindly provided by Anastasios Fragkos
@@ -1482,12 +1364,66 @@
 
       end function  extras_binary_startup
 
+	  integer function extras_binary_start_step(binary_id,ierr)
+         type (binary_info), pointer :: b
+         integer, intent(in) :: binary_id
+         integer, intent(out) :: ierr
+		 integer :: wanted_table
+		 integer, save :: table = 0
+		 real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl1,mu,r_circ
+
+         extras_binary_start_step = keep_going
+         call binary_ptr(binary_id, b, ierr)
+         if (ierr /= 0) then ! failure in  binary_ptr
+            return
+         end if
+
+		 q_now = b% m(b% a_i)/b% m(b% d_i)
+	     xl1 = -0.0355d0 * log10_cr(q_now)**2 + 0.251d0 * abs(log10_cr(q_now)) + 0.5d0
+	     if (q_now>1) then
+	         xl1 = 1d0-xl1
+	     end if
+	     mu = q_now/(1d0 + q_now)
+	     r_circ = (1d0 - xL1)**4/mu * b% separation
+	     if (b% r(b% a_i) < r_circ) then
+            wanted_table = 1
+         else
+            wanted_table = 2
+         end if
+		 if (.not. fL2_loaded .or. table /= wanted_table) then
+		    if (wanted_table == 1) then
+			   call load_fL2_table('../fL2_table.dat', ierr)
+            else
+               call load_fL2_table('../fL2_table_50rl.dat', ierr)
+            end if
+			if (ierr /= 0) then
+			   write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
+			   extras_binary_start_step = terminate
+			   return
+			end if
+
+			table = wanted_table
+         end if
+         fL2_now = 0d0
+		 if (abs(b% mtransfer_rate) > 0d0) then
+		   m_now=  b% m(b% a_i)/Msun
+           logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
+           a_now = log10_cr(b% separation/Rsun)
+		   call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
+		   if (ierr /= 0) then
+		       extras_binary_start_step = terminate
+			   return
+           end if
+		 end if
+		 b% mass_transfer_delta = fL2_now
+      
+      end function  extras_binary_start_step
+
       subroutine my_jdot_ml(binary_id, ierr)
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
          real(dp) :: q_now,xl2
          type (binary_info), pointer :: b
-         real(dp) :: alfa
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then
@@ -1497,9 +1433,9 @@
          
           q_now = b% m(b% a_i)/b% m(b% d_i)
 		  if (q_now<1) then
-		      xl2 = 0.0756*log10_cr(q_now)**2+0.424*log10_cr(q_now)+1.699
+		      xl2 = 0.0756d0*log10_cr(q_now)**2+0.424d0*log10_cr(q_now)+1.699d0
 		  else
-		      xl2 = 1-(0.0756*log10_cr(1.0d0/q_now)**2+0.424*log10_cr(1.0d0/q_now)+1.699)
+		      xl2 = 1d0-(0.0756d0*log10_cr(1.0d0/q_now)**2d0+0.424d0*log10_cr(1.0d0/q_now)+1.699d0)
 		  end if
          !mass lost from vicinity of donor
          b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
@@ -1512,7 +1448,7 @@
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mdot_system_cct *&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
-		 write(*,*) 'ml', b% mass_transfer_delta
+		 !write(*,*) 'ml', b% mass_transfer_delta
                  
       end subroutine my_jdot_ml
 
@@ -1523,7 +1459,6 @@
          integer:: i_don, i_acc
          real(dp) :: q
          integer :: ierr
-		 real(dp) :: fL2_now,q_now,m_now,logMdot_now,a_now,xl1,mu,r_circ
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
             return
@@ -1550,37 +1485,7 @@
           b% do_jdot_missing_wind = .true.
           b% do_j_accretion = .true.
        end if
-       q_now = b% m(b% a_i)/b% m(b% d_i)
-	   xl1 = -0.0355 * log10_cr(q_now)**2 + 0.251 * abs(log10_cr(q_now)) + 0.500
-	   if (log10_cr(q_now)>0) then
-	       xl1 = 1d0-xl1
-	   end if
-	   mu = q_now/(1 + q_now)
-	   r_circ = (1-xL1)**4/mu * b% separation
-	   if (.not. fL2_loaded) then
-		    if (b% r(b% a_i) < r_circ) then 
-	           call load_fL2_table('../fL2_table.dat', ierr)
-			   if (ierr /= 0) then
-                   write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
-                   stop
-               end if
-		   else
-		       call load_fL2_table('../fL2_table_50rl.dat', ierr)
-			   write(*,*) 'call fL2_table_50rl'
-			   if (ierr /= 0) then
-                   write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
-                   stop
-               end if  
-		   end if
-		end if
-		
-        m_now=  b% m(b% a_i)/Msun
-        logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
-        a_now = log10_cr(b% separation/Rsun)
-		call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-		b% mass_transfer_delta = fL2_now
- 
-
+    
       end function extras_binary_check_model
 
 
@@ -1634,18 +1539,16 @@
          ! check trapping radius only for runs with a compact object
          if (b% point_mass_i == 2) then
            call my_mdot_edd(binary_id,mdot_edd,ierr)
-           if (.not. fL2_loaded) then
-            call load_fL2_table('../fL2_table.dat', ierr)
-            if (ierr /= 0) then
-                write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
-                stop
-            end if
-          end if
-          q_now = b% m(b% a_i)/b% m(b% d_i)
-          m_now=  b% m(b% a_i)/Msun
-          logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
-          a_now = log10_cr(b% separation/Rsun)
-          call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
+           q_now = b% m(b% a_i)/b% m(b% d_i)
+           m_now=  b% m(b% a_i)/Msun
+           logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
+           a_now = log10_cr(b% separation/Rsun)
+           call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
+		   if (ierr /= 0) then
+              write(*,*) 'ERROR: get_fL2_value failed in extras_binary_finish_step, ierr = ', ierr
+              extras_binary_finish_step = terminate
+              return
+           end if
 		  
            ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
            trap_rad = 0.5_dp*abs(b% mtransfer_rate) *(1-fL2_now) * acc_radius(b, b% m(2)) / mdot_edd
