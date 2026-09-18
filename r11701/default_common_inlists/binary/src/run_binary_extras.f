@@ -1422,7 +1422,7 @@
       subroutine my_jdot_ml(binary_id, ierr)
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
-         real(dp) :: q_now,xl2
+         real(dp) :: q_now, xl2, mdot_edd, trap_rad
          type (binary_info), pointer :: b
          ierr = 0
          call binary_ptr(binary_id, b, ierr)
@@ -1435,7 +1435,7 @@
 		  if (q_now<1) then
 		      xl2 = 0.0756d0*log10_cr(q_now)**2+0.424d0*log10_cr(q_now)+1.699d0
 		  else
-		      xl2 = 1d0-(0.0756d0*log10_cr(1.0d0/q_now)**2d0+0.424d0*log10_cr(1.0d0/q_now)+1.699d0)
+		      xl2 = 1d0-(0.0756d0*log10_cr(1.0d0/q_now)**2+0.424d0*log10_cr(1.0d0/q_now)+1.699d0)
 		  end if
          !mass lost from vicinity of donor
          b% jdot_ml = (b% mdot_system_transfer(b% d_i) + b% mdot_system_wind(b% d_i))*&
@@ -1445,6 +1445,14 @@
          b% jdot_ml = b% jdot_ml + (b% mdot_system_transfer(b% a_i) + b% mdot_system_wind(b% a_i))*&
              (b% m(b% d_i)/(b% m(b% a_i)+b% m(b% d_i))*b% separation)**2*2*pi/b% period *&
              sqrt(1 - b% eccentricity**2)
+		 !mass lost from the disk for compact object accretor
+		 if (b% point_mass_i /= 0 .and. b% a_i == b% point_mass_i) then
+		     mdot_edd = 4d0*pi*b% s_donor% cgrav(1)*b% m(b% a_i) &
+                  /(clight*0.2d0*(1d0+b% s_donor% surface_h1))
+			 trap_rad = 0.5_dp*abs(b% mtransfer_rate) *(1-b% mass_transfer_delta) * acc_radius(b, b% m(2)) / mdot_edd
+			 b% jdot_ml = b% jdot_ml + b% mdot_system_transfer(b% a_i)*&
+                 0.5d0 * sqrt(standard_cgrav * b% m(b% a_i) * trap_rad)
+		 end if
          !mass lost from L2
 		 b% jdot_ml = b% jdot_ml + b% mdot_system_cct *&
                  (((xl2-b% m(b% a_i)/(b% m(b% a_i)+b% m(b% d_i)))*b% separation)**2*2*pi/b% period)
