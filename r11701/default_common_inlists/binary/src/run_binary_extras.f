@@ -1394,7 +1394,7 @@
 		    if (wanted_table == 1) then
 			   call load_fL2_table('../fL2_table.dat', ierr)
             else
-               call load_fL2_table('../fL2_table_50rl.dat', ierr)
+               if (fL2_loaded) call unload_fL2_table()
             end if
 			if (ierr /= 0) then
 			   write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
@@ -1405,7 +1405,7 @@
 			table = wanted_table
          end if
          fL2_now = 0d0
-		 if (abs(b% mtransfer_rate) > 0d0) then
+		 if (fL2_loaded .and. abs(b% mtransfer_rate) > 0d0) then
 		   m_now=  b% m(b% a_i)/Msun
            logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
            a_now = log10_cr(b% separation/Rsun)
