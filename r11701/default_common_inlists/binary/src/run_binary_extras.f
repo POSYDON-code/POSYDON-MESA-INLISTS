@@ -1393,8 +1393,12 @@
 		 if (.not. fL2_loaded .or. table /= wanted_table) then
 		    if (wanted_table == 1) then
 			   call load_fL2_table('../fL2_table.dat', ierr)
+			   write(*,*) 'load_fL2_table'
             else
-               if (fL2_loaded) call unload_fL2_table()
+               if (fL2_loaded) then
+			      call unload_fL2_table()
+			      write(*,*) 'unload_fL2_table'
+			   end if
             end if
 			if (ierr /= 0) then
 			   write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
@@ -1410,10 +1414,6 @@
            logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
            a_now = log10_cr(b% separation/Rsun)
 		   call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-		   if (ierr /= 0) then
-		       extras_binary_start_step = terminate
-			   return
-           end if
 		 end if
 		 b% mass_transfer_delta = fL2_now
       
@@ -1552,12 +1552,6 @@
            logMdot_now = log10_cr(abs(b% mtransfer_rate)/(Msun/secyer))
            a_now = log10_cr(b% separation/Rsun)
            call get_fL2_value(q_now, m_now, logMdot_now, a_now, fL2_now, ierr, clamp_to_bounds=.true.)
-		   if (ierr /= 0) then
-              write(*,*) 'ERROR: get_fL2_value failed in extras_binary_finish_step, ierr = ', ierr
-              extras_binary_finish_step = terminate
-              return
-           end if
-		  
            ! Begelman 1997 and King & Begelman 1999 eq. 1: accretor is star 2
            trap_rad = 0.5_dp*abs(b% mtransfer_rate) *(1-fL2_now) * acc_radius(b, b% m(2)) / mdot_edd
 
