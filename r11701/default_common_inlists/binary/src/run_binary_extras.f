@@ -1391,14 +1391,13 @@
             wanted_table = 2
          end if
 		 if (.not. fL2_loaded .or. table /= wanted_table) then
+		    if (fL2_loaded) call unload_fL2_table()
 		    if (wanted_table == 1) then
 			   call load_fL2_table('../fL2_table.dat', ierr)
 			   write(*,*) 'load_fL2_table'
             else
-               if (fL2_loaded) then
-			      call unload_fL2_table()
-			      write(*,*) 'unload_fL2_table'
-			   end if
+               call load_fL2_table('../fL2_table_50rl.dat', ierr)
+			   write(*,*) 'load_fL2_table_50rl'
             end if
 			if (ierr /= 0) then
 			   write(*,*) 'ERROR loading fL2 table, ierr = ', ierr
