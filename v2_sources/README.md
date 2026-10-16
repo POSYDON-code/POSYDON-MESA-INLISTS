@@ -16,8 +16,10 @@ folders.
   dropped from the path).
   `35dd7a4_jeff_new_grid/` also holds `HeMS-HMS/`; no v2 grid used it, but
   HeMS-HMS is a supported grid type.
-- `zams_models/tree_<hash>/`: the two distinct versions of
-  `r11701/ZAMS_models/` used by these commits (git stores them once).
+- `zams_models/`: the ZAMS models used by all these commits. The commits
+  hold one of two versions of `r11701/ZAMS_models/`, but the newer one is a
+  superset: the 6 shared files are byte-identical, and it adds the 0.2, 0.45
+  (2023-03-07) and 2 Z_sun (2023-04-05) models. Only the newer one is kept.
 - `production_grids.csv`: one row per ini file found in a v2 run folder
   (797 rows), with columns:
   - `grid_type`, `metallicity`, `run`, `ini_file`: where the ini sits
