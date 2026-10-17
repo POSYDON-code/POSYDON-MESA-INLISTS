@@ -1,6 +1,7 @@
-# Build `default` (MESA r11701)
+# MESA installation `default` (r11701)
 
-What depends only on the MESA build, not on POSYDON's physics choices:
+MESA's own stock files for this installation, independent of POSYDON's
+physics choices. They form the `mesa_inlists` layer of the grid setup:
 
 - `defaults/star/controls.defaults`, `defaults/star/star_job.defaults`,
   `defaults/binary/binary_controls.defaults`,
@@ -24,12 +25,12 @@ files are identical, so the v2 grids, set up in 2023-2024 with
 `${posydon_github_root}/grid_params/defaults/r11701/...`, used these
 defaults.
 
-## Not the cluster build
+## Not the cluster installation
 
-These are not exactly the defaults of the MESA build the v2 grids ran with
+These are not exactly the defaults of the MESA installation the v2 grids ran with
 on yggdrasil (`mesa-r11701_witheoschange_andwithreverseMTchange_fiximplicitmdot`):
 there, `controls.defaults` comments out 10 `xa_*_limit(1)` lines, and
 `star_job.defaults` has `remove_center_by_he4` and two
 `remove_initial_surface_by_v_surf_div_*` options of the patched MESA. That
-build will be added as its own folder (`builds/cluster_patched/`), never as
-an edit of this one.
+installation will be added as its own folder (`mesa/cluster_patched/`), never
+as an edit of this one.

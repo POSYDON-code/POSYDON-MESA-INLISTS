@@ -20,8 +20,8 @@ commit under `r11701/releases/v2.0/reruns/`; see the top-level README.
   hold one of two versions of `r11701/ZAMS_models/`, but the newer one is a
   superset: the 6 shared files are byte-identical, and it adds the 0.2, 0.45
   (2023-03-07) and 2 Z_sun (2023-04-05) models. Only the newer one is kept.
-- POSYDON's `grid_params/` (MESA build defaults and ini templates) were
-  added here first and have since moved to `r11701/builds/default/` and
+- POSYDON's `grid_params/` (MESA defaults and ini templates) were
+  added here first and have since moved to `r11701/mesa/default/` and
   `templates/`.
 - `production_grids.csv`: one row per ini file found in a v2 run folder
   (797 rows), with columns:

@@ -9,12 +9,13 @@ Note: for MESA version 11701, we use mesa_sdk: 20190503
 
 ```
 r11701/                       one folder per MESA version
-  builds/default/             what depends only on the MESA build:
-                              defaults/, stock columns/ and src/, BUILD.md
+  mesa/default/               MESA's own stock files for one installation:
+                              defaults/, columns/ and src/ (the mesa_inlists
+                              layer); mesa/cluster_patched/ later
   ZAMS_models/                ZAMS models for grids that start from ZAMS
   releases/
     v2.0/                     the inlists of POSYDON v2.0 (frozen)
-      release.ini             build, frozen flag, source commit
+      release.ini             MESA installation, frozen flag, source commit
       common/                 shared by every grid type: binary/inlist1,
                               inlist2, inlist_project, src/, column lists
       HMS-HMS/                one folder per grid type, each with a
@@ -75,7 +76,8 @@ as those today's `posydon-setup-grid` takes from the commit itself.
 
 - A release folder is frozen once its `release.ini` says `frozen = true`;
   change `development/` instead.
-- A new MESA build is a new folder under `builds/`, never an edit.
+- A new MESA installation (e.g. a patched one) is a new folder under
+  `mesa/`, never an edit.
 - A new MESA version is a sibling of `r11701/` with the same layout.
 
 ## Old refs
