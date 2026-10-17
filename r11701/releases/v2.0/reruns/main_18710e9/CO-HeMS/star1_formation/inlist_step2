@@ -1,0 +1,3 @@
+&star_job
+	new_Z = 1.42d-2
+/ ! end of star_job namelist

@@ -5,9 +5,9 @@ on yggdrasil names a scenario commit of this repo; this folder holds the
 physics inlists of each of those commits side by side, on one branch, so none
 of them depends on a feature branch surviving.
 
-Nothing here is the final layout yet. The next step is to pick a base, diff
-the others against it, and turn the differences into release and rerun
-folders.
+This folder is the archive. The working layout built from it is
+`r11701/releases/v2.0/` (main, equal to `a060b7b`) with one rerun per other
+commit under `r11701/releases/v2.0/reruns/`; see the top-level README.
 
 ## Contents
 
@@ -20,17 +20,9 @@ folders.
   hold one of two versions of `r11701/ZAMS_models/`, but the newer one is a
   superset: the 6 shared files are byte-identical, and it adds the 0.2, 0.45
   (2023-03-07) and 2 Z_sun (2023-04-05) models. Only the newer one is kept.
-- `builds/default/`: what depends only on the MESA build: MESA's namelist
-  `defaults/`, its stock column lists (`columns/`) and Fortran sources
-  (`src/`). Byte-identical copy of POSYDON's `grid_params/defaults/r11701/`,
-  which the v2 ini files read through `${posydon_github_root}`; see
-  `builds/default/BUILD.md` for its history and how it differs from the
-  patched MESA build on yggdrasil.
-- `templates/`: the annotated ini templates from POSYDON's `grid_params/`:
-  `grid_params.ini` (grid setup) and `pipeline_{yggdrasil,quest}.ini`
-  (post-processing). Byte-identical copies; their paths still point into a
-  POSYDON clone (`${posydon_github_root}/grid_params/...`) until the setup
-  reads this repository directly.
+- POSYDON's `grid_params/` (MESA build defaults and ini templates) were
+  added here first and have since moved to `r11701/builds/default/` and
+  `templates/`.
 - `production_grids.csv`: one row per ini file found in a v2 run folder
   (797 rows), with columns:
   - `grid_type`, `metallicity`, `run`, `ini_file`: where the ini sits

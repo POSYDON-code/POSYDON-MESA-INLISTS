@@ -1,0 +1,4 @@
+&controls
+	mesh_Pgas_div_P_exponent = 0
+	x_logical_ctrl(5) = .true.
+/ ! end of controls namelist

@@ -1,0 +1,3 @@
+&controls
+	x_logical_ctrl(7) = .false.
+/ ! end of controls namelist

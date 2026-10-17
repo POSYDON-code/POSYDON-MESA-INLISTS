@@ -1,0 +1,16 @@
+&controls
+	max_age = -1
+	thermohaline_coeff = 17.5d0
+	surf_avg_tau_min = 10.0
+	surf_avg_tau = 100.0
+	surf_w_div_w_crit_limit = 0.95d0
+	surf_w_div_w_crit_tol = 0.1d0
+	mesh_Pgas_div_P_exponent = 0
+	max_logT_for_k_below_const_q = 1.0d2
+	max_q_for_k_below_const_q = 0.995d0
+	min_q_for_k_below_const_q = 0.995d0
+	max_logT_for_k_const_mass = 1.0d2
+	max_q_for_k_const_mass = 0.99d0
+	min_q_for_k_const_mass = 0.99d0
+	x_logical_ctrl(5) = .true.
+/ ! end of controls namelist
