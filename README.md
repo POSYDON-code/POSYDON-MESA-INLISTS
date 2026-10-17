@@ -25,8 +25,6 @@ r11701/                       one folder per MESA version
       single_HMS/
       single_HeMS/
       reruns/<name>/          physics variants of v2.0 (overlays)
-    development/              the next release; new work lands here.
-                              Starts as v2.0 + matthias_lbv_thermo_dedt_noAgeLimit
   running_scripts/            the v2 parameter files and example ini files
 templates/                    annotated ini templates (grid setup, pipeline)
 v2_sources/                   archive: the inlists of every v2 production
@@ -75,8 +73,9 @@ as those today's `posydon-setup-grid` takes from the commit itself.
 
 ### Rules
 
-- A release folder is frozen once its `release.ini` says `frozen = true`;
-  change `development/` instead.
+- A release folder is frozen once its `release.ini` says `frozen = true`.
+  The next release is a new folder next to it, started when its physics is
+  decided (e.g. as a copy of `v2.0` with a rerun folded in).
 - A new MESA installation (e.g. a patched one) is a new folder under
   `mesa/`, never an edit.
 - A new MESA version is a sibling of `r11701/` with the same layout.
