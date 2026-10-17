@@ -25,7 +25,8 @@ r11701/                       one folder per MESA version
       single_HMS/
       single_HeMS/
       reruns/<name>/          physics variants of v2.0 (overlays)
-  running_scripts/            the v2 parameter files and example ini files
+  running_scripts/            the v2 grid parameter spaces (parameter_space_v1/,
+                              parameter_space_v2/)
 templates/                    annotated ini templates (grid setup, pipeline)
 v2_sources/                   archive: the inlists of every v2 production
                               commit and production_grids.csv
@@ -70,6 +71,15 @@ which holds HeMS-HMS as it was set up. Every one of these commits is
 reproduced exactly by `v2.0` plus its rerun, for every grid type: each
 target's merged keys, the column lists and the Fortran sources are the same
 as those today's `posydon-setup-grid` takes from the commit itself.
+
+### Ini files
+
+Write the ini file of a new grid with `posydon-grid init <grid type> grid.ini`
+(POSYDON); it fills in what the grid type decides and leaves your SLURM
+account and partition as placeholders. The old per-cluster example ini files
+of `running_scripts/` were removed: they held personal accounts and mixed
+paths. They are in the history, and the inis of every v2 production grid are
+archived under `v2_sources/`.
 
 ### Rules
 
