@@ -1126,6 +1126,7 @@
          type (binary_info), pointer :: b
          integer, intent(in) :: binary_id
          integer, intent(out) :: ierr
+         real(dp) :: rl_gap_1
          logical, intent(in) :: restart
          call binary_ptr(binary_id, b, ierr)
          if (ierr /= 0) then ! failure in  binary_ptr
@@ -1145,6 +1146,18 @@
             end if
          end if
          extras_binary_startup = keep_going
+
+         if (b% doing_first_model_of_run .and. b% terminate_if_initial_overflow &
+                  .and. (.not. b% ignore_rlof_flag .or. b% model_twins_flag)) then
+               rl_gap_1 = (b% s1% photosphere_r - b% rl(1)/Rsun * (1 - b% eccentricity) )/(b% rl(1)/Rsun)
+               if (b% rl_relative_gap(b% d_i) >= 0.0d0 &
+                     .or. (b% point_mass_i == 0 .and. b% rl_relative_gap(b% a_i) >= 0.0d0) &
+                     .or. rl_gap_1 >= 0.0 ) then
+                  extras_binary_startup = terminate
+                  write(*,'(g0)') "termination code: Terminate because of overflowing initial model"
+               end if
+            end if
+
       end function  extras_binary_startup
 
       !Return either rety,backup,keep_going or terminate
@@ -1159,17 +1172,21 @@
             return
          end if
          extras_binary_check_model = keep_going
-       
+
 
        if (b% point_mass_i/=0 .and. ((b% rl_relative_gap(1) .ge. 0.d0) &
          .or. (abs(b% mtransfer_rate/(Msun/secyer)) .ge. 1.0d-10))) then
          if (b% point_mass_i/=1) then
            i_don = 1
+           b% s_donor => b% s1
          else
            i_don = 2
+           b% s_donor => b% s2
          end if
-          ! Binary evolution
-          b% do_jdot_mb = .true.
+          ! Turning back on binary orbital evolution
+          if (.not. b% s_donor% x_logical_ctrl(6)) then
+              b% do_jdot_mb = .true. ! turn on magnetic braking for RLOFing HMS stars only
+          end if
           b% do_jdot_gr = .true.
           b% do_jdot_ml = .true.
           b% do_jdot_ls = .true.
@@ -1177,8 +1194,11 @@
           b% do_j_accretion = .true.
        end if
 
+
       end function extras_binary_check_model
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ! returns either keep_going or terminate.
       ! note: cannot request retry or backup; extras_check_model can do that.
       integer function extras_binary_finish_step(binary_id)
@@ -1189,8 +1209,9 @@
          integer :: ierr, star_id, i
          real(dp) :: q, mdot_limit_low, mdot_limit_high, &
             center_h1, center_h1_old, center_he4, center_he4_old, &
-            rl23,rl2_1,trap_rad, mdot_edd
-         logical :: is_ne_biggest
+            rl23,rl2_1,trap_rad, mdot_edd, tau_kh, tau_macc
+         logical :: is_ne_biggest, superthermal_accretion
+         real(dp) :: gamma1_integral, integral_norm, Pdm_over_rho
 
          extras_binary_finish_step = keep_going
 
@@ -1199,13 +1220,13 @@
             return
          end if
 
-
          if (b% point_mass_i == 0) then
             ! Check for simultaneous RLOF from both stars after TAMS of one star
             if (b% s2% center_h1 < 1.0d-6 .or. b% s1% center_h1 < 1.0d-6) then
                 if (b% rl_relative_gap(1) > 0.0_dp .and. b% rl_relative_gap(2) > 0.0_dp) then
                   extras_binary_finish_step = terminate
                   write(*,'(g0)') "termination code: Both stars fill their Roche Lobe and at least one of them is off MS"
+		  return
                 end if
             end if
          end if
@@ -1223,6 +1244,7 @@
           if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
             extras_binary_finish_step = terminate
             write(*,'(g0)') "termination code: Reached maximum mass transfer rate: 1d-1"
+	    return
          end if
 
          ! check trapping radius only for runs with a compact object
@@ -1237,6 +1259,7 @@
             !if (abs(b% mtransfer_rate/(Msun/secyer)) >= 1d-1) then            !stop when larger than 0.1 Msun/yr
               extras_binary_finish_step = terminate
               write(*,'(g0)') "termination code: Reached maximum mass transfer rate: Exceeded photon trapping radius"
+	      return
             end if
           end if
 
@@ -1301,12 +1324,13 @@
                if (b% rl_relative_gap(star_id) > 0.29858997d0*atan_cr(1.83530121d0*pow_cr(q,0.39661426d0))) then
                  write(*,'(g0)') "termination code: Terminate due to L2 overflow during case A"
                  extras_binary_finish_step = terminate
+		 return
                end if
             end if
          end if
-         
-         
-         
+
+
+
          if (b% point_mass_i /= 1) then !Check for L2 overflow for primary when not in MS
           if (b% s1% center_h1 < 1.0d-6) then ! Misra et al. 2020 L2 overflow check starts only after TAMS of one of the two stars. Before we use Marchant et al. 2016 L2 overflow check implemented already in MESA
              i_don = 1
@@ -1382,9 +1406,61 @@
                end if
           end if
        end if
-       
-       
-       
+
+         ! check for termination due to pair-instability in primary
+         if (b% point_mass_i /= 1) then
+            ! calculate volumetric pressure-weighted average adiabatic index -4/3, following Renzo et al. 2020
+            integral_norm = 0.0d0
+            gamma1_integral = 0.0d0
+            do i=1,b% s1% nz
+               Pdm_over_rho = b% s1% P(i)*b% s1% dm(i)/b% s1% rho(i)
+               integral_norm = integral_norm + Pdm_over_rho
+               gamma1_integral = gamma1_integral + &
+                  (b% s1% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
+            end do
+            gamma1_integral = gamma1_integral/max(1.0d-99,integral_norm)
+            if (gamma1_integral < 0.0d0) then
+               ! check central value of adiabatic index to differentiate between full and pulsational pair-instability
+               if (b% s1% gamma1(b% s1% nz)-4.0d0/3.0d0 < 0.0d0) then
+                  write(*,'(g0)') "termination code: Primary enters pair-instability regime"
+                  extras_binary_finish_step = terminate
+                  return
+               else
+                  write(*,'(g0)') "termination code: Primary enters pulsational pair-instability regime"
+                  extras_binary_finish_step = terminate
+                  return
+               end if
+            end if
+         end if
+
+         ! check for termination due to pair-instability in secondary
+         if (b% point_mass_i /= 2) then
+            ! calculate volumetric pressure-weighted average adiabatic index -4/3, following Renzo et al. 2020
+            integral_norm = 0.0d0
+            gamma1_integral = 0.0d0
+            do i=1,b% s2% nz
+               Pdm_over_rho = b% s2% P(i)*b% s2% dm(i)/b% s2% rho(i)
+               integral_norm = integral_norm + Pdm_over_rho
+               gamma1_integral = gamma1_integral + &
+                  (b% s2% gamma1(i)-4.0d0/3.0d0)*Pdm_over_rho
+            end do
+            gamma1_integral = gamma1_integral/max(1.0d-99,integral_norm)
+            if (gamma1_integral < 0.0d0) then
+               ! check central value of adiabatic index to differentiate between full and pulsational pair-instability
+               if (b% s2% gamma1(b% s2% nz)-4.0d0/3.0d0 < 0.0d0) then
+                  write(*,'(g0)') "termination code: Secondary enters pair-instability regime"
+                  extras_binary_finish_step = terminate
+                  return
+               else
+                  write(*,'(g0)') "termination code: Secondary enters pulsational pair-instability regime"
+                  extras_binary_finish_step = terminate
+                  return
+               end if
+            end if
+         end if
+
+
+
          if (extras_binary_finish_step == terminate) then
             !write(*,*) "saving final profilesA"
             !call star_write_profile_info(b% s1% id, "LOGS1/prof_9FINAL.data", b% s1% id, ierr)
@@ -1433,7 +1509,7 @@
                if (ierr /= 0) return ! failure
             end if
          end if
-	 
+
 	 if (b% point_mass_i == 0) then
              if (b% s_accretor% x_logical_ctrl(4)) then
                 if (b% s_accretor% w_div_w_crit_avg_surf >= 0.97d0 .and. b% d_i == 2) then
@@ -1446,6 +1522,48 @@
 	        end if
              end if
 	 end if
+
+         ! conditions to check for termination in the case of superthermal accretion w/ contact and
+         ! critical rotation + accretion disk
+         if (b% point_mass_i /= b% a_i) then
+            tau_macc = b% s_accretor% star_mass/abs(b% s_accretor% mstar_dot/Msun*secyer)
+            tau_kh = b% s_accretor% kh_timescale
+            ! (via experimentation, we can follow evolution up to about when this ratio is 1/50)
+            ! Pols & Marinus 1994, A&A, 288, 475 cite effects kicking in as early as a ratio of 1/10
+            if (tau_macc / tau_kh < 0.02d0) then
+               superthermal_accretion = .true.
+            else
+               superthermal_accretion = .false.
+            end if
+
+            if (superthermal_accretion) then
+               ! condition to check for a contact binary
+               if (b% point_mass_i /= b% d_i) then
+                  if ((b% r(b% d_i) .ge. b% rl(b% d_i)) .and. (b% r(b% a_i) .ge. b% rl(b% a_i))) then
+                     extras_binary_finish_step = terminate
+                     write(*,'(g0)') 'termination code: Both stars fill their Roche Lobe and t_kh > t_acc'
+                     return
+                  end if
+               end if
+
+               ! check if accretor is accreting at a superthermal rate and critically rotating 
+               ! (decretion + expansion due to rapid accretion, here we are assuming this leads to L2 overflow)
+               if (superthermal_accretion .and. &
+                  (b% s_accretor% w_div_w_crit_avg_surf >= 0.99d0*b% s_accretor% surf_w_div_w_crit_limit)) then
+
+                  ! terminate as a case of L2 overflow
+                  extras_binary_finish_step = terminate
+                  if (b% d_i == 1) then
+                     write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 1'
+                  else
+                     write(*,'(g0)') 'termination code: overflow from L2, t_kh > t_acc and w > w_crit_lim, donor is star 2'
+                  end if
+		  
+                  return
+		  
+               end if
+            end if
+         end if
 
       end function extras_binary_finish_step
 

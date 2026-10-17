@@ -80,7 +80,7 @@
       !WHEN TO STOP
       gamma_center_limit = 10d0 ! Crystallization begins ==> white dwarf
       logQ_limit = 58d0 ! Full extent of the EOS parameter space
-      max_age = 1.4e10 ! Hubble time
+      max_age = -1 ! no stopping to allow grids being used later than ZAMS
 
       !PHYSICS
       which_atm_option = 'simple_photosphere'
@@ -98,7 +98,8 @@
 
       use_ledoux_criterion = .true.
       alpha_semiconvection = 0.1d0
-      thermohaline_coeff = 0.0d0 ! 2/3 * 8/3 * pi^2 for aspect ratio 1 of the fingers, using eq. 4 of Charbonel+2007 and eq. 14 in Paxton+2013
+      ! 2/3 * 8/3 * pi^2 for aspect ratio 1 of the fingers, using eq. 4 of Charbonel+2007 and eq. 14 in Paxton+2013
+      thermohaline_coeff = 17.5d0 !DEF: 0.0d0 
       mixing_D_limit_for_log = 1d-50
       num_cells_for_smooth_gradL_composition_term = 0
 
@@ -116,16 +117,20 @@
       w_div_wcrit_max = 0.9d0
 
       max_mdot_redo_cnt = 200 !DEF: 0 (explicit).
-      surf_avg_tau_min = 0d0 !DEF: 1
-      surf_avg_tau = 10d0 !DEF: 100
+      surf_avg_tau_min = 10.0 !DEF: 1
+      surf_avg_tau = 100.0 !DEF: 100
       min_years_dt_for_redo_mdot = 0d0 !DEF:0
-      surf_w_div_w_crit_limit = 0.99d0 !DEF:0.99
-      surf_w_div_w_crit_tol = 0.05d0 !DEF:0.05
+      surf_w_div_w_crit_limit = 0.95d0 !DEF:0.99
+      surf_w_div_w_crit_tol = 0.1d0 !DEF:0.05
       rotational_mdot_boost_fac = 1d10 !DEF:1d5
       rotational_mdot_kh_fac = 1d10 !DEF: 0.3d0
       mdot_revise_factor = 1.2d0 !DEF:1.1
       implicit_mdot_boost = 0.1d0 !DEF:0.1
       max_mdot_jump_for_rotation = 10d0 ! for smooth transition from mass accretion to mass loss
+
+      mesh_Pgas_div_P_exponent = 0 !DEF = 0 ! mesh_delta_coeff*(Pgas/Ptotal)^mesh_Pgas_div_P_exponent
+                        !we want a value > 0 so that mesh_delta_coeff becomes much lower (i.e. higher spatial resolution)
+                        !when Pgas/(Prad+Pgas) becomes low (close to the surface))
 
       D_visc_factor = 0.0d0
       D_ST_factor = 0.0d0
@@ -184,6 +189,14 @@
       max_timestep_factor = 1.2d0
       max_allowed_nz = 20000
       max_dq = 1d-3
+      ! Fixing the position of the Lagrangian region of the mesh helps
+      ! convergence near the Eddington limit (borrowed from MIST)
+      max_logT_for_k_below_const_q = 1.0d2 ! DEF: 5
+      max_q_for_k_below_const_q = 0.995d0 ! DEF: 1.0d0
+      min_q_for_k_below_const_q = 0.995d0 ! DEF: 0.999d0
+      max_logT_for_k_const_mass = 1.0d2 ! DEF: 6
+      max_q_for_k_const_mass = 0.99d0 ! DEF: 1.0d0
+      min_q_for_k_const_mass = 0.99d0 ! DEF: 0.995d0
 
       newton_iterations_limit = 20
 
@@ -250,4 +263,6 @@ delta_HR_ds_L = 0.125d0
       x_logical_ctrl(3) = .true.
       ! for the simplified accretion model, which will stop accretion and wind loss for the rapid rotating accretor
       x_logical_ctrl(4) = .false.
+      ! skip calculating implicit mdot
+      x_logical_ctrl(5) = .true.
  / ! end of controls namelist

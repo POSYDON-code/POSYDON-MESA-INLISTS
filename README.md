@@ -25,7 +25,8 @@ r11701/                       one folder per MESA version
       single_HMS/
       single_HeMS/
       reruns/<name>/          physics variants of v2.0 (overlays)
-    development/              the next release; new work lands here
+    development/              the next release; new work lands here.
+                              Starts as v2.0 + matthias_lbv_thermo_dedt_noAgeLimit
   running_scripts/            the v2 parameter files and example ini files
 templates/                    annotated ini templates (grid setup, pipeline)
 v2_sources/                   archive: the inlists of every v2 production

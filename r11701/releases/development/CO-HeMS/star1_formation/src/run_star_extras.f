@@ -886,7 +886,8 @@ contains
     call store_extra_info(s)
 
     ! consistent with H-ZAMS definition from Aaron
-    if (s% power_he_burn * Lsun / s% L(1) > 0.985)  extras_finish_step = terminate
+    if ((s% power_nuc_burn * Lsun / s% L(1) > 0.985) .and. &
+        (s% power_he_burn > 0.5*s% power_nuc_burn))  extras_finish_step = terminate
     if (extras_finish_step == terminate) s% termination_code =t_extras_finish_step
 
 
