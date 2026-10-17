@@ -25,12 +25,22 @@ files are identical, so the v2 grids, set up in 2023-2024 with
 `${posydon_github_root}/grid_params/defaults/r11701/...`, used these
 defaults.
 
-## Not the cluster installation
+## Lines left out on purpose
 
-These are not exactly the defaults of the MESA installation the v2 grids ran with
-on yggdrasil (`mesa-r11701_witheoschange_andwithreverseMTchange_fiximplicitmdot`):
-there, `controls.defaults` comments out 10 `xa_*_limit(1)` lines, and
-`star_job.defaults` has `remove_center_by_he4` and two
-`remove_initial_surface_by_v_surf_div_*` options of the patched MESA. That
-installation will be added as its own folder (`mesa/cluster_patched/`), never
-as an edit of this one.
+These files are not a verbatim copy of the `.defaults` of the MESA the v2
+grids ran with on yggdrasil
+(`mesa-r11701_witheoschange_andwithreverseMTchange_fiximplicitmdot`). That
+MESA's files have 15 more settings, which are not here on purpose:
+
+- `star/controls.defaults`: the 12 lines
+  `xa_{central,surface,average}_{lower,upper}_limit_species(1) = ''` and
+  `xa_{central,surface,average}_{lower,upper}_limit(1) = 0`;
+- `star/star_job.defaults`: `remove_center_by_he4 = 0`,
+  `remove_initial_surface_by_v_surf_div_cs = 0` and
+  `remove_initial_surface_by_v_surf_div_v_escape = 0`.
+
+The grid setup starts every inlist from these files, and MESA's original
+lines for these settings did not work in an inlist with that version of
+MESA. Leaving them out changes nothing: their values are MESA's own
+defaults (off), which MESA uses whenever a setting is absent from an
+inlist. Keep them out when updating these files.

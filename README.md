@@ -11,7 +11,7 @@ Note: for MESA version 11701, we use mesa_sdk: 20190503
 r11701/                       one folder per MESA version
   mesa/default/               MESA's own stock files for one installation:
                               defaults/, columns/ and src/ (the mesa_inlists
-                              layer); mesa/cluster_patched/ later
+                              layer; see its README)
   ZAMS_models/                ZAMS models for grids that start from ZAMS
   releases/
     v2.0/                     the inlists of POSYDON v2.0 (frozen)
