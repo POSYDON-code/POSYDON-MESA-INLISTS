@@ -20,6 +20,17 @@ folders.
   hold one of two versions of `r11701/ZAMS_models/`, but the newer one is a
   superset: the 6 shared files are byte-identical, and it adds the 0.2, 0.45
   (2023-03-07) and 2 Z_sun (2023-04-05) models. Only the newer one is kept.
+- `builds/default/`: what depends only on the MESA build: MESA's namelist
+  `defaults/`, its stock column lists (`columns/`) and Fortran sources
+  (`src/`). Byte-identical copy of POSYDON's `grid_params/defaults/r11701/`,
+  which the v2 ini files read through `${posydon_github_root}`; see
+  `builds/default/BUILD.md` for its history and how it differs from the
+  patched MESA build on yggdrasil.
+- `templates/`: the annotated ini templates from POSYDON's `grid_params/`:
+  `grid_params.ini` (grid setup) and `pipeline_{yggdrasil,quest}.ini`
+  (post-processing). Byte-identical copies; their paths still point into a
+  POSYDON clone (`${posydon_github_root}/grid_params/...`) until the setup
+  reads this repository directly.
 - `production_grids.csv`: one row per ini file found in a v2 run folder
   (797 rows), with columns:
   - `grid_type`, `metallicity`, `run`, `ini_file`: where the ini sits
@@ -34,6 +45,8 @@ folders.
     `setup fails today`, or `not replayable` (no inlists or grid copied, or
     the ini does not belong to the run)
   - `notes`: oddities, e.g. the non-existent system type `MS-MS`
+- Not included: POSYDON's submodule `grid_params/POSYDON-MESA-INLISTS`
+  (this repository, pinned at `c1f75ac`).
 - Not included: `r11701/running_scripts/` (64-102 MB of parameter files;
   4 versions). Read it from the commit if needed.
 
